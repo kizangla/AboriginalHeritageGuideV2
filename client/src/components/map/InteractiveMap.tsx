@@ -34,24 +34,70 @@ export default function InteractiveMap({ onTerritorySelect, onMapReady }: Intera
     mapInstanceRef.current = map;
     onMapReady(map);
 
-    // Try CartoDB tile layer as it's often more reliable
-    const tileLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
-      subdomains: 'abcd',
-      maxZoom: 20
-    });
+    // Add Australia outline as backup
+    const australiaOutline = {
+      type: "Feature",
+      geometry: {
+        type: "Polygon",
+        coordinates: [[
+          [113, -44], [153, -44], [153, -10], [113, -10], [113, -44]
+        ]]
+      }
+    };
     
-    tileLayer.on('tileerror', (e) => {
-      console.error('Tile loading error:', e);
-      // Fallback to OpenStreetMap if CartoDB fails
-      const fallbackTile = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    const outlineLayer = L.geoJSON(australiaOutline, {
+      style: {
+        color: '#2c3e50',
+        weight: 2,
+        opacity: 0.8,
+        fillColor: '#ecf0f1',
+        fillOpacity: 0.1
+      }
+    }).addTo(map);
+
+    // Try multiple tile servers
+    const tileServers = [
+      'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
+      'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+      'https://tiles.wmflabs.org/osm/{z}/{x}/{y}.png'
+    ];
+    
+    let currentServerIndex = 0;
+    
+    const tryTileServer = (index: number) => {
+      if (index >= tileServers.length) {
+        console.log('All tile servers failed, using Australia outline only');
+        return;
+      }
+      
+      const tileLayer = L.tileLayer(tileServers[index], {
         attribution: '© OpenStreetMap contributors',
         maxZoom: 18,
       });
-      fallbackTile.addTo(map);
-    });
+      
+      let tileLoadCount = 0;
+      let tileErrorCount = 0;
+      
+      tileLayer.on('tileload', () => {
+        tileLoadCount++;
+        if (tileLoadCount > 0 && outlineLayer) {
+          map.removeLayer(outlineLayer);
+        }
+      });
+      
+      tileLayer.on('tileerror', () => {
+        tileErrorCount++;
+        if (tileErrorCount > 5) {
+          console.log(`Tile server ${index} failed, trying next...`);
+          map.removeLayer(tileLayer);
+          tryTileServer(index + 1);
+        }
+      });
+      
+      tileLayer.addTo(map);
+    };
     
-    tileLayer.addTo(map);
+    tryTileServer(0);
     
     // Force a redraw after a short delay
     setTimeout(() => {
