@@ -71,6 +71,7 @@ export default function MapPage() {
       <main className="relative">
         <SimpleMap 
           onMapReady={setMapInstance}
+          onTerritorySelect={handleTerritorySelect}
         />
         
         <SearchPanel onSearch={handleSearch} />
