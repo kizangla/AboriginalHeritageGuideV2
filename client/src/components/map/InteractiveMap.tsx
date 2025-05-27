@@ -27,18 +27,31 @@ export default function InteractiveMap({ onTerritorySelect, onMapReady }: Intera
   });
 
   useEffect(() => {
-    if (!mapRef.current || mapInstanceRef.current) return;
+    if (!mapRef.current) return;
+    
+    // Clear any existing map first
+    if (mapInstanceRef.current) {
+      mapInstanceRef.current.remove();
+      mapInstanceRef.current = null;
+    }
 
     try {
       console.log('Creating map instance...');
+      
+      // Force container to be ready
+      const container = mapRef.current;
+      container.innerHTML = ''; // Clear any existing content
+      
       // Initialize map with explicit options
-      const map = L.map(mapRef.current, {
+      const map = L.map(container, {
         center: [-25.2744, 133.7751],
         zoom: 5,
         zoomControl: true,
-        attributionControl: true
+        attributionControl: true,
+        preferCanvas: false
       });
       
+      // Store reference immediately
       mapInstanceRef.current = map;
       onMapReady(map);
 
@@ -53,18 +66,24 @@ export default function InteractiveMap({ onTerritorySelect, onMapReady }: Intera
       
       // Add visible test elements
       console.log('Adding test marker...');
-      L.marker([-25.2744, 133.7751])
+      const marker = L.marker([-25.2744, 133.7751])
         .addTo(map)
-        .bindPopup('Map is working! Your Aboriginal territories will appear here.')
+        .bindPopup('🗺️ MAP IS WORKING! Your Aboriginal territories will appear here.')
         .openPopup();
         
       // Add test circle to show map is interactive
-      L.circle([-25.2744, 133.7751], {
+      const circle = L.circle([-25.2744, 133.7751], {
         color: 'red',
         fillColor: '#f03',
         fillOpacity: 0.5,
         radius: 500000
       }).addTo(map);
+
+      // Force map to render properly
+      setTimeout(() => {
+        map.invalidateSize();
+        console.log('Map size invalidated and forced refresh');
+      }, 100);
 
       console.log('Map initialization complete');
 
@@ -72,13 +91,8 @@ export default function InteractiveMap({ onTerritorySelect, onMapReady }: Intera
       console.error('Map initialization failed:', error);
     }
 
-    return () => {
-      if (mapInstanceRef.current) {
-        mapInstanceRef.current.remove();
-        mapInstanceRef.current = null;
-      }
-    };
-  }, [onMapReady]);
+    // Don't cleanup on every render - only on unmount
+  }, []); // Empty dependency array
 
   useEffect(() => {
     if (!mapInstanceRef.current || !territoriesGeoJSON || isLoading) return;
