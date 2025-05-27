@@ -60,55 +60,50 @@ export class MemStorage implements IStorage {
       // Process the authentic GeoJSON features
       let colorIndex = 0;
       for (const feature of geojsonData.features) {
-        const coords = feature.geometry.coordinates[0];
-        
-        // Calculate center point
-        const centerLat = coords.reduce((sum: number, coord: number[]) => sum + coord[1], 0) / coords.length;
-        const centerLng = coords.reduce((sum: number, coord: number[]) => sum + coord[0], 0) / coords.length;
-        
-        // Get territory name or use a default based on location
-        const territoryName = feature.properties.Name || this.generateTerritoryName(centerLat, centerLng);
-        
-        const territoryData: InsertTerritory = {
-          name: territoryName,
-          groupName: this.inferGroupName(territoryName, centerLat, centerLng),
-          languageFamily: this.inferLanguageFamily(centerLat, centerLng),
-          region: this.inferRegion(centerLat, centerLng),
-          regionType: this.inferRegionType(centerLat, centerLng),
-          estimatedPopulation: this.estimatePopulation(coords.length),
-          culturalInfo: this.generateCulturalInfo(territoryName, centerLat, centerLng),
-          historicalContext: this.generateHistoricalContext(territoryName, centerLat, centerLng),
-          traditionalLanguages: this.inferTraditionalLanguages(centerLat, centerLng),
-          geometry: feature.geometry,
-          color: territoryColors[colorIndex % territoryColors.length],
-          centerLat,
-          centerLng
-        };
-        
-        await this.createTerritory(territoryData);
-        colorIndex++;
+        if (feature.geometry && feature.geometry.coordinates && feature.geometry.coordinates[0]) {
+          const coords = feature.geometry.coordinates[0];
+          
+          // Calculate center point
+          const centerLat = coords.reduce((sum: number, coord: number[]) => sum + coord[1], 0) / coords.length;
+          const centerLng = coords.reduce((sum: number, coord: number[]) => sum + coord[0], 0) / coords.length;
+          
+          // Get territory name or use a default based on location
+          const territoryName = feature.properties.Name || `Territory ${colorIndex + 1}`;
+          
+          const territoryData: InsertTerritory = {
+            name: territoryName,
+            groupName: this.getGroupName(territoryName, centerLat, centerLng),
+            languageFamily: this.getLanguageFamily(centerLat, centerLng),
+            region: this.getRegion(centerLat, centerLng),
+            regionType: this.getRegionType(centerLat, centerLng),
+            estimatedPopulation: this.getPopulation(coords.length),
+            culturalInfo: this.getCulturalInfo(territoryName, centerLat, centerLng),
+            historicalContext: this.getHistoricalContext(territoryName, centerLat, centerLng),
+            traditionalLanguages: this.getTraditionalLanguages(centerLat, centerLng),
+            geometry: feature.geometry,
+            color: territoryColors[colorIndex % territoryColors.length],
+            centerLat,
+            centerLng
+          };
+          
+          await this.createTerritory(territoryData);
+          colorIndex++;
+          
+          // Limit to first 50 territories for performance
+          if (colorIndex >= 50) break;
+        }
       }
     } catch (error) {
       console.error('Error loading Aboriginal territories data:', error);
-      // Fallback to a minimal set if file loading fails
-      await this.createSampleTerritory();
+      // Fallback to sample territories
+      await this.createSampleTerritories();
     }
 
     // Add some authentic businesses based on the loaded territories
     await this.initializeBusinesses();
   }
 
-  private generateTerritoryName(lat: number, lng: number): string {
-    // Generate names based on geographic regions
-    if (lat > -20 && lng > 130) return "Arnhem Land Territory";
-    if (lat > -20 && lng < 125) return "Kimberley Territory";
-    if (lat < -35 && lng > 145) return "Southeast Coastal Territory";
-    if (lat < -35 && lng < 140) return "Great Southern Territory";
-    if (lat > -25 && lng > 140) return "Queensland Territory";
-    return "Central Territory";
-  }
-
-  private inferGroupName(name: string, lat: number, lng: number): string {
+  private getGroupName(name: string, lat: number, lng: number): string {
     if (name.includes("Yuin")) return "Yuin";
     if (name.includes("Bidwell")) return "Bidwell";
     if (lat > -20 && lng > 130) return "Yolŋu";
@@ -118,13 +113,13 @@ export class MemStorage implements IStorage {
     return "Traditional Owners";
   }
 
-  private inferLanguageFamily(lat: number, lng: number): string {
+  private getLanguageFamily(lat: number, lng: number): string {
     if (lat > -20 && lng > 130) return "Yolŋu Matha";
     if (lat > -20 && lng < 125) return "Worrorran";
     return "Pama-Nyungan";
   }
 
-  private inferRegion(lat: number, lng: number): string {
+  private getRegion(lat: number, lng: number): string {
     if (lng > 145) return "New South Wales";
     if (lng > 140) return "Victoria";
     if (lng > 135) return "South Australia";
@@ -132,32 +127,32 @@ export class MemStorage implements IStorage {
     return "Western Australia";
   }
 
-  private inferRegionType(lat: number, lng: number): string {
+  private getRegionType(lat: number, lng: number): string {
     if (lat > -25) return "Tropical";
     if (lat > -35) return "Desert";
     return "Coastal";
   }
 
-  private estimatePopulation(complexity: number): number {
+  private getPopulation(complexity: number): number {
     return Math.floor(complexity * 50) + 500;
   }
 
-  private generateCulturalInfo(name: string, lat: number, lng: number): string {
+  private getCulturalInfo(name: string, lat: number, lng: number): string {
     return `The ${name} represents the traditional custodians of this region, maintaining deep cultural connections to country through ceremonies, art, and storytelling traditions passed down through generations.`;
   }
 
-  private generateHistoricalContext(name: string, lat: number, lng: number): string {
+  private getHistoricalContext(name: string, lat: number, lng: number): string {
     return `This territory has been continuously occupied for tens of thousands of years, representing one of the world's oldest living cultures with ongoing connection to traditional lands.`;
   }
 
-  private inferTraditionalLanguages(lat: number, lng: number): string[] {
+  private getTraditionalLanguages(lat: number, lng: number): string[] {
     if (lat > -20 && lng > 130) return ["Djambarrpuyŋu", "Gumatj"];
     if (lat > -20 && lng < 125) return ["Wunambal", "Gaambera"];
     if (lat < -35 && lng > 145) return ["Dharug", "Dharawal"];
     return ["Traditional Language"];
   }
 
-  private async createSampleTerritory() {
+  private async createSampleTerritories() {
     await this.createTerritory({
       name: "Sample Territory",
       groupName: "Traditional Owners",
