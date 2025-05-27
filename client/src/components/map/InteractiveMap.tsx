@@ -136,10 +136,19 @@ export default function InteractiveMap({ onTerritorySelect, onMapReady }: Intera
   }
 
   return (
-    <div 
-      ref={mapRef} 
-      className="h-[calc(100vh-80px)] bg-blue-50"
-      style={{ zIndex: 1 }}
-    />
+    <div className="relative h-[calc(100vh-80px)]">
+      <div 
+        ref={mapRef} 
+        className="w-full h-full border-2 border-red-500"
+        style={{ 
+          zIndex: 1,
+          backgroundColor: '#f0f0f0',
+          minHeight: '400px'
+        }}
+      />
+      <div className="absolute top-4 left-4 bg-white p-2 rounded shadow z-10 text-sm">
+        Map Container Test - {mapInstanceRef.current ? 'Map Initialized' : 'No Map'}
+      </div>
+    </div>
   );
 }
