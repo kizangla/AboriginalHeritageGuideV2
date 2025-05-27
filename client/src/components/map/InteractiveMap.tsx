@@ -29,37 +29,48 @@ export default function InteractiveMap({ onTerritorySelect, onMapReady }: Intera
   useEffect(() => {
     if (!mapRef.current || mapInstanceRef.current) return;
 
-    // Initialize map
-    const map = L.map(mapRef.current).setView([-25.2744, 133.7751], 5);
-    mapInstanceRef.current = map;
-    onMapReady(map);
+    try {
+      console.log('Creating map instance...');
+      // Initialize map with explicit options
+      const map = L.map(mapRef.current, {
+        center: [-25.2744, 133.7751],
+        zoom: 5,
+        zoomControl: true,
+        attributionControl: true
+      });
+      
+      mapInstanceRef.current = map;
+      onMapReady(map);
 
-    // Use Mapbox for reliable, high-quality tiles
-    console.log('Initializing Mapbox tiles...');
-    const mapboxToken = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN;
-    const tileLayer = L.tileLayer(`https://api.mapbox.com/styles/v1/mapbox/outdoors-v12/tiles/{z}/{x}/{y}?access_token=${mapboxToken}`, {
-      attribution: '© <a href="https://www.mapbox.com/about/maps/">Mapbox</a> © <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-      tileSize: 512,
-      zoomOffset: -1,
-      maxZoom: 18,
-    });
-    
-    tileLayer.on('tileloadstart', () => console.log('Mapbox tile loading started'));
-    tileLayer.on('tileload', () => console.log('Mapbox tile loaded successfully'));
-    tileLayer.on('tileerror', (e) => console.error('Mapbox tile error:', e));
-    
-    tileLayer.addTo(map);
-    
-    // Add a simple test marker to verify map is working
-    L.marker([-25.2744, 133.7751])
-      .addTo(map)
-      .bindPopup('Australia Center - Map is working!')
-      .openPopup();
-    
-    // Force a redraw after a short delay
-    setTimeout(() => {
-      map.invalidateSize();
-    }, 100);
+      // Add very simple tile layer first
+      console.log('Adding basic tiles...');
+      const tileLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors',
+        maxZoom: 18,
+      });
+      
+      tileLayer.addTo(map);
+      
+      // Add visible test elements
+      console.log('Adding test marker...');
+      L.marker([-25.2744, 133.7751])
+        .addTo(map)
+        .bindPopup('Map is working! Your Aboriginal territories will appear here.')
+        .openPopup();
+        
+      // Add test circle to show map is interactive
+      L.circle([-25.2744, 133.7751], {
+        color: 'red',
+        fillColor: '#f03',
+        fillOpacity: 0.5,
+        radius: 500000
+      }).addTo(map);
+
+      console.log('Map initialization complete');
+
+    } catch (error) {
+      console.error('Map initialization failed:', error);
+    }
 
     return () => {
       if (mapInstanceRef.current) {
