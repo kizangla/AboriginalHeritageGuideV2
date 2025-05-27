@@ -34,16 +34,19 @@ export default function InteractiveMap({ onTerritorySelect, onMapReady }: Intera
     mapInstanceRef.current = map;
     onMapReady(map);
 
-    // Add a simple, reliable tile layer first
-    console.log('Initializing map tiles...');
-    const tileLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© OpenStreetMap contributors',
+    // Use Mapbox for reliable, high-quality tiles
+    console.log('Initializing Mapbox tiles...');
+    const mapboxToken = process.env.MAPBOX_ACCESS_TOKEN;
+    const tileLayer = L.tileLayer(`https://api.mapbox.com/styles/v1/mapbox/outdoors-v12/tiles/{z}/{x}/{y}?access_token=${mapboxToken}`, {
+      attribution: '© <a href="https://www.mapbox.com/about/maps/">Mapbox</a> © <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+      tileSize: 512,
+      zoomOffset: -1,
       maxZoom: 18,
     });
     
-    tileLayer.on('tileloadstart', () => console.log('Tile loading started'));
-    tileLayer.on('tileload', () => console.log('Tile loaded successfully'));
-    tileLayer.on('tileerror', (e) => console.error('Tile error:', e));
+    tileLayer.on('tileloadstart', () => console.log('Mapbox tile loading started'));
+    tileLayer.on('tileload', () => console.log('Mapbox tile loaded successfully'));
+    tileLayer.on('tileerror', (e) => console.error('Mapbox tile error:', e));
     
     tileLayer.addTo(map);
     
