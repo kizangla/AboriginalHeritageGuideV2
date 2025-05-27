@@ -54,10 +54,7 @@ export class MemStorage implements IStorage {
   }
 
   private async initializeData() {
-    // First create some working sample data so the map displays
-    await this.createSampleTerritories();
-    
-    // Then try to load and add authentic Aboriginal territories from the provided GeoJSON data
+    // Load authentic Aboriginal territories from the provided GeoJSON data
     const geojsonPath = path.join(__dirname, 'data', 'aboriginalTerritories.geojson');
     
     try {
@@ -67,9 +64,9 @@ export class MemStorage implements IStorage {
       
       console.log(`Found ${geojsonData.features.length} territories in GeoJSON data`);
       
-      // Process the first 10 authentic GeoJSON features for testing
-      let colorIndex = 5; // Start after sample data
-      for (let i = 0; i < Math.min(10, geojsonData.features.length); i++) {
+      // Process all authentic GeoJSON features
+      let colorIndex = 0;
+      for (let i = 0; i < geojsonData.features.length; i++) {
         const feature = geojsonData.features[i];
         if (feature.geometry && feature.geometry.coordinates && feature.geometry.coordinates[0]) {
           const coords = feature.geometry.coordinates[0];
