@@ -24,7 +24,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             estimatedPopulation: territory.estimatedPopulation,
             culturalInfo: territory.culturalInfo,
             historicalContext: territory.historicalContext,
-            traditionalLanguages: territory.traditionalLanguages,
+            traditionalLanguages: territory.traditionalLanguages || [],
             color: territory.color,
           },
           geometry: territory.geometry as any,

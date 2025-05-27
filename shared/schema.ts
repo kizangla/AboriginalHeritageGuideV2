@@ -12,7 +12,7 @@ export const territories = pgTable("territories", {
   estimatedPopulation: integer("estimated_population"),
   culturalInfo: text("cultural_info"),
   historicalContext: text("historical_context"),
-  traditionalLanguages: text("traditional_languages").array(),
+  traditionalLanguages: text("traditional_languages").array().default([]),
   geometry: jsonb("geometry").notNull(), // GeoJSON geometry
   color: text("color").notNull(), // Hex color for map display
   centerLat: real("center_lat").notNull(),
