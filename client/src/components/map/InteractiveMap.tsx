@@ -36,7 +36,7 @@ export default function InteractiveMap({ onTerritorySelect, onMapReady }: Intera
 
     // Use Mapbox for reliable, high-quality tiles
     console.log('Initializing Mapbox tiles...');
-    const mapboxToken = process.env.MAPBOX_ACCESS_TOKEN;
+    const mapboxToken = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN;
     const tileLayer = L.tileLayer(`https://api.mapbox.com/styles/v1/mapbox/outdoors-v12/tiles/{z}/{x}/{y}?access_token=${mapboxToken}`, {
       attribution: '© <a href="https://www.mapbox.com/about/maps/">Mapbox</a> © <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>',
       tileSize: 512,
