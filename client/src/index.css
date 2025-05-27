@@ -161,6 +161,21 @@
   border: 1px solid rgba(139, 69, 19, 0.3);
 }
 
+/* Leaflet map container */
+.leaflet-container {
+  width: 100% !important;
+  height: 100% !important;
+  background: #aad3df !important;
+}
+
+.leaflet-tile {
+  filter: none !important;
+}
+
+.leaflet-tile-container {
+  opacity: 1 !important;
+}
+
 /* Leaflet popup customization */
 .leaflet-popup-content-wrapper {
   background: hsl(var(--earth-beige)) !important;

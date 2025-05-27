@@ -34,11 +34,29 @@ export default function InteractiveMap({ onTerritorySelect, onMapReady }: Intera
     mapInstanceRef.current = map;
     onMapReady(map);
 
-    // Add tile layer
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© OpenStreetMap contributors',
-      maxZoom: 18,
-    }).addTo(map);
+    // Try CartoDB tile layer as it's often more reliable
+    const tileLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+      subdomains: 'abcd',
+      maxZoom: 20
+    });
+    
+    tileLayer.on('tileerror', (e) => {
+      console.error('Tile loading error:', e);
+      // Fallback to OpenStreetMap if CartoDB fails
+      const fallbackTile = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors',
+        maxZoom: 18,
+      });
+      fallbackTile.addTo(map);
+    });
+    
+    tileLayer.addTo(map);
+    
+    // Force a redraw after a short delay
+    setTimeout(() => {
+      map.invalidateSize();
+    }, 100);
 
     return () => {
       if (mapInstanceRef.current) {
