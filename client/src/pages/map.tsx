@@ -47,7 +47,7 @@ export default function MapPage() {
                 <path d="M12 2L13.09 8.26L20 9L13.09 9.74L12 16L10.91 9.74L4 9L10.91 8.26L12 2Z"/>
                 <path d="M12 8L12.5 10.5L15 11L12.5 11.5L12 14L11.5 11.5L9 11L11.5 10.5L12 8Z"/>
               </svg>
-              <h1 className="text-2xl font-serif font-bold">Aboriginal Australia Interactive Map</h1>
+              <h1 className="text-2xl font-serif font-bold">Indigenous Australia Interactive Map</h1>
             </div>
             <div className="flex items-center space-x-4">
               <button className="bg-earth-gold text-earth-dark px-4 py-2 rounded-lg hover:bg-yellow-400 transition-colors font-semibold">
