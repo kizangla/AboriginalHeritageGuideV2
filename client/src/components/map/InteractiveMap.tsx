@@ -34,16 +34,24 @@ export default function InteractiveMap({ onTerritorySelect, onMapReady }: Intera
     mapInstanceRef.current = map;
     onMapReady(map);
 
-    // Use Mapbox for high-quality map tiles
-    const mapboxToken = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN || 'your-mapbox-token';
-    const tileLayer = L.tileLayer(`https://api.mapbox.com/styles/v1/mapbox/light-v11/tiles/{z}/{x}/{y}?access_token=${mapboxToken}`, {
-      attribution: '© <a href="https://www.mapbox.com/about/maps/">Mapbox</a> © <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-      tileSize: 512,
-      zoomOffset: -1,
+    // Add a simple, reliable tile layer first
+    console.log('Initializing map tiles...');
+    const tileLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap contributors',
       maxZoom: 18,
     });
     
+    tileLayer.on('tileloadstart', () => console.log('Tile loading started'));
+    tileLayer.on('tileload', () => console.log('Tile loaded successfully'));
+    tileLayer.on('tileerror', (e) => console.error('Tile error:', e));
+    
     tileLayer.addTo(map);
+    
+    // Add a simple test marker to verify map is working
+    L.marker([-25.2744, 133.7751])
+      .addTo(map)
+      .bindPopup('Australia Center - Map is working!')
+      .openPopup();
     
     // Force a redraw after a short delay
     setTimeout(() => {
