@@ -34,30 +34,13 @@ export default function InteractiveMap({ onTerritorySelect, onMapReady }: Intera
     mapInstanceRef.current = map;
     onMapReady(map);
 
-    // Add simple Australia outline as backup
-    const australiaCoords = [
-      [113, -44], [153, -44], [153, -10], [113, -10], [113, -44]
-    ];
-    
-    const outlineLayer = L.polygon(australiaCoords, {
-      color: '#2c3e50',
-      weight: 2,
-      opacity: 0.8,
-      fillColor: '#ecf0f1',
-      fillOpacity: 0.1
-    }).addTo(map);
-
-    // Add basic tile layer
-    const tileLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© OpenStreetMap contributors',
+    // Use Mapbox for high-quality map tiles
+    const mapboxToken = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN || 'your-mapbox-token';
+    const tileLayer = L.tileLayer(`https://api.mapbox.com/styles/v1/mapbox/light-v11/tiles/{z}/{x}/{y}?access_token=${mapboxToken}`, {
+      attribution: '© <a href="https://www.mapbox.com/about/maps/">Mapbox</a> © <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+      tileSize: 512,
+      zoomOffset: -1,
       maxZoom: 18,
-    });
-    
-    tileLayer.on('tileload', () => {
-      // Remove outline when tiles load successfully
-      if (outlineLayer && map.hasLayer(outlineLayer)) {
-        map.removeLayer(outlineLayer);
-      }
     });
     
     tileLayer.addTo(map);
