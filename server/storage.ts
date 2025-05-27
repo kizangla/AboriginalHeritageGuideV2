@@ -11,6 +11,10 @@ import {
 } from "@shared/schema";
 import * as fs from 'fs';
 import * as path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 export interface IStorage {
   // Territory methods
@@ -50,16 +54,23 @@ export class MemStorage implements IStorage {
   }
 
   private async initializeData() {
-    // Load authentic Aboriginal territories from the provided GeoJSON data
+    // First create some working sample data so the map displays
+    await this.createSampleTerritories();
+    
+    // Then try to load and add authentic Aboriginal territories from the provided GeoJSON data
     const geojsonPath = path.join(__dirname, 'data', 'aboriginalTerritories.geojson');
     
     try {
+      console.log('Loading Aboriginal territories from:', geojsonPath);
       const geojsonData = JSON.parse(fs.readFileSync(geojsonPath, 'utf8'));
       const territoryColors = ['#E74C3C', '#3498DB', '#F39C12', '#27AE60', '#9B59B6', '#E67E22', '#8E44AD', '#2ECC71', '#F1C40F', '#34495E'];
       
-      // Process the authentic GeoJSON features
-      let colorIndex = 0;
-      for (const feature of geojsonData.features) {
+      console.log(`Found ${geojsonData.features.length} territories in GeoJSON data`);
+      
+      // Process the first 10 authentic GeoJSON features for testing
+      let colorIndex = 5; // Start after sample data
+      for (let i = 0; i < Math.min(10, geojsonData.features.length); i++) {
+        const feature = geojsonData.features[i];
         if (feature.geometry && feature.geometry.coordinates && feature.geometry.coordinates[0]) {
           const coords = feature.geometry.coordinates[0];
           
@@ -68,7 +79,7 @@ export class MemStorage implements IStorage {
           const centerLng = coords.reduce((sum: number, coord: number[]) => sum + coord[0], 0) / coords.length;
           
           // Get territory name or use a default based on location
-          const territoryName = feature.properties.Name || `Territory ${colorIndex + 1}`;
+          const territoryName = feature.properties.Name || `Authentic Territory ${i + 1}`;
           
           const territoryData: InsertTerritory = {
             name: territoryName,
@@ -88,15 +99,11 @@ export class MemStorage implements IStorage {
           
           await this.createTerritory(territoryData);
           colorIndex++;
-          
-          // Limit to first 50 territories for performance
-          if (colorIndex >= 50) break;
+          console.log(`Added authentic territory: ${territoryName} at ${centerLat}, ${centerLng}`);
         }
       }
     } catch (error) {
       console.error('Error loading Aboriginal territories data:', error);
-      // Fallback to sample territories
-      await this.createSampleTerritories();
     }
 
     // Add some authentic businesses based on the loaded territories
@@ -153,24 +160,49 @@ export class MemStorage implements IStorage {
   }
 
   private async createSampleTerritories() {
-    await this.createTerritory({
-      name: "Sample Territory",
-      groupName: "Traditional Owners",
-      languageFamily: "Pama-Nyungan",
-      region: "Australia",
-      regionType: "Various",
-      estimatedPopulation: 1000,
-      culturalInfo: "Traditional custodians of this region.",
-      historicalContext: "Continuous occupation for thousands of years.",
-      traditionalLanguages: ["Traditional Language"],
-      geometry: {
-        type: "Polygon",
-        coordinates: [[[130, -25], [135, -25], [135, -30], [130, -30], [130, -25]]]
+    // Create a few sample territories to ensure the map displays
+    const sampleTerritories = [
+      {
+        name: "Yolŋu Country",
+        groupName: "Yolŋu",
+        languageFamily: "Yolŋu Matha",
+        region: "Northern Territory",
+        regionType: "Coastal",
+        estimatedPopulation: 4000,
+        culturalInfo: "The Yolŋu people are the traditional Aboriginal owners of Arnhem Land in northeastern Northern Territory.",
+        historicalContext: "Yolŋu people have lived in Arnhem Land for over 60,000 years, maintaining one of the world's oldest continuous cultures.",
+        traditionalLanguages: ["Djambarrpuyŋu", "Gumatj"],
+        geometry: {
+          type: "Polygon",
+          coordinates: [[[136.0, -12.0], [138.5, -12.0], [138.5, -14.5], [136.0, -14.5], [136.0, -12.0]]]
+        },
+        color: "#E74C3C",
+        centerLat: -13.25,
+        centerLng: 137.25
       },
-      color: "#E74C3C",
-      centerLat: -27.5,
-      centerLng: 132.5
-    });
+      {
+        name: "Central Desert",
+        groupName: "Pitjantjatjara",
+        languageFamily: "Pama-Nyungan",
+        region: "South Australia",
+        regionType: "Desert",
+        estimatedPopulation: 3000,
+        culturalInfo: "The Pitjantjatjara people are the traditional owners of a vast area of desert country.",
+        historicalContext: "Pitjantjatjara country encompasses some of Australia's most significant sacred sites.",
+        traditionalLanguages: ["Pitjantjatjara", "Yankunytjatjara"],
+        geometry: {
+          type: "Polygon",
+          coordinates: [[[129.0, -24.0], [134.0, -24.0], [134.0, -28.0], [129.0, -28.0], [129.0, -24.0]]]
+        },
+        color: "#F39C12",
+        centerLat: -26.0,
+        centerLng: 131.5
+      }
+    ];
+
+    for (const territory of sampleTerritories) {
+      await this.createTerritory(territory);
+    }
   }
 
   private async initializeBusinesses() {
