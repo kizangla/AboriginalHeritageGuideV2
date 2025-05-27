@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import InteractiveMap from '@/components/map/InteractiveMap';
+import SimpleMap from '@/components/map/SimpleMap';
 import SearchPanel from '@/components/map/SearchPanel';
 import InfoPanel from '@/components/map/InfoPanel';
 import ControlPanel from '@/components/map/ControlPanel';
@@ -69,8 +69,7 @@ export default function MapPage() {
 
       {/* Main Content */}
       <main className="relative">
-        <InteractiveMap 
-          onTerritorySelect={handleTerritorySelect}
+        <SimpleMap 
           onMapReady={setMapInstance}
         />
         
