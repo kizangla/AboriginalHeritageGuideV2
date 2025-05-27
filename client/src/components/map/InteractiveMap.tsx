@@ -161,16 +161,26 @@ export default function InteractiveMap({ onTerritorySelect, onMapReady }: Intera
     <div className="relative h-[calc(100vh-80px)]">
       <div 
         ref={mapRef} 
-        className="w-full h-full border-2 border-red-500"
+        className="w-full h-full border-4 border-blue-600"
         style={{ 
           zIndex: 1,
-          backgroundColor: '#f0f0f0',
-          minHeight: '400px'
+          backgroundColor: '#e8f4f8',
+          minHeight: '500px',
+          position: 'relative'
         }}
+        id="map-container"
       />
-      <div className="absolute top-4 left-4 bg-white p-2 rounded shadow z-10 text-sm">
-        Map Container Test - {mapInstanceRef.current ? 'Map Initialized' : 'No Map'}
+      <div className="absolute top-4 left-4 bg-yellow-300 p-3 rounded shadow z-50 text-sm font-bold border-2 border-black">
+        DEBUG: {mapInstanceRef.current ? '✅ MAP ACTIVE' : '❌ NO MAP'} | Data: {territoriesGeoJSON ? '✅ LOADED' : '❌ MISSING'}
       </div>
+      {!mapInstanceRef.current && (
+        <div className="absolute inset-0 bg-red-100 border-4 border-red-500 flex items-center justify-center z-40">
+          <div className="text-center p-4 bg-red-200 rounded">
+            <h2 className="text-xl font-bold text-red-800">MAP NOT LOADING</h2>
+            <p className="text-red-700">Container visible but map instance missing</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
