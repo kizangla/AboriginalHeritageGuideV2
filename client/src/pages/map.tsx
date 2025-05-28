@@ -5,6 +5,9 @@ import InfoPanel from '@/components/map/InfoPanel';
 import ControlPanel from '@/components/map/ControlPanel';
 import TerritoryModal from '@/components/map/TerritoryModal';
 import MapGuide from '@/components/map/MapGuide';
+import { Button } from '@/components/ui/button';
+import { Building2 } from 'lucide-react';
+import { Link } from 'wouter';
 import type { Territory } from '@shared/schema';
 
 export default function MapPage() {
@@ -51,9 +54,15 @@ export default function MapPage() {
               <h1 className="text-2xl font-serif font-bold">Indigenous Australia Interactive Map</h1>
             </div>
             <div className="flex items-center space-x-4">
+              <Link href="/business-search">
+                <Button className="bg-earth-gold text-earth-dark px-4 py-2 rounded-lg hover:bg-yellow-400 transition-colors font-semibold">
+                  <Building2 className="w-4 h-4 mr-2" />
+                  Business Directory
+                </Button>
+              </Link>
               <button className="bg-earth-gold text-earth-dark px-4 py-2 rounded-lg hover:bg-yellow-400 transition-colors font-semibold">
                 <svg className="w-4 h-4 inline mr-2" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M12 2C13.1 2 14 2.9 14 4C14 5.1 13.1 6 12 6C10.9 6 10 5.1 10 4C10 2.9 10.9 2 12 2ZM21 9V7L15 1H5C3.9 1 3 1.9 3 3V21C3 22.1 3.9 23 5 23H19C20.1 23 21 22.1 21 21V9Z"/>
+                  <path d="M12 2C13.1 2 14 2.9 14 4C14 5.1 13.1 6 12 6C10.9 6 10 5.1 10 4C10 2.9 10.9 2 12 2ZM21 9V7L15 1H5C3.9 1 3 1.9 3 3V21C3 22.1 3.9 23 5 23H19C20.1 23 21 22.1 21V9Z"/>
                 </svg>
                 About
               </button>
