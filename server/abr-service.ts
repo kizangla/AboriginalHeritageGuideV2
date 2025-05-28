@@ -73,7 +73,7 @@ export async function getBusinessByABN(abn: string): Promise<ABRBusinessDetails 
       authenticationGuid: ABR_GUID
     });
 
-    const url = `${ABR_BASE_URL}/SearchByAbn?${params}`;
+    const url = `${ABR_BASE_URL}/SearchByABNv202001?${params}`;
     
     const response = await fetch(url, {
       headers: {
