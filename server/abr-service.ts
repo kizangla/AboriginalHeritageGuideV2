@@ -114,7 +114,7 @@ export async function searchBusinessesByPostcode(
       authenticationGuid: ABR_GUID
     });
 
-    const url = `${ABR_BASE_URL}/ABRSearchByName?${params}`;
+    const url = `${ABR_JSON_BASE_URL}/MatchingNames.aspx?postcode=${postcode}&guid=${ABR_GUID}`;
     
     const response = await fetch(url, {
       headers: {
