@@ -35,27 +35,24 @@ export interface IStorage {
   createCulturalSite(site: InsertCulturalSite): Promise<CulturalSite>;
 }
 
-export class MemStorage implements IStorage {
-  private territories: Map<number, Territory>;
-  private businesses: Map<number, Business>;
-  private culturalSites: Map<number, CulturalSite>;
-  private currentTerritoryId: number;
-  private currentBusinessId: number;
-  private currentSiteId: number;
+export class DatabaseStorage implements IStorage {
+  private isInitialized: boolean = false;
 
   constructor() {
-    this.territories = new Map();
-    this.businesses = new Map();
-    this.culturalSites = new Map();
-    this.currentTerritoryId = 1;
-    this.currentBusinessId = 1;
-    this.currentSiteId = 1;
-    
     // Initialize with authentic Aboriginal territory data
     this.initializeData();
   }
 
   private async initializeData() {
+    if (this.isInitialized) return;
+    
+    // Check if data already exists in database
+    const existingTerritories = await db.select().from(territories).limit(1);
+    if (existingTerritories.length > 0) {
+      this.isInitialized = true;
+      return;
+    }
+    
     // Load authentic Aboriginal territories from the provided GeoJSON data
     const geojsonPath = path.join(__dirname, 'data', 'aboriginalTerritories.geojson');
     
@@ -96,7 +93,18 @@ export class MemStorage implements IStorage {
             centerLng
           };
           
-          await this.createTerritory(territoryData);
+          await db.insert(territories).values({
+            ...territoryData,
+            estimatedPopulation: territoryData.estimatedPopulation ?? null,
+            culturalInfo: territoryData.culturalInfo ?? null,
+            historicalContext: territoryData.historicalContext ?? null,
+            seasonalCalendar: null,
+            connectionToCountry: null,
+            culturalProtocols: null,
+            traditionalFoods: [],
+            medicinalPlants: [],
+            artStyles: [],
+          });
           colorIndex++;
           console.log(`Added authentic territory: ${territoryName} at ${centerLat}, ${centerLng}`);
         }
@@ -238,16 +246,20 @@ export class MemStorage implements IStorage {
   }
 
   async getTerritories(): Promise<Territory[]> {
-    return Array.from(this.territories.values());
+    if (!this.isInitialized) {
+      await this.initializeData();
+    }
+    return await db.select().from(territories);
   }
 
   async getTerritoryById(id: number): Promise<Territory | undefined> {
-    return this.territories.get(id);
+    const [territory] = await db.select().from(territories).where(eq(territories.id, id));
+    return territory || undefined;
   }
 
   async getTerritoryByCoordinates(lat: number, lng: number): Promise<Territory | undefined> {
-    // Simple point-in-polygon check for basic territories
-    for (const territory of this.territories.values()) {
+    const allTerritories = await db.select().from(territories);
+    for (const territory of allTerritories) {
       if (this.isPointInTerritory(lat, lng, territory)) {
         return territory;
       }
@@ -322,4 +334,4 @@ export class MemStorage implements IStorage {
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new DatabaseStorage();
