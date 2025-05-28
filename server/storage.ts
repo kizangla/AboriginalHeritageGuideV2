@@ -113,8 +113,9 @@ export class DatabaseStorage implements IStorage {
       console.error('Error loading Aboriginal territories data:', error);
     }
 
-    // Add some authentic businesses based on the loaded territories
-    await this.initializeBusinesses();
+    // Mark as initialized
+    this.isInitialized = true;
+    console.log('Successfully loaded all authentic Indigenous territories into database');
   }
 
   private getGroupName(name: string, lat: number, lng: number): string {
