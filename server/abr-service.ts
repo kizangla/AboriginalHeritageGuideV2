@@ -53,10 +53,14 @@ export async function searchBusinessesByName(
       return { businesses: [], totalResults: 0 };
     }
 
-    const xmlData = await response.text();
-    console.log('ABR XML Response received, parsing...');
+    const jsonData = await response.text();
+    console.log('ABR JSON Response received:', jsonData.substring(0, 200));
     
-    return parseABRSearchResponse(xmlData);
+    // Parse JSONP callback response
+    const jsonString = jsonData.replace(/^callback\(/, '').replace(/\)$/, '');
+    const data = JSON.parse(jsonString);
+    
+    return parseABRJSONResponse(data);
   } catch (error) {
     console.error('Error searching ABR businesses:', error);
     return { businesses: [], totalResults: 0 };
@@ -147,12 +151,12 @@ function parseABRJSONResponse(jsonData: any): ABRSearchResult {
           const business: ABRBusinessDetails = {
             abn: entity.Abn,
             entityName: entity.Name,
-            entityType: entity.EntityType || 'Business',
-            status: entity.EntityStatus || 'Unknown',
+            entityType: entity.NameType || 'Business',
+            status: entity.IsCurrent ? 'Active' : 'Inactive',
             address: {
-              stateCode: entity.StateCode,
+              stateCode: entity.State,
               postcode: entity.Postcode,
-              suburb: entity.Suburb
+              suburb: ''
             },
             gst: entity.Gst === 'Y' || entity.Gst === true,
             dgr: entity.Dgr === 'Y' || entity.Dgr === true
