@@ -4,6 +4,7 @@ import SearchPanel from '@/components/map/SearchPanel';
 import InfoPanel from '@/components/map/InfoPanel';
 import ControlPanel from '@/components/map/ControlPanel';
 import TerritoryModal from '@/components/map/TerritoryModal';
+import MapGuide from '@/components/map/MapGuide';
 import type { Territory } from '@shared/schema';
 
 export default function MapPage() {

@@ -82,11 +82,16 @@ export default function SearchPanel({ onSearch }: SearchPanelProps) {
             )}
           </Button>
 
-          <div className="text-sm text-earth-dark/70">
-            <svg className="w-4 h-4 inline mr-1 text-earth-gold" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M9,22A1,1 0 0,1 8,21V18H4A2,2 0 0,1 2,16V4C2,2.89 2.9,2 4,2H20A2,2 0 0,1 22,4V16A2,2 0 0,1 20,18H13.9L10.2,21.71C10,21.9 9.75,22 9.5,22V22H9Z"/>
-            </svg>
-            Try: "Sydney", "Alice Springs", or "Darwin"
+          <div className="text-sm text-earth-dark/70 space-y-1">
+            <div className="flex items-center">
+              <svg className="w-4 h-4 mr-1 text-earth-gold" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M9,22A1,1 0 0,1 8,21V18H4A2,2 0 0,1 2,16V4C2,2.89 2.9,2 4,2H20A2,2 0 0,1 22,4V16A2,2 0 0,1 20,18H13.9L10.2,21.71C10,21.9 9.75,22 9.5,22V22H9Z"/>
+              </svg>
+              Try: "Sydney", "Alice Springs", or "Darwin"
+            </div>
+            <div className="text-xs text-earth-dark/50">
+              🌏 Search cities, landmarks, or postal codes
+            </div>
           </div>
 
           {/* Search Results */}
