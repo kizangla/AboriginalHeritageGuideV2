@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-// ABR Web Service Configuration
+// ABR Web Service Configuration (based on official ABN lookup sample code)
 const ABR_GUID = '640c5f10-87b7-4f67-a3ce-5eb099dc25dd';
 const ABR_BASE_URL = 'https://abr.business.gov.au/abrxmlsearch/AbrXmlSearch.asmx';
 
