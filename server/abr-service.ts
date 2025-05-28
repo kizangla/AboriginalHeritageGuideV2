@@ -1,8 +1,8 @@
 import { z } from 'zod';
 
-// ABR XML Web Service Configuration (based on official schema)
+// ABR JSON API Configuration (official endpoints from registration)
 const ABR_GUID = '640c5f10-87b7-4f67-a3ce-5eb099dc25dd';
-const ABR_BASE_URL = 'https://abr.business.gov.au/abrxmlsearch/AbrXmlSearch.asmx';
+const ABR_JSON_BASE_URL = 'https://abr.business.gov.au/json';
 
 // ABR Response Types
 export interface ABRBusinessDetails {
@@ -39,11 +39,11 @@ export async function searchBusinessesByName(
       includeHistoricalDetails: 'N'
     });
 
-    const url = `${ABR_BASE_URL}/SearchByName?${params}`;
+    const url = `${ABR_JSON_BASE_URL}/MatchingNames.aspx?name=${encodeURIComponent(name)}&guid=${ABR_GUID}`;
     
     const response = await fetch(url, {
       headers: {
-        'Accept': 'application/xml, text/xml',
+        'Accept': 'application/json, text/plain',
         'User-Agent': 'IndigenousAustraliaMap/1.0'
       }
     });
@@ -73,7 +73,7 @@ export async function getBusinessByABN(abn: string): Promise<ABRBusinessDetails 
       authenticationGuid: ABR_GUID
     });
 
-    const url = `${ABR_BASE_URL}/SearchByABNv202001?${params}`;
+    const url = `${ABR_JSON_BASE_URL}/AbnDetails.aspx?abn=${abn}&guid=${ABR_GUID}`;
     
     const response = await fetch(url, {
       headers: {
