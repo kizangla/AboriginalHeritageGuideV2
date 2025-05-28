@@ -17,6 +17,13 @@ export const territories = pgTable("territories", {
   color: text("color").notNull(), // Hex color for map display
   centerLat: real("center_lat").notNull(),
   centerLng: real("center_lng").notNull(),
+  // Enhanced cultural information
+  seasonalCalendar: text("seasonal_calendar"),
+  traditionalFoods: text("traditional_foods").array().default([]),
+  medicinalPlants: text("medicinal_plants").array().default([]),
+  culturalProtocols: text("cultural_protocols"),
+  connectionToCountry: text("connection_to_country"),
+  artStyles: text("art_styles").array().default([]),
 });
 
 export const businesses = pgTable("businesses", {
@@ -31,7 +38,15 @@ export const businesses = pgTable("businesses", {
   lat: real("lat").notNull(),
   lng: real("lng").notNull(),
   website: text("website"),
-  isAboriginalOwned: serial("is_aboriginal_owned").default(1), // 1 for true, 0 for false
+  isAboriginalOwned: integer("is_aboriginal_owned").default(1), // 1 for true, 0 for false
+  // Enhanced business information
+  operatingHours: text("operating_hours"),
+  services: text("services").array().default([]),
+  culturalExperiences: text("cultural_experiences").array().default([]),
+  bookingRequired: integer("booking_required").default(0),
+  accessibility: text("accessibility"),
+  priceRange: text("price_range"), // e.g., "$", "$$", "$$$"
+  socialMedia: jsonb("social_media"), // JSON object for various social platforms
 });
 
 export const culturalSites = pgTable("cultural_sites", {
@@ -43,7 +58,16 @@ export const culturalSites = pgTable("cultural_sites", {
   lat: real("lat").notNull(),
   lng: real("lng").notNull(),
   accessInfo: text("access_info"),
-  isPublicAccess: serial("is_public_access").default(1),
+  isPublicAccess: integer("is_public_access").default(1),
+  // Enhanced cultural site information
+  siteType: text("site_type").notNull(), // e.g., "Sacred Site", "Art Gallery", "Cultural Centre", "Museum"
+  dreamtimeStories: text("dreamtime_stories"),
+  visitingProtocols: text("visiting_protocols"),
+  culturalActivities: text("cultural_activities").array().default([]),
+  languageLearning: text("language_learning"),
+  artworkDisplays: text("artwork_displays").array().default([]),
+  guidedTours: integer("guided_tours").default(0),
+  respectGuidelines: text("respect_guidelines"),
 });
 
 export const insertTerritorySchema = createInsertSchema(territories).omit({
@@ -57,6 +81,28 @@ export const insertBusinessSchema = createInsertSchema(businesses).omit({
 export const insertCulturalSiteSchema = createInsertSchema(culturalSites).omit({
   id: true,
 });
+
+// Relations
+import { relations } from "drizzle-orm";
+
+export const territoriesRelations = relations(territories, ({ many }) => ({
+  businesses: many(businesses),
+  culturalSites: many(culturalSites),
+}));
+
+export const businessesRelations = relations(businesses, ({ one }) => ({
+  territory: one(territories, {
+    fields: [businesses.territoryId],
+    references: [territories.id],
+  }),
+}));
+
+export const culturalSitesRelations = relations(culturalSites, ({ one }) => ({
+  territory: one(territories, {
+    fields: [culturalSites.territoryId],
+    references: [territories.id],
+  }),
+}));
 
 export type Territory = typeof territories.$inferSelect;
 export type InsertTerritory = z.infer<typeof insertTerritorySchema>;

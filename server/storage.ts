@@ -9,6 +9,8 @@ import {
   type CulturalSite,
   type InsertCulturalSite
 } from "@shared/schema";
+import { db } from "./db";
+import { eq, and, gte, lte, sql } from "drizzle-orm";
 import * as fs from 'fs';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
