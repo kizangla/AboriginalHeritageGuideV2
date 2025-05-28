@@ -55,6 +55,7 @@ export default function SimpleMap({ onMapReady, onTerritorySelect }: SimpleMapPr
     }
 
     console.log('Adding Aboriginal territories to map...');
+    console.log('Territories data received:', territoriesGeoJSON?.features?.length || 0);
 
     // Add Australia territory layer
     if (territoriesGeoJSON && territoriesGeoJSON.features) {
