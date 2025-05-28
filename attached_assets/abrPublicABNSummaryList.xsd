@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified" attributeFormDefault="qualified" version="Version 1.00" xml:lang="en">
+	<xsd:include schemaLocation="abrPublicCommonTypes.xsd"/>
+	<xsd:include schemaLocation="abrPublicIndividualName.xsd"/>
+	<xsd:include schemaLocation="abrPublicOrganisationName.xsd"/>
+	<xsd:include schemaLocation="abrPublicAddress.xsd"/>
+	<xsd:element name="abnSumaryList" type="abnSummaryListType">
+		<xsd:annotation>
+			<xsd:documentation>root element for an abn List of results</xsd:documentation>
+		</xsd:annotation>
+	</xsd:element>
+	<xsd:complexType name="abnSummaryListType">
+		<xsd:sequence>
+			<xsd:element name="numberOfRecords" type="xsd:integer">
+				<xsd:annotation>
+					<xsd:documentation>Number of records returned in the response.</xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+			<xsd:element name="summaryRecord" maxOccurs="unbounded">
+				<xsd:annotation>
+					<xsd:documentation>Search results for each ABN.</xsd:documentation>
+				</xsd:annotation>
+				<xsd:complexType>
+					<xsd:choice>
+						<xsd:element name="summaryException">
+							<xsd:complexType>
+								<xsd:sequence>
+									<xsd:element name="identifierType" type="searchIdentifierTypeCodeType">
+										<xsd:annotation>
+											<xsd:documentation>Type of identifier e.g. ABN, ASIC.</xsd:documentation>
+										</xsd:annotation>
+									</xsd:element>
+									<xsd:element name="identifierValue" type="identifierValueType">
+										<xsd:annotation>
+											<xsd:documentation>Value of the identifier.</xsd:documentation>
+										</xsd:annotation>
+									</xsd:element>
+									<xsd:element name="exceptionDescription" type="exceptionDescriptionType">
+										<xsd:annotation>
+											<xsd:documentation>The description/meaning of the exception.</xsd:documentation>
+										</xsd:annotation>
+									</xsd:element>
+								</xsd:sequence>
+							</xsd:complexType>
+						</xsd:element>
+						<xsd:element name="abnSummary">
+							<xsd:complexType>
+								<xsd:sequence>
+									<xsd:element name="ABN" type="summaryABNType">
+										<xsd:annotation>
+											<xsd:documentation>The record's ABN Identifier. </xsd:documentation>
+										</xsd:annotation>
+									</xsd:element>
+									<xsd:element name="ASICNumber" type="identifierValueType" minOccurs="0">
+										<xsd:annotation>
+											<xsd:documentation>The record's ASIC number if it exists. </xsd:documentation>
+										</xsd:annotation>
+									</xsd:element>
+									<xsd:element name="currentLegalName" type="fullnameType" minOccurs="0">
+										<xsd:annotation>
+											<xsd:documentation>The entity's current legal name.</xsd:documentation>
+										</xsd:annotation>
+									</xsd:element>
+									<xsd:element name="entityType" type="entityTypeType" minOccurs="0">
+										<xsd:annotation>
+											<xsd:documentation>Describes the party  type (e.g. family partnership, individual/sole trader). </xsd:documentation>
+										</xsd:annotation>
+									</xsd:element>
+								</xsd:sequence>
+							</xsd:complexType>
+						</xsd:element>
+					</xsd:choice>
+				</xsd:complexType>
+			</xsd:element>
+		</xsd:sequence>
+	</xsd:complexType>
+</xsd:schema>

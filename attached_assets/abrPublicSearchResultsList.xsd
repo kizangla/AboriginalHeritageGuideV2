@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified" attributeFormDefault="qualified" version="Version 1.00" xml:lang="en">
+	<xsd:include schemaLocation="abrPublicCommonTypes.xsd"/>
+	<xsd:include schemaLocation="abrPublicIndividualName.xsd"/>
+	<xsd:include schemaLocation="abrPublicOrganisationName.xsd"/>
+	<xsd:include schemaLocation="abrPublicAddress.xsd"/>
+	<xsd:element name="searchResultsList" type="searchResultsListType">
+		<xsd:annotation>
+			<xsd:documentation>Root element for this schema. </xsd:documentation>
+		</xsd:annotation>
+	</xsd:element>
+	<xsd:complexType name="searchResultsListType">
+		<xsd:sequence>
+			<xsd:element name="numberOfRecords" type="xsd:integer">
+				<xsd:annotation>
+					<xsd:documentation>Number of matching records returned.</xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+			<xsd:element name="searchResultsRecord" minOccurs="0" maxOccurs="unbounded">
+				<xsd:annotation>
+					<xsd:documentation>Name search parameters and resulting values.</xsd:documentation>
+				</xsd:annotation>
+				<xsd:complexType>
+					<xsd:sequence>
+						<xsd:element name="ABN" type="summaryABNType">
+							<xsd:annotation>
+								<xsd:documentation>The entity's ABN Identifier. </xsd:documentation>
+							</xsd:annotation>
+						</xsd:element>
+						<xsd:choice>
+							<xsd:element name="legalName" type="individualSimpleNameType">
+								<xsd:annotation>
+									<xsd:documentation>If the entity is an individual, there is an associated legal name.</xsd:documentation>
+								</xsd:annotation>
+							</xsd:element>
+							<xsd:element name="mainName" type="organisationSimpleNameType">
+								<xsd:annotation>
+									<xsd:documentation>If the entity is a non-individual, there is an associated main name.</xsd:documentation>
+								</xsd:annotation>
+							</xsd:element>
+							<xsd:element name="mainTradingName" type="organisationSimpleNameType">
+								<xsd:annotation>
+									<xsd:documentation>Zero of more main Trading Names may be associated with the entity.</xsd:documentation>
+								</xsd:annotation>
+							</xsd:element>
+							<xsd:element name="businessName" type="organisationSimpleNameType">
+								<xsd:annotation>
+									<xsd:documentation>Zero of more Business Names may be associated with the entity.</xsd:documentation>
+								</xsd:annotation>
+							</xsd:element>
+							<xsd:element name="otherTradingName" type="organisationSimpleNameType">
+								<xsd:annotation>
+									<xsd:documentation>Zero of more Other Trading Names may  be associated with the entity.</xsd:documentation>
+								</xsd:annotation>
+							</xsd:element>
+							<xsd:element name="dgrFundName" type="organisationSimpleNameType">
+								<xsd:annotation>
+									<xsd:documentation>An entity may be associated associated with a DGR fund.</xsd:documentation>
+								</xsd:annotation>
+							</xsd:element>
+							<xsd:element name="PBIEName" type="organisationSimpleNameType">
+								<xsd:annotation>
+									<xsd:documentation>An entity may operate Public Benevolent Institution Employer(s).</xsd:documentation>
+								</xsd:annotation>
+							</xsd:element>
+							<xsd:element name="AWEFName" type="organisationSimpleNameType">
+								<xsd:annotation>
+									<xsd:documentation>An entity may operate Approved Worker Entitlement Fund (AWEF)</xsd:documentation>
+								</xsd:annotation>
+							</xsd:element>
+						</xsd:choice>
+						<xsd:element name="mainBusinessPhysicalAddress" type="simpleAddressType" minOccurs="0">
+							<xsd:annotation>
+								<xsd:documentation>The state and postcode of the main physical address of the business.</xsd:documentation>
+							</xsd:annotation>
+						</xsd:element>
+					</xsd:sequence>
+				</xsd:complexType>
+			</xsd:element>
+		</xsd:sequence>
+	</xsd:complexType>
+</xsd:schema>

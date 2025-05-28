@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified" attributeFormDefault="qualified" version="Version 1.00" xml:lang="en">
+	<xsd:include schemaLocation="abrPublicCommonTypes.xsd"/>
+	<xsd:element name="identifierListSearchRequest" type="identfierListSearchRequestType">
+		<xsd:annotation>
+			<xsd:documentation>Root element for this schema</xsd:documentation>
+		</xsd:annotation>
+	</xsd:element>
+	<xsd:complexType name="identfierListSearchRequestType">
+		<xsd:sequence>
+			<xsd:element name="authenticationGUID" type="authenticationGUIDType">
+				<xsd:annotation>
+					<xsd:documentation>Used to validate requesting agency</xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+			<xsd:element name="identifierSearch" maxOccurs="unbounded">
+				<xsd:complexType>
+					<xsd:sequence>
+						<xsd:element name="identifierType" type="searchIdentifierTypeCodeType">
+							<xsd:annotation>
+								<xsd:documentation>Type of identifier e.g. ABN, ASIC.</xsd:documentation>
+							</xsd:annotation>
+						</xsd:element>
+						<xsd:element name="identifierValue" type="identifierValueType">
+							<xsd:annotation>
+								<xsd:documentation>Value of the identifier.</xsd:documentation>
+							</xsd:annotation>
+						</xsd:element>
+					</xsd:sequence>
+				</xsd:complexType>
+			</xsd:element>
+		</xsd:sequence>
+	</xsd:complexType>
+</xsd:schema>

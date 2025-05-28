@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- edited with XMLSpy v2006 sp2 U (http://www.altova.com) by Theresa Macgregor (Dept of Industry Tourism & Resources) -->
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified" attributeFormDefault="qualified" version="Version 1.00" xml:lang="en">
+	<xsd:include schemaLocation="abrPublicCommonTypes.xsd"/>
+	<xsd:element name="identifier" type="identifierType">
+		<xsd:annotation>
+			<xsd:documentation>Root element of this schema</xsd:documentation>
+		</xsd:annotation>
+	</xsd:element>
+	<xsd:complexType name="identifierType">
+		<xsd:sequence>
+			<xsd:element name="identifierValue" type="identifierValueType">
+				<xsd:annotation>
+					<xsd:documentation>The value of the identifier.</xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+			<xsd:element name="isCurrentIndicator" type="yesNoType">
+				<xsd:annotation>
+					<xsd:documentation>Indicates whether the identifier is current.</xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+			<xsd:group ref="replacedType" minOccurs="0"/>
+		</xsd:sequence>
+	</xsd:complexType>
+	<xsd:group name="replacedType">
+		<xsd:sequence>
+			<xsd:element name="replacedIdentifierValue" type="identifierValueType" nillable="true" minOccurs="0">
+				<xsd:annotation>
+					<xsd:documentation>The replaced identifier value</xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+			<xsd:element name="replacedFrom" type="xsd:date" minOccurs="0">
+				<xsd:annotation>
+					<xsd:documentation>Date from which an identifier was replaced.</xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+		</xsd:sequence>
+	</xsd:group>
+</xsd:schema>

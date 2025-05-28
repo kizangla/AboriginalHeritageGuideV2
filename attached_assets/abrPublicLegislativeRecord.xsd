@@ -1,0 +1,250 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- edited with XMLSpy v2016 rel. 2 (x64) (http://www.altova.com) by David Barker (Department of Industry) -->
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified" attributeFormDefault="qualified" version="Version 1.00" xml:lang="en">
+	<xsd:include schemaLocation="abrPublicCommonTypes.xsd"/>
+	<xsd:include schemaLocation="abrPublicIdentifier.xsd"/>
+	<xsd:include schemaLocation="abrPublicEntityStatus.xsd"/>
+	<xsd:include schemaLocation="abrPublicAddress.xsd"/>
+	<xsd:include schemaLocation="abrPublicIndividualName.xsd"/>
+	<xsd:include schemaLocation="abrPublicOrganisationName.xsd"/>
+	<xsd:include schemaLocation="abrPublicCharity.xsd"/>
+	<xsd:include schemaLocation="abrPublicSuperannuationFund.xsd"/>
+	<xsd:include schemaLocation="abrPublicRegistration.xsd"/>
+	<xsd:include schemaLocation="abrPublicApprovedWorkerFund.xsd"/>
+	<xsd:complexType name="legislativeRecordType">
+		<xsd:sequence>
+			<xsd:element name="recordLastUpdatedDate" type="xsd:date">
+				<xsd:annotation>
+					<xsd:documentation>Date the entity was last updated.</xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+			<xsd:element name="ABN" type="identifierType" maxOccurs="unbounded">
+				<xsd:annotation>
+					<xsd:documentation>Entity's Australian Business Number</xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+			<xsd:element name="entityStatus" type="entityStatusType" maxOccurs="unbounded">
+				<xsd:annotation>
+					<xsd:documentation>Current status of the identifier</xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+			<xsd:element name="ASICNumber" type="identifierValueType" minOccurs="0">
+				<xsd:annotation>
+					<xsd:documentation>ASIC number (ACN/ARBN)</xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+			<xsd:element name="entityType" type="entityTypeType" minOccurs="0">
+				<xsd:annotation>
+					<xsd:documentation>Entity type e.g. partnership, individual/sole trader. </xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+			<xsd:element name="goodsAndServicesTax" minOccurs="0" maxOccurs="unbounded">
+				<xsd:annotation>
+					<xsd:documentation>GST status of the entity</xsd:documentation>
+				</xsd:annotation>
+				<xsd:complexType>
+					<xsd:all>
+						<xsd:element name="effectiveFrom" type="xsd:date">
+							<xsd:annotation>
+								<xsd:documentation>Date from which the GST status is effective.</xsd:documentation>
+							</xsd:annotation>
+						</xsd:element>
+						<xsd:element name="effectiveTo" type="xsd:date" minOccurs="0">
+							<xsd:annotation>
+								<xsd:documentation>Date from which GST is no longer effective.  An empty value (or no effectiveTo element) indicates the parent element is current.</xsd:documentation>
+							</xsd:annotation>
+						</xsd:element>
+					</xsd:all>
+				</xsd:complexType>
+			</xsd:element>
+			<xsd:element name="dgrEndorsement" minOccurs="0" maxOccurs="unbounded">
+				<xsd:annotation>
+					<xsd:documentation>Main DGR status of the entity.</xsd:documentation>
+				</xsd:annotation>
+				<xsd:complexType>
+					<xsd:all>
+						<xsd:element name="endorsedFrom" type="xsd:date" minOccurs="0">
+							<xsd:annotation>
+								<xsd:documentation>Date from which the DGR status is effective. </xsd:documentation>
+							</xsd:annotation>
+						</xsd:element>
+						<xsd:element name="endorsedTo" type="xsd:date" minOccurs="0">
+							<xsd:annotation>
+								<xsd:documentation>Date from which a DGR Status is no longer effective. An empty value (or no effectiveTo element) indicates that the parent element is current.</xsd:documentation>
+							</xsd:annotation>
+						</xsd:element>
+						<xsd:element name="entityEndorsement" type="dgrEndorsementType" minOccurs="0">
+							<xsd:annotation>
+								<xsd:documentation>DGR item number</xsd:documentation>
+							</xsd:annotation>
+						</xsd:element>
+						<xsd:element name="itemNumber" type="dgrItemType" minOccurs="0">
+							<xsd:annotation>
+								<xsd:documentation>DGR item number</xsd:documentation>
+							</xsd:annotation>
+						</xsd:element>
+					</xsd:all>
+				</xsd:complexType>
+			</xsd:element>
+			<xsd:choice minOccurs="0">
+				<xsd:element name="legalName" type="individualNameType" minOccurs="0" maxOccurs="unbounded">
+					<xsd:annotation>
+						<xsd:documentation>An individual's legal name. Only valid for individuals</xsd:documentation>
+					</xsd:annotation>
+				</xsd:element>
+				<xsd:element name="mainName" type="organisationNameType" minOccurs="0" maxOccurs="unbounded">
+					<xsd:annotation>
+						<xsd:documentation>An non-individual main (legal) name. Only valid for non-individuals.</xsd:documentation>
+					</xsd:annotation>
+				</xsd:element>
+			</xsd:choice>
+			<xsd:element name="mainTradingName" type="organisationNameType" minOccurs="0" maxOccurs="unbounded">
+				<xsd:annotation>
+					<xsd:documentation>The entity's main trading name.</xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+			<xsd:element name="otherTradingName" type="organisationNameType" minOccurs="0" maxOccurs="unbounded">
+				<xsd:annotation>
+					<xsd:documentation>The entity's other trading name(s).</xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+			<xsd:element name="mainBusinessPhysicalAddress" type="addressType" minOccurs="0" maxOccurs="unbounded">
+				<xsd:annotation>
+					<xsd:documentation>Main physical address of the entity.</xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+			<xsd:element name="dgrFund" minOccurs="0" maxOccurs="unbounded">
+				<xsd:complexType>
+					<xsd:sequence>
+						<xsd:element name="dgrFundName" type="organisationSimpleNameType" maxOccurs="unbounded">
+							<xsd:annotation>
+								<xsd:documentation>An entity may have DGR funds</xsd:documentation>
+							</xsd:annotation>
+						</xsd:element>
+						<xsd:element name="endorsedFrom" type="xsd:date" minOccurs="0">
+							<xsd:annotation>
+								<xsd:documentation>Date from which the Fund is endorsed. </xsd:documentation>
+							</xsd:annotation>
+						</xsd:element>
+						<xsd:element name="endorsedTo" type="xsd:date" minOccurs="0">
+							<xsd:annotation>
+								<xsd:documentation>Date from which the Fund is no longer endorsed. An empty value (or no effectiveTo element) indicates the parent element is current.</xsd:documentation>
+							</xsd:annotation>
+						</xsd:element>
+						<xsd:element name="itemNumber" type="dgrItemType" minOccurs="0">
+							<xsd:annotation>
+								<xsd:documentation>DGR item number</xsd:documentation>
+							</xsd:annotation>
+						</xsd:element>
+					</xsd:sequence>
+				</xsd:complexType>
+			</xsd:element>
+		</xsd:sequence>
+	</xsd:complexType>
+	<!-- Legislative record to include charity information -->
+	<xsd:complexType name="legislativeRecord200506Type">
+		<xsd:complexContent>
+			<xsd:extension base="legislativeRecordType">
+				<xsd:sequence>
+					<xsd:element name="charityType" type="charityTypeType" minOccurs="0" maxOccurs="unbounded">
+						<xsd:annotation>
+							<xsd:documentation>Charitable status of the entity</xsd:documentation>
+						</xsd:annotation>
+					</xsd:element>
+					<xsd:element name="taxConcessionCharityEndorsement" type="taxConcessionCharityEndorsementType" minOccurs="0" maxOccurs="unbounded">
+						<xsd:annotation>
+							<xsd:documentation>Tax concession that the entity is entitled to</xsd:documentation>
+						</xsd:annotation>
+					</xsd:element>
+					<xsd:element name="publicBenevolentInstitutionEmployer" minOccurs="0" maxOccurs="unbounded">
+						<xsd:complexType>
+							<xsd:sequence>
+								<xsd:element name="pbiName" type="pbiNameType" maxOccurs="unbounded">
+									<xsd:annotation>
+										<xsd:documentation>Name of the PBI employer</xsd:documentation>
+									</xsd:annotation>
+								</xsd:element>
+								<xsd:element name="effectiveFrom" type="xsd:date" minOccurs="0">
+									<xsd:annotation>
+										<xsd:documentation>Date from which the PBIE is endorsed. </xsd:documentation>
+									</xsd:annotation>
+								</xsd:element>
+								<xsd:element name="effectiveTo" type="xsd:date" minOccurs="0">
+									<xsd:annotation>
+										<xsd:documentation>Date from which the PBIE is no longer endorsed. An empty value (or no effectiveTo element) indicates the parent element is current.</xsd:documentation>
+									</xsd:annotation>
+								</xsd:element>
+							</xsd:sequence>
+						</xsd:complexType>
+					</xsd:element>
+				</xsd:sequence>
+			</xsd:extension>
+		</xsd:complexContent>
+	</xsd:complexType>
+	<!-- Legislative record to include super fund information -->
+	<xsd:complexType name="legislativeRecord200709Type">
+		<xsd:complexContent>
+			<xsd:extension base="legislativeRecord200506Type">
+				<xsd:sequence>
+					<xsd:element name="superannuationStatus" type="superannuationStatusType" minOccurs="0">
+						<xsd:annotation>
+							<xsd:documentation>Status of the superannuation fund</xsd:documentation>
+						</xsd:annotation>
+					</xsd:element>
+					<xsd:element name="mainPostalPhysicalAddress" type="mainPostalPhysicalAddressType" minOccurs="0">
+						<xsd:annotation>
+							<xsd:documentation>Full address of the superannuation fund</xsd:documentation>
+						</xsd:annotation>
+					</xsd:element>
+				</xsd:sequence>
+			</xsd:extension>
+		</xsd:complexContent>
+	</xsd:complexType>
+	<!-- Legislative record to include super fund information -->
+	<xsd:complexType name="legislativeRecord201205Type">
+		<xsd:complexContent>
+			<xsd:extension base="legislativeRecord200709Type">
+				<xsd:sequence>
+					<xsd:element name="businessName" type="organisationNameType" minOccurs="0" maxOccurs="unbounded">
+						<xsd:annotation>
+							<xsd:documentation>The entity's registered business names.</xsd:documentation>
+						</xsd:annotation>
+					</xsd:element>
+				</xsd:sequence>
+			</xsd:extension>
+		</xsd:complexContent>
+	</xsd:complexType>
+	<!-- Legislative record to include DGR item number and ACNC registration-->
+	<xsd:complexType name="legislativeRecord201408Type">
+		<xsd:complexContent>
+			<xsd:extension base="legislativeRecord201205Type">
+				<xsd:sequence>
+					<xsd:element name="ACNCRegistration" type="ACNCRegistrationType" minOccurs="0">
+						<xsd:annotation>
+							<xsd:documentation>The entity's registered business names.</xsd:documentation>
+						</xsd:annotation>
+					</xsd:element>
+				</xsd:sequence>
+			</xsd:extension>
+		</xsd:complexContent>
+	</xsd:complexType>
+	<!-- Legislative record to include AWEF Entity -->
+	<xsd:complexType name="legislativeRecord202001Type">
+		<xsd:complexContent>
+			<xsd:extension base="legislativeRecord201408Type">
+				<xsd:sequence>
+					<xsd:element name="awefEntity" type="awefEntity" minOccurs="0">
+						<xsd:annotation>
+							<xsd:documentation>The approved worker entitlement fund.</xsd:documentation>
+						</xsd:annotation>
+					</xsd:element>
+					<xsd:element name="awefOperator" type="awefEntity" minOccurs="0">
+						<xsd:annotation>
+							<xsd:documentation>The approved worker entitlement fund operator </xsd:documentation>
+						</xsd:annotation>
+					</xsd:element>
+				</xsd:sequence>
+			</xsd:extension>
+		</xsd:complexContent>
+	</xsd:complexType>
+</xsd:schema>

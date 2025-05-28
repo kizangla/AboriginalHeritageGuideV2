@@ -1,0 +1,228 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified" attributeFormDefault="qualified" version="Version 1.00" xml:lang="en">
+	<xsd:include schemaLocation="abrPublicCommonTypes.xsd"/>
+	<xsd:include schemaLocation="abrPublicLegislativeRecord.xsd"/>
+	<xsd:include schemaLocation="abrPublicException.xsd"/>
+	<xsd:include schemaLocation="abrPublicPubSubRequest.xsd"/>
+	<xsd:annotation>
+		<xsd:documentation>
+			This schema describes the payload from ABN Lookup Publish and Subscribe web service.
+		</xsd:documentation>
+	</xsd:annotation>
+	<!-- Root element -->
+	<xsd:element name="ABRPayloadPubSubResults" type="ABRPayloadType">
+		<xsd:annotation>
+			<xsd:documentation>Root element of the schema</xsd:documentation>
+		</xsd:annotation>
+	</xsd:element>
+	<!-- Payload -->
+	<xsd:complexType name="ABRPayloadType">
+		<xsd:annotation>
+			<xsd:documentation>Payload consists of response and original request.</xsd:documentation>
+		</xsd:annotation>
+		<xsd:all>
+			<xsd:element name="request" type="requestType"/>
+			<xsd:element name="response" type="responseType"/>
+		</xsd:all>
+	</xsd:complexType>
+	<!-- Request-->
+	<xsd:complexType name="requestType">
+		<xsd:annotation>
+			<xsd:documentation>Can request a message file or just information.</xsd:documentation>
+		</xsd:annotation>
+		<xsd:choice>
+			<xsd:element name="messageRequest" type="messageRequestType"/>
+			<xsd:element name="bulkExtractQuery" type="bulkExtractQueryType"/>
+			<xsd:element name="messageFileQuery" type="messageFileQueryType"/>
+			<xsd:element name="lastMessageFileQuery" type="lastMessageFileQueryType"/>
+		</xsd:choice>
+	</xsd:complexType>
+	<!-- Response-->
+	<xsd:complexType name="responseType">
+		<xsd:sequence>
+			<xsd:element name="usageStatement" type="usageStatementType">
+				<xsd:annotation>
+					<xsd:documentation>Terms and conditions that consumer must understand and accept.</xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+			<xsd:choice>
+				<xsd:element name="exception" type="exceptionType">
+					<xsd:annotation>
+						<xsd:documentation>Exceptions resulting from the web service operation.</xsd:documentation>
+					</xsd:annotation>
+				</xsd:element>
+				<xsd:element name="messageCollection" type="messageCollectionType">
+					<xsd:annotation>
+						<xsd:documentation>ABN details that have been updated</xsd:documentation>
+					</xsd:annotation>
+				</xsd:element>
+				<xsd:element name="bulkExtractReport" type="bulkExtractReportType" minOccurs="0" maxOccurs="unbounded">
+					<xsd:annotation>
+						<xsd:documentation>Report of the bulk extracts that an agency has received</xsd:documentation>
+					</xsd:annotation>
+				</xsd:element>
+				<xsd:element name="messageFileReport" type="messageFileReportType" minOccurs="0" maxOccurs="unbounded">
+					<xsd:annotation>
+						<xsd:documentation>Report of message files downloaded by the agency for a given period</xsd:documentation>
+					</xsd:annotation>
+				</xsd:element>
+				<xsd:element name="lastMessageFileReport" type="messageFileReportType" minOccurs="0">
+					<xsd:annotation>
+						<xsd:documentation>Report of the last message file downloaded by the agency</xsd:documentation>
+					</xsd:annotation>
+				</xsd:element>
+			</xsd:choice>
+		</xsd:sequence>
+	</xsd:complexType>
+	<!-- Message Collection -->
+	<xsd:complexType name="messageCollectionType">
+		<xsd:annotation>
+			<xsd:documentation>Collection of ABNs details that have been updated</xsd:documentation>
+		</xsd:annotation>
+		<xsd:sequence>
+			<xsd:element name="message" type="messageType" minOccurs="0" maxOccurs="unbounded"/>
+		</xsd:sequence>
+	</xsd:complexType>
+	<!-- Message-->
+	<xsd:complexType name="messageType">
+		<xsd:annotation>
+			<xsd:documentation>ABN that has been updated</xsd:documentation>
+		</xsd:annotation>
+		<xsd:all>
+			<xsd:element name="businessEvent" type="businessEventType">
+				<xsd:annotation>
+					<xsd:documentation>Whether message is a new registration, update etc</xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+			<xsd:element name="businessEntity" type="legislativeRecordType">
+				<xsd:annotation>
+					<xsd:documentation>The business Entity is a legislative record containing current elements and/or historical elements</xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+		</xsd:all>
+	</xsd:complexType>
+	<!-- Message Request -->
+	<xsd:complexType name="messageRequestType">
+		<xsd:all>
+			<xsd:element name="messageFile" type="xsd:string">
+				<xsd:annotation>
+					<xsd:documentation>The name of the xml message file</xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+			<xsd:element name="authenticationGUID" type="authenticationGUIDType">
+				<xsd:annotation>
+					<xsd:documentation>Unique identifier assigned to the agency at time of registration</xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+		</xsd:all>
+	</xsd:complexType>
+	<!-- Bulk Extract Query-->
+	<xsd:complexType name="bulkExtractQueryType">
+		<xsd:all>
+			<xsd:element name="authenticationGUID" type="authenticationGUIDType">
+				<xsd:annotation>
+					<xsd:documentation>Unique identifier assigned to the agency at time of registration</xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+		</xsd:all>
+	</xsd:complexType>
+	<!-- Message File Query-->
+	<xsd:complexType name="messageFileQueryType">
+		<xsd:all>
+			<xsd:element name="authenticationGUID" type="authenticationGUIDType">
+				<xsd:annotation>
+					<xsd:documentation>Unique identifier assigned to the agency at time of registration</xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+			<xsd:element name="startDate" type="xsd:date" minOccurs="0">
+				<xsd:annotation>
+					<xsd:documentation>Start date - if null since inception</xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+			<xsd:element name="endDate" type="xsd:date" minOccurs="0">
+				<xsd:annotation>
+					<xsd:documentation>End date for query - if null to current date</xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+		</xsd:all>
+	</xsd:complexType>
+	<!-- Last File Query-->
+	<xsd:complexType name="lastMessageFileQueryType">
+		<xsd:all>
+			<xsd:element name="authenticationGUID" type="authenticationGUIDType">
+				<xsd:annotation>
+					<xsd:documentation>Unique identifier assigned to the agency at time of registration</xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+		</xsd:all>
+	</xsd:complexType>
+	<!-- Bulk Extract Report-->
+	<xsd:complexType name="bulkExtractReportType">
+		<xsd:all>
+			<xsd:element name="bulkExtractIdentifier" type="xsd:integer">
+				<xsd:annotation>
+					<xsd:documentation>Unique identifier assigned to the bulk extract</xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+			<xsd:element name="extractDate" type="xsd:date">
+				<xsd:annotation>
+					<xsd:documentation>Date of bulk extract</xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+			<xsd:element name="lastMessageFile" type="xsd:string">
+				<xsd:annotation>
+					<xsd:documentation>Name of the last message file applied to the database prior to the extract.</xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+		</xsd:all>
+	</xsd:complexType>
+	<!-- Message File Report-->
+	<xsd:complexType name="messageFileReportType">
+		<xsd:all>
+			<xsd:element name="messageFile" type="messageFileType">
+				<xsd:annotation>
+					<xsd:documentation>Name of the message file.</xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+			<xsd:element name="requestDate" type="xsd:date">
+				<xsd:annotation>
+					<xsd:documentation>Date the message file was requested</xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+		</xsd:all>
+	</xsd:complexType>
+	<!-- Last Message File Report-->
+	<xsd:complexType name="lastMessageFileReportType">
+		<xsd:all>
+			<xsd:element name="messageFile" type="xsd:string">
+				<xsd:annotation>
+					<xsd:documentation>Name of the message file.</xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+			<xsd:element name="requestDate" type="xsd:date">
+				<xsd:annotation>
+					<xsd:documentation>Date the message file was requested</xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+		</xsd:all>
+	</xsd:complexType>
+	<!-- Usage Statement-->
+	<xsd:simpleType name="usageStatementType">
+		<xsd:restriction base="xsd:string">
+			<xsd:maxLength value="200"/>
+		</xsd:restriction>
+	</xsd:simpleType>
+	<xsd:simpleType name="messageFileType">
+		<xsd:restriction base="xsd:string">
+			<xsd:maxLength value="60"/>
+		</xsd:restriction>
+	</xsd:simpleType>
+	<!-- Business Events-->
+	<xsd:simpleType name="businessEventType">
+		<xsd:restriction base="xsd:string">
+			<xsd:enumeration value="NEW"/>
+			<xsd:enumeration value="UPDATE"/>
+			<xsd:enumeration value="ADHOC"/>
+		</xsd:restriction>
+	</xsd:simpleType>
+</xsd:schema>

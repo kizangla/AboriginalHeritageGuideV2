@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified" attributeFormDefault="qualified" version="Version 1.00" xml:lang="en">
+	<xsd:include schemaLocation="abrPublicCommonTypes.xsd"/>
+	<xsd:complexType name="nameSearchRequestAdvancedType">
+		<xsd:sequence>
+			<xsd:element name="authenticationGUID" type="authenticationGUIDType">
+				<xsd:annotation>
+					<xsd:documentation>Used to validate requesting agency</xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+			<xsd:element name="name" type="nameValueType">
+				<xsd:annotation>
+					<xsd:documentation>Search text</xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+			<xsd:element name="filters" minOccurs="0">
+				<xsd:complexType>
+					<xsd:sequence>
+						<xsd:element name="nameType" minOccurs="0">
+							<xsd:annotation>
+								<xsd:documentation>Defines which names  to search on. A search on 'Trading Name' includes 'Other Name' and a search on 'Legal Name' includes 'Main Name.</xsd:documentation>
+							</xsd:annotation>
+							<xsd:complexType>
+								<xsd:all>
+									<xsd:element name="legalName" type="yesNoType" minOccurs="0"/>
+									<xsd:element name="tradingName" type="yesNoType" minOccurs="0"/>
+								</xsd:all>
+							</xsd:complexType>
+						</xsd:element>
+						<xsd:element name="postcode" type="postcodeType" minOccurs="0">
+							<xsd:annotation>
+								<xsd:documentation>Postcode filter</xsd:documentation>
+							</xsd:annotation>
+						</xsd:element>
+						<xsd:element name="stateCode">
+							<xsd:annotation>
+								<xsd:documentation>State code filter</xsd:documentation>
+							</xsd:annotation>
+							<xsd:complexType>
+								<xsd:all>
+									<xsd:element name="QLD" type="yesNoType" minOccurs="0"/>
+									<xsd:element name="NT" type="yesNoType" minOccurs="0"/>
+									<xsd:element name="SA" type="yesNoType" minOccurs="0"/>
+									<xsd:element name="WA" type="yesNoType" minOccurs="0"/>
+									<xsd:element name="VIC" type="yesNoType" minOccurs="0"/>
+									<xsd:element name="ACT" type="yesNoType" minOccurs="0"/>
+									<xsd:element name="TAS" type="yesNoType" minOccurs="0"/>
+									<xsd:element name="NSW" type="yesNoType" minOccurs="0"/>
+								</xsd:all>
+							</xsd:complexType>
+						</xsd:element>
+					</xsd:sequence>
+				</xsd:complexType>
+			</xsd:element>
+			<xsd:element name="searchWidth" type="searchWidthType" minOccurs="0">
+				<xsd:annotation>
+					<xsd:documentation>Extent of the search</xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+			<xsd:element name="minimumScore" type="xsd:integer" minOccurs="0">
+				<xsd:annotation>
+					<xsd:documentation>Lowest matching score allowed</xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+		</xsd:sequence>
+	</xsd:complexType>
+	<!-- Early name search did not allow search width to be specified -->
+	<xsd:complexType name="nameSearchRequestType">
+		<xsd:all>
+			<xsd:element name="authenticationGUID" type="authenticationGUIDType">
+				<xsd:annotation>
+					<xsd:documentation>Used to validate requesting agency</xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+			<xsd:element name="name" type="nameValueType">
+				<xsd:annotation>
+					<xsd:documentation>Search text</xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+			<xsd:element name="filters" minOccurs="0">
+				<xsd:complexType>
+					<xsd:sequence>
+						<xsd:element name="nameType" minOccurs="0">
+							<xsd:annotation>
+								<xsd:documentation>Defines which names  to search on. A search on 'Trading Name' includes 'Other Name' and a search on 'Legal Name' includes 'Main Name.</xsd:documentation>
+							</xsd:annotation>
+							<xsd:complexType>
+								<xsd:all>
+									<xsd:element name="legalName" type="yesNoType" minOccurs="0"/>
+									<xsd:element name="tradingName" type="yesNoType" minOccurs="0"/>
+								</xsd:all>
+							</xsd:complexType>
+						</xsd:element>
+						<xsd:element name="postcode" type="postcodeType">
+							<xsd:annotation>
+								<xsd:documentation>Postcode filter</xsd:documentation>
+							</xsd:annotation>
+						</xsd:element>
+						<xsd:element name="stateCode">
+							<xsd:annotation>
+								<xsd:documentation>State code filter</xsd:documentation>
+							</xsd:annotation>
+							<xsd:complexType>
+								<xsd:all>
+									<xsd:element name="QLD" type="yesNoType" minOccurs="0"/>
+									<xsd:element name="NT" type="yesNoType" minOccurs="0"/>
+									<xsd:element name="SA" type="yesNoType" minOccurs="0"/>
+									<xsd:element name="WA" type="yesNoType" minOccurs="0"/>
+									<xsd:element name="VIC" type="yesNoType" minOccurs="0"/>
+									<xsd:element name="ACT" type="yesNoType" minOccurs="0"/>
+									<xsd:element name="TAS" type="yesNoType" minOccurs="0"/>
+									<xsd:element name="NSW" type="yesNoType" minOccurs="0"/>
+								</xsd:all>
+							</xsd:complexType>
+						</xsd:element>
+					</xsd:sequence>
+				</xsd:complexType>
+			</xsd:element>
+		</xsd:all>
+	</xsd:complexType>
+	<!-- Advanced search allows maximum number of Search Results to be specified -->
+	<xsd:complexType name="nameSearchRequestAdvanced2006Type">
+		<xsd:complexContent>
+			<xsd:extension base="nameSearchRequestAdvancedType">
+				<xsd:sequence>
+					<xsd:element name="maxSearchResults" type="xsd:integer">
+						<xsd:annotation>
+							<xsd:documentation>Maximum number of records to be returned</xsd:documentation>
+						</xsd:annotation>
+					</xsd:element>
+				</xsd:sequence>
+			</xsd:extension>
+		</xsd:complexContent>
+	</xsd:complexType>
+	<xsd:simpleType name="nameValueType">
+		<xsd:restriction base="xsd:string">
+			<xsd:maxLength value="200"/>
+		</xsd:restriction>
+	</xsd:simpleType>
+</xsd:schema>

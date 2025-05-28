@@ -1,8 +1,8 @@
 import { z } from 'zod';
 
-// ABR JSON API Configuration (public open data - no extra credentials needed)
+// ABR XML Web Service Configuration (based on official schema)
 const ABR_GUID = '640c5f10-87b7-4f67-a3ce-5eb099dc25dd';
-const ABR_JSON_BASE_URL = 'https://abr.business.gov.au/json';
+const ABR_BASE_URL = 'https://abr.business.gov.au/abrxmlsearch/AbrXmlSearch.asmx';
 
 // ABR Response Types
 export interface ABRBusinessDetails {
@@ -24,7 +24,7 @@ export interface ABRSearchResult {
   totalResults: number;
 }
 
-// Search businesses by name using ABR JSON API (public open data)
+// Search businesses by name using ABR XML Web Service (based on official schema)
 export async function searchBusinessesByName(
   name: string,
   stateCode?: string,
@@ -35,27 +35,28 @@ export async function searchBusinessesByName(
       guid: ABR_GUID,
       name: name,
       ...(stateCode && { stateCode }),
-      ...(postcode && { postcode })
+      ...(postcode && { postcode }),
+      includeHistoricalDetails: 'N'
     });
 
-    const url = `${ABR_JSON_BASE_URL}/SearchByName?${params}`;
+    const url = `${ABR_BASE_URL}/SearchByName?${params}`;
     
     const response = await fetch(url, {
       headers: {
-        'Accept': 'application/json',
+        'Accept': 'application/xml, text/xml',
         'User-Agent': 'IndigenousAustraliaMap/1.0'
       }
     });
 
     if (!response.ok) {
-      console.log(`ABR JSON API response: ${response.status} - ${response.statusText}`);
+      console.log(`ABR XML API response: ${response.status} - ${response.statusText}`);
       return { businesses: [], totalResults: 0 };
     }
 
-    const jsonData = await response.json();
-    console.log('ABR JSON Response received:', jsonData);
+    const xmlData = await response.text();
+    console.log('ABR XML Response received, parsing...');
     
-    return parseABRJSONResponse(jsonData);
+    return parseABRSearchResponse(xmlData);
   } catch (error) {
     console.error('Error searching ABR businesses:', error);
     return { businesses: [], totalResults: 0 };
@@ -72,7 +73,7 @@ export async function getBusinessByABN(abn: string): Promise<ABRBusinessDetails 
       authenticationGuid: ABR_GUID
     });
 
-    const url = `${ABR_JSON_BASE_URL}/SearchByAbn?${params}`;
+    const url = `${ABR_BASE_URL}/SearchByAbn?${params}`;
     
     const response = await fetch(url, {
       headers: {

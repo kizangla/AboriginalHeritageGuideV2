@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified" attributeFormDefault="qualified" version="Version 1.00" xml:lang="en">
+	<xsd:include schemaLocation="abrPublicCommonTypes.xsd"/>
+	<xsd:include schemaLocation="abrPublicCharity.xsd"/>
+	<xsd:element name="identifierSearchRequest" type="identifierSearchRequestType">
+		<xsd:annotation>
+			<xsd:documentation>Root element for this schema</xsd:documentation>
+		</xsd:annotation>
+	</xsd:element>
+	<xsd:complexType name="identifierSearchRequestType">
+		<xsd:all>
+			<xsd:element name="authenticationGUID" type="authenticationGUIDType">
+				<xsd:annotation>
+					<xsd:documentation>Used to validate requesting agency</xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+			<xsd:element name="identifierType" type="searchIdentifierTypeCodeType">
+				<xsd:annotation>
+					<xsd:documentation>Type of identifier e.g. ABN, ASIC.</xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+			<xsd:element name="identifierValue" type="identifierValueType">
+				<xsd:annotation>
+					<xsd:documentation>Value of the identifier.</xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+			<xsd:element name="history" type="yesNoType" minOccurs="0">
+				<xsd:annotation>
+					<xsd:documentation>Defines whether the entity's history is required.</xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+		</xsd:all>
+	</xsd:complexType>
+	<xsd:complexType name="externalRequestCommonPartType">
+		<xsd:sequence>
+			<xsd:element name="authenticationGUID" type="authenticationGUIDType">
+				<xsd:annotation>
+					<xsd:documentation>Used to validate requesting agency</xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+			<xsd:element name="postcode" type="postcodeType" minOccurs="0">
+				<xsd:annotation>
+					<xsd:documentation>Postcode filter</xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+			<xsd:element name="entityTypeCode" type="entityTypeCodeType" minOccurs="0">
+				<xsd:annotation>
+					<xsd:documentation>entity type filter</xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+		</xsd:sequence>
+	</xsd:complexType>
+	<xsd:complexType name="externalRequestABNEventFilterType">
+		<xsd:complexContent>
+			<xsd:extension base="externalRequestCommonPartType">
+				<xsd:sequence>
+					<xsd:element name="state" type="stateType" minOccurs="0">
+						<xsd:annotation>
+							<xsd:documentation>state filter</xsd:documentation>
+						</xsd:annotation>
+					</xsd:element>
+					<xsd:element name="month" type="monthNumberType" minOccurs="0">
+						<xsd:annotation>
+							<xsd:documentation>month filter</xsd:documentation>
+						</xsd:annotation>
+					</xsd:element>
+					<xsd:element name="year" type="yearNumberType" minOccurs="0">
+						<xsd:annotation>
+							<xsd:documentation>year filter</xsd:documentation>
+						</xsd:annotation>
+					</xsd:element>
+				</xsd:sequence>
+			</xsd:extension>
+		</xsd:complexContent>
+	</xsd:complexType>
+	<xsd:complexType name="externalRequestABNStatusFilterType">
+		<xsd:complexContent>
+			<xsd:extension base="externalRequestCommonPartType">
+				<xsd:sequence>
+					<xsd:element name="activeABNs" type="yesNoType" minOccurs="0">
+						<xsd:annotation>
+							<xsd:documentation>active ABNs filter</xsd:documentation>
+						</xsd:annotation>
+					</xsd:element>
+					<xsd:element name="currentGSTRegistrationOnly" type="yesNoType" minOccurs="0">
+						<xsd:annotation>
+							<xsd:documentation>current GST Registration filter</xsd:documentation>
+						</xsd:annotation>
+					</xsd:element>
+				</xsd:sequence>
+			</xsd:extension>
+		</xsd:complexContent>
+	</xsd:complexType>
+	<xsd:complexType name="externalRequestABNUpdateEventFilterType">
+		<xsd:complexContent>
+			<xsd:extension base="externalRequestCommonPartType">
+				<xsd:sequence>
+					<xsd:element name="state" type="stateType" minOccurs="0">
+						<xsd:annotation>
+							<xsd:documentation>state filter</xsd:documentation>
+						</xsd:annotation>
+					</xsd:element>
+					<xsd:element name="updateDate" type="dateType" minOccurs="0">
+						<xsd:annotation>
+							<xsd:documentation>update date filter</xsd:documentation>
+						</xsd:annotation>
+					</xsd:element>
+				</xsd:sequence>
+			</xsd:extension>
+		</xsd:complexContent>
+	</xsd:complexType>
+	<xsd:complexType name="externalRequestABNCharityFilterType">
+		<xsd:complexContent>
+			<xsd:extension base="externalRequestCommonPartType">
+				<xsd:sequence>
+					<xsd:element name="state" type="stateType" minOccurs="0">
+						<xsd:annotation>
+							<xsd:documentation>state filter</xsd:documentation>
+						</xsd:annotation>
+					</xsd:element>
+					<xsd:element name="charityTypeCode" type="charityTypeCodeType" minOccurs="0">
+						<xsd:annotation>
+							<xsd:documentation>charity type filter</xsd:documentation>
+						</xsd:annotation>
+					</xsd:element>
+					<xsd:element name="concessionTypeCode" type="concessionTypeCodeType" minOccurs="0">
+						<xsd:annotation>
+							<xsd:documentation>concession type filter</xsd:documentation>
+						</xsd:annotation>
+					</xsd:element>
+				</xsd:sequence>
+			</xsd:extension>
+		</xsd:complexContent>
+	</xsd:complexType>
+</xsd:schema>

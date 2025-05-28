@@ -1,0 +1,191 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified" attributeFormDefault="qualified" version="Version 1.00" xml:lang="en">
+	<xsd:simpleType name="identifierValueType">
+		<xsd:restriction base="xsd:string"/>
+	</xsd:simpleType>
+	<xsd:simpleType name="abnIdentifierValueType">
+		<xsd:restriction base="xsd:string">
+			<xsd:maxLength value="11"/>
+		</xsd:restriction>
+	</xsd:simpleType>
+	<xsd:simpleType name="asicIdentifierValueType">
+		<xsd:restriction base="xsd:string">
+			<xsd:maxLength value="9"/>
+		</xsd:restriction>
+	</xsd:simpleType>
+	<xsd:simpleType name="yesNoType">
+		<xsd:restriction base="xsd:string">
+			<xsd:enumeration value="Y"/>
+			<xsd:enumeration value="True"/>
+			<xsd:enumeration value="true"/>
+			<xsd:enumeration value="N"/>
+			<xsd:enumeration value="False"/>
+			<xsd:enumeration value="false"/>
+			<xsd:enumeration value=""/>
+		</xsd:restriction>
+	</xsd:simpleType>
+	<xsd:simpleType name="identiferStatusType">
+		<xsd:restriction base="xsd:string">
+			<xsd:maxLength value="9"/>
+			<xsd:minLength value="6"/>
+			<xsd:enumeration value="ACTIVE"/>
+			<xsd:enumeration value="Active"/>
+			<xsd:enumeration value="Cancelled"/>
+			<xsd:enumeration value="CANCELLED"/>
+			<xsd:enumeration value="Replaced"/>
+			<xsd:enumeration value="REPLACED"/>
+		</xsd:restriction>
+	</xsd:simpleType>
+	<xsd:complexType name="summaryABNType">
+		<xsd:all>
+			<xsd:element name="identifierValue" type="abnIdentifierValueType">
+				<xsd:annotation>
+					<xsd:documentation>The of value of the ABN.</xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+			<xsd:element name="identifierStatus" type="identiferStatusType" minOccurs="0">
+				<xsd:annotation>
+					<xsd:documentation>Current status of the ABN (e.g active, cancelled).</xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+		</xsd:all>
+	</xsd:complexType>
+	<xsd:simpleType name="searchIdentifierTypeCodeType">
+		<xsd:restriction base="xsd:string">
+			<xsd:maxLength value="8"/>
+			<xsd:minLength value="3"/>
+			<xsd:enumeration value="ABN"/>
+			<xsd:enumeration value="ASIC"/>
+			<xsd:enumeration value="Postcode"/>
+		</xsd:restriction>
+	</xsd:simpleType>
+	<xsd:complexType name="entityTypeType">
+		<xsd:all>
+			<xsd:element name="entityTypeCode" type="entityTypeCodeType">
+				<xsd:annotation>
+					<xsd:documentation>Code for the type of business (e.g PRV, PST).</xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+			<xsd:element name="entityDescription" type="entityTypeDescriptionType">
+				<xsd:annotation>
+					<xsd:documentation>Description of the business type (e.g Australian Private Company, Pooled Super trust).</xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+		</xsd:all>
+	</xsd:complexType>
+	<xsd:simpleType name="entityTypeCodeType">
+		<xsd:restriction base="xsd:string">
+			<xsd:maxLength value="4"/>
+		</xsd:restriction>
+	</xsd:simpleType>
+	<xsd:simpleType name="entityTypeDescriptionType">
+		<xsd:restriction base="xsd:string">
+			<xsd:maxLength value="100"/>
+		</xsd:restriction>
+	</xsd:simpleType>
+	<xsd:simpleType name="exceptionDescriptionType">
+		<xsd:restriction base="xsd:string">
+			<xsd:maxLength value="1024"/>
+		</xsd:restriction>
+	</xsd:simpleType>
+	<xsd:simpleType name="exceptionCodeType">
+		<xsd:restriction base="xsd:string">
+			<xsd:minLength value="1"/>
+			<xsd:maxLength value="100"/>
+		</xsd:restriction>
+	</xsd:simpleType>
+	<xsd:simpleType name="authenticationGUIDType">
+		<xsd:restriction base="xsd:string">
+			<xsd:maxLength value="50"/>
+		</xsd:restriction>
+	</xsd:simpleType>
+	<xsd:simpleType name="searchWidthType">
+		<xsd:restriction base="xsd:string">
+			<xsd:maxLength value="8"/>
+			<xsd:enumeration value="TYPICAL"/>
+			<xsd:enumeration value="Typical"/>
+			<xsd:enumeration value="typical"/>
+			<xsd:enumeration value="NARROW"/>
+			<xsd:enumeration value="Narrow"/>
+			<xsd:enumeration value="narrow"/>
+		</xsd:restriction>
+	</xsd:simpleType>
+	<xsd:simpleType name="stateCodeType">
+		<xsd:restriction base="xsd:string">
+			<xsd:maxLength value="3"/>
+		</xsd:restriction>
+	</xsd:simpleType>
+	<xsd:simpleType name="stateType">
+		<xsd:restriction base="xsd:string">
+			<xsd:maxLength value="3"/>
+			<xsd:enumeration value=""/>
+			<xsd:enumeration value="QLD"/>
+			<xsd:enumeration value="NT"/>
+			<xsd:enumeration value="SA"/>
+			<xsd:enumeration value="WA"/>
+			<xsd:enumeration value="VIC"/>
+			<xsd:enumeration value="ACT"/>
+			<xsd:enumeration value="TAS"/>
+			<xsd:enumeration value="NSW"/>
+			<xsd:enumeration value="qld"/>
+			<xsd:enumeration value="nt"/>
+			<xsd:enumeration value="sa"/>
+			<xsd:enumeration value="wa"/>
+			<xsd:enumeration value="vic"/>
+			<xsd:enumeration value="act"/>
+			<xsd:enumeration value="tas"/>
+			<xsd:enumeration value="nsw"/>
+			<xsd:enumeration value="Qld"/>
+			<xsd:enumeration value="Vic"/>
+			<xsd:enumeration value="Act"/>
+			<xsd:enumeration value="Tas"/>
+			<xsd:enumeration value="Nsw"/>
+		</xsd:restriction>
+	</xsd:simpleType>
+	<xsd:simpleType name="dateType">
+		<xsd:union memberTypes="xsd:date xsd:dateTime"/>
+	</xsd:simpleType>
+	<xsd:simpleType name="monthNumberOrEmptyType">
+		<xsd:union memberTypes="monthNumberType emptyString"/>
+	</xsd:simpleType>
+	<xsd:simpleType name="monthNumberType">
+		<xsd:restriction base="xsd:integer">
+			<xsd:minInclusive value="1"/>
+			<xsd:maxInclusive value="12"/>
+		</xsd:restriction>
+	</xsd:simpleType>
+	<xsd:simpleType name="yearNumberOrEmptyType">
+		<xsd:union memberTypes="yearNumberType emptyString"/>
+	</xsd:simpleType>
+	<xsd:simpleType name="yearNumberType">
+		<xsd:restriction base="xsd:integer">
+			<xsd:minInclusive value="1999"/>
+			<xsd:maxInclusive value="2099"/>
+		</xsd:restriction>
+	</xsd:simpleType>
+	<xsd:simpleType name="emptyString">
+		<xsd:restriction base="xsd:string">
+			<xsd:enumeration value=""/>
+		</xsd:restriction>
+	</xsd:simpleType>
+	<xsd:simpleType name="postcodeType">
+		<xsd:restriction base="xsd:string">
+			<xsd:maxLength value="12"/>
+		</xsd:restriction>
+	</xsd:simpleType>
+	<xsd:simpleType name="addressLineType">
+		<xsd:restriction base="xsd:string">
+			<xsd:maxLength value="60"/>
+		</xsd:restriction>
+	</xsd:simpleType>
+	<xsd:simpleType name="suburbType">
+		<xsd:restriction base="xsd:string">
+			<xsd:maxLength value="50"/>
+		</xsd:restriction>
+	</xsd:simpleType>
+	<xsd:simpleType name="countryNameType">
+		<xsd:restriction base="xsd:string">
+			<xsd:maxLength value="100"/>
+		</xsd:restriction>
+	</xsd:simpleType>
+</xsd:schema>

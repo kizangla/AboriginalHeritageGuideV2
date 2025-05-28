@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- edited with XMLSpy v2006 sp2 U (http://www.altova.com) by Theresa Macgregor (Dept of Industry Tourism & Resources) -->
+<!-- 
+	History
+	
+	December 2004	added support for new search engine
+	April 2005		Added support for Charities
+	September 2007	Added support for Superannuation entities
+    January 2014	Added support for ACNC registration and DGR item number
+ -->
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified" attributeFormDefault="qualified" version="Version 1.00" xml:lang="en">
+	<xsd:include schemaLocation="abrPublicCommonTypes.xsd"/>
+	<xsd:include schemaLocation="abrPublicLegislativeRecord.xsd"/>
+	<xsd:include schemaLocation="abrPublicException.xsd"/>
+	<xsd:include schemaLocation="abrPublicNameSearchRequest.xsd"/>
+	<xsd:include schemaLocation="abrPublicIdentifierSearchRequest.xsd"/>
+	<xsd:include schemaLocation="abrPublicIdentifierListSearchRequest.xsd"/>
+	<xsd:include schemaLocation="abrPublicSearchResultsList.xsd"/>
+	<xsd:include schemaLocation="abrPublicABNList.xsd"/>
+	<xsd:annotation>
+		<xsd:documentation>
+			This schema describes the payload from ABN Lookup web services.
+			For assistance please contact: ABNLookupSupport@business.gov.au
+		</xsd:documentation>
+	</xsd:annotation>
+	<xsd:element name="ABRPayloadSearchResults" type="ABRPayloadType">
+		<xsd:annotation>
+			<xsd:documentation>root element of this schema</xsd:documentation>
+		</xsd:annotation>
+	</xsd:element>
+	<xsd:complexType name="ABRPayloadType">
+		<xsd:all>
+			<xsd:element name="request" type="requestType"/>
+			<xsd:element name="response" type="responseType"/>
+		</xsd:all>
+	</xsd:complexType>
+	<xsd:complexType name="requestType">
+		<xsd:choice>
+			<xsd:element name="identifierSearchRequest" type="identifierSearchRequestType" minOccurs="0"/>
+			<xsd:element name="nameSearchRequest" type="nameSearchRequestType" minOccurs="0"/>
+			<xsd:element name="nameSearchRequestAdvanced" type="nameSearchRequestAdvancedType" minOccurs="0"/>
+			<xsd:element name="nameSearchRequestAdvanced2006" type="nameSearchRequestAdvanced2006Type" minOccurs="0"/>
+			<xsd:element name="externalRequestABNEventFilter" type="externalRequestABNEventFilterType" minOccurs="0"/>
+			<xsd:element name="externalRequestABNStatusFilter" type="externalRequestABNStatusFilterType" minOccurs="0"/>
+			<xsd:element name="externalRequestABNUpdateEventFilter" type="externalRequestABNUpdateEventFilterType" minOccurs="0"/>
+			<xsd:element name="externalRequestABNCharityFilter" type="externalRequestABNCharityFilterType" minOccurs="0"/>
+		</xsd:choice>
+	</xsd:complexType>
+	<xsd:complexType name="responseType">
+		<xsd:sequence>
+			<xsd:element name="usageStatement" type="usageStatementType" minOccurs="0">
+				<xsd:annotation>
+					<xsd:documentation>Terms and conditions that the consumer of the data must understand and accept.</xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+			<xsd:element name="dateRegisterLastUpdated" type="xsd:date">
+				<xsd:annotation>
+					<xsd:documentation>Date ABN Lookup was last updated from the ATO.</xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+			<xsd:element name="dateTimeRetrieved" type="xsd:dateTime">
+				<xsd:annotation>
+					<xsd:documentation>Date and time information was retrieved via the ABN Lookup web service.</xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+			<xsd:choice>
+				<xsd:element name="exception" type="exceptionType">
+					<xsd:annotation>
+						<xsd:documentation>The request may result in an exception.</xsd:documentation>
+					</xsd:annotation>
+				</xsd:element>
+				<xsd:element name="searchResultsList" type="searchResultsListType">
+					<xsd:annotation>
+						<xsd:documentation>List of records matching criteria</xsd:documentation>
+					</xsd:annotation>
+				</xsd:element>
+				<xsd:element name="businessEntity" type="legislativeRecordType">
+					<xsd:annotation>
+						<xsd:documentation>Current and/or historical elements about the entity</xsd:documentation>
+					</xsd:annotation>
+				</xsd:element>
+				<xsd:element name="businessEntity200506" type="legislativeRecord200506Type">
+					<xsd:annotation>
+						<xsd:documentation>Same as businessEntity plus Charity information where it exists</xsd:documentation>
+					</xsd:annotation>
+				</xsd:element>
+				<xsd:element name="businessEntity200709" type="legislativeRecord200709Type">
+					<xsd:annotation>
+						<xsd:documentation>Same as businessEntity200506 plus superannuation fund information where it exists</xsd:documentation>
+					</xsd:annotation>
+				</xsd:element>
+				<xsd:element name="businessEntity201205" type="legislativeRecord201205Type">
+					<xsd:annotation>
+						<xsd:documentation>Same as businessEntity200709 plus business names where they exist</xsd:documentation>
+					</xsd:annotation>
+				</xsd:element>
+				<xsd:element name="businessEntity201408" type="legislativeRecord201408Type">
+					<xsd:annotation>
+						<xsd:documentation>Same as businessEntity201205 plus DGR item number and ACNC registration where they exist</xsd:documentation>
+					</xsd:annotation>
+				</xsd:element>
+				<xsd:element name="businessEntity202001" type="legislativeRecord202001Type">
+					<xsd:annotation>
+						<xsd:documentation>Same as SearchByABNv201408 but returns AWEF Entity if they exist for the ABN.</xsd:documentation>
+					</xsd:annotation>
+				</xsd:element>
+				<xsd:element name="abnList" type="abnListType">
+					<xsd:annotation>
+						<xsd:documentation>A list of abns</xsd:documentation>
+					</xsd:annotation>
+				</xsd:element>
+			</xsd:choice>
+		</xsd:sequence>
+	</xsd:complexType>
+	<xsd:simpleType name="usageStatementType">
+		<xsd:restriction base="xsd:string">
+			<xsd:maxLength value="400"/>
+		</xsd:restriction>
+	</xsd:simpleType>
+</xsd:schema>

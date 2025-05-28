@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified" attributeFormDefault="qualified" version="Version 1.00" xml:lang="en">
+	<xsd:include schemaLocation="abrPublicCommonTypes.xsd"/>
+	<xsd:element name="identifierSearchRequest" type="identifierSearchRequestType">
+		<xsd:annotation>
+			<xsd:documentation>Root element of the schema</xsd:documentation>
+		</xsd:annotation>
+	</xsd:element>
+	<xsd:complexType name="identifierSearchRequestType">
+		<xsd:all>
+			<xsd:element name="identifierType" type="searchIdentifierTypeCodeType">
+				<xsd:annotation>
+					<xsd:documentation>Type of identifier e.g. ABN, ASIC.</xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+			<xsd:element name="identifierValue" type="identifierValueType">
+				<xsd:annotation>
+					<xsd:documentation>Value of the identifier.</xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+			<xsd:element name="history" type="yesNoType">
+				<xsd:annotation>
+					<xsd:documentation>Indicates whether the record's history is required</xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+		</xsd:all>
+	</xsd:complexType>
+</xsd:schema>

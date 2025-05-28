@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified" attributeFormDefault="qualified" version="Version 1.00" xml:lang="en">
+	<xsd:include schemaLocation="abrPublicCommonTypes.xsd"/>
+	<xsd:element name="address" type="addressType"/>
+	<xsd:complexType name="addressType">
+		<xsd:all>
+			<xsd:element name="stateCode" type="stateCodeType">
+				<xsd:annotation>
+					<xsd:documentation>Abbreviation for the state/territory part of the address.</xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+			<xsd:element name="postcode" type="postcodeType">
+				<xsd:annotation>
+					<xsd:documentation>Postcode part of the address.</xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+			<xsd:element name="effectiveFrom" type="xsd:date">
+				<xsd:annotation>
+					<xsd:documentation>Date from which an address is effective. </xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+			<xsd:element name="effectiveTo" type="xsd:date" minOccurs="0">
+				<xsd:annotation>
+					<xsd:documentation>Date from which an address is no longer effective.  An empty value (or no effectiveTo element) indicates that the parent element is current.</xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+		</xsd:all>
+	</xsd:complexType>
+	<xsd:complexType name="simpleAddressType">
+		<xsd:all>
+			<xsd:element name="stateCode" type="stateCodeType">
+				<xsd:annotation>
+					<xsd:documentation>Abbreviation for the state/territory part of the address.</xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+			<xsd:element name="postcode" type="postcodeType">
+				<xsd:annotation>
+					<xsd:documentation>Postcode part of the address.</xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+			<xsd:element name="isCurrentIndicator" type="yesNoType">
+				<xsd:annotation>
+					<xsd:documentation>Indicates whether this element is current.</xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+		</xsd:all>
+	</xsd:complexType>
+</xsd:schema>

@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified" attributeFormDefault="qualified" version="Version 1.00" xml:lang="en">
+	<xsd:element name="ExternalRequestNameSearch" type="ExternalRequestNameSearchType">
+		<xsd:annotation>
+			<xsd:documentation>This is the root element of the External Name Search request schema</xsd:documentation>
+		</xsd:annotation>
+	</xsd:element>
+	<xsd:complexType name="ExternalRequestNameSearchType" mixed="false">
+		<xsd:all>
+			<xsd:element name="filters" type="ExternalRequestFilters" nillable="true"/>
+			<xsd:element name="name" type="nameValueType"/>
+		</xsd:all>
+	</xsd:complexType>
+	<xsd:complexType name="ExternalRequestFilters">
+		<xsd:all>
+			<xsd:element name="nameType" type="ExternalRequestFilterNameType" minOccurs="0" />
+			<xsd:element name="postcode" type="searchPostcodeType" minOccurs="0"/>
+			<xsd:element name="stateCode" type="ExternalRequestFilterStateCode" minOccurs="0"/>
+		</xsd:all>
+	</xsd:complexType>
+	<xsd:complexType name="ExternalRequestFilterStateCode">
+		<xsd:annotation>
+			<xsd:documentation>The search can be against one or more Australian states</xsd:documentation>
+		</xsd:annotation>
+		<xsd:all>
+			<xsd:element name="WA" type="yesNoType" minOccurs="0"/>
+			<xsd:element name="SA" type="yesNoType" minOccurs="0"/>
+			<xsd:element name="ACT" type="yesNoType" minOccurs="0"/>
+			<xsd:element name="NSW" type="yesNoType" minOccurs="0"/>
+			<xsd:element name="NT" type="yesNoType" minOccurs="0"/>
+			<xsd:element name="QLD" type="yesNoType" minOccurs="0"/>
+			<xsd:element name="TAS" type="yesNoType" minOccurs="0"/>
+			<xsd:element name="VIC" type="yesNoType" minOccurs="0"/>
+		</xsd:all>
+	</xsd:complexType>
+	<xsd:complexType name="ExternalRequestFilterNameType">
+		<xsd:annotation>
+			<xsd:documentation>The search can be against deductible gift name, trading name and/or legal name</xsd:documentation>
+		</xsd:annotation>
+		<xsd:all>
+			<xsd:element name="deductibleGift" type="yesNoType" minOccurs="0"/>
+			<xsd:element name="tradingName" type="yesNoType" minOccurs="0"/>
+			<xsd:element name="legalName" type="yesNoType" minOccurs="0"/>
+		</xsd:all>
+	</xsd:complexType>
+	<xsd:simpleType name="nameValueType">
+		<xsd:annotation>
+			<xsd:documentation>Search text for name must be entered and must be less that 200 characters</xsd:documentation>
+		</xsd:annotation>
+		<xsd:restriction base="xsd:string">
+			<xsd:minLength value="1"/>
+			<xsd:maxLength value="200"/>
+		</xsd:restriction>
+	</xsd:simpleType>
+	<xsd:simpleType name="searchPostcodeType">
+		<xsd:annotation>
+			<xsd:documentation>Postcodes must not exceed 12 characters</xsd:documentation>
+		</xsd:annotation>
+		<xsd:restriction base="xsd:string">
+			<xsd:maxLength value="12"/>
+		</xsd:restriction>
+	</xsd:simpleType>
+	<xsd:simpleType name="yesNoType">
+		<xsd:annotation>
+			<xsd:documentation>Elements of this type have a value of Y for Yes or N for No</xsd:documentation>
+		</xsd:annotation>
+		<xsd:restriction base="xsd:string">
+			<xsd:maxLength value="1"/>
+			<xsd:minLength value="1"/>
+			<xsd:enumeration value="Y"/>
+			<xsd:enumeration value="N"/>
+		</xsd:restriction>
+	</xsd:simpleType>
+</xsd:schema>
