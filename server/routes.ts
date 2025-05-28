@@ -3,6 +3,13 @@ import { createServer, type Server } from "http";
 import { storage } from "./database-storage";
 import { z } from "zod";
 import type { TerritoryGeoJSON, SearchResult } from "@shared/schema";
+import { 
+  searchBusinessesByName, 
+  getBusinessByABN, 
+  getBusinessesForTerritory,
+  searchBusinessesByPostcode,
+  type ABRBusinessDetails 
+} from "./abr-service";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Get all territories as GeoJSON
@@ -77,7 +84,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get businesses by territory
+  // Get businesses by territory (enhanced with ABR data)
   app.get("/api/territories/:id/businesses", async (req, res) => {
     try {
       const territoryId = parseInt(req.params.id);
@@ -85,9 +92,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid territory ID" });
       }
 
-      const businesses = await storage.getBusinessesByTerritory(territoryId);
-      res.json(businesses);
+      // Get local businesses from database
+      const localBusinesses = await storage.getBusinessesByTerritory(territoryId);
+      
+      // Get territory details for ABR search
+      const territory = await storage.getTerritoryById(territoryId);
+      
+      let abrBusinesses: ABRBusinessDetails[] = [];
+      if (territory) {
+        // Search ABR for businesses in this territory
+        abrBusinesses = await getBusinessesForTerritory(
+          territory.name,
+          undefined, // We'll enhance with postcode mapping later
+          territory.region.substring(0, 3) // Use first 3 chars as state hint
+        );
+      }
+      
+      // Combine local and ABR data
+      const combinedBusinesses = [
+        ...localBusinesses,
+        ...abrBusinesses.map(abr => ({
+          id: `abr-${abr.abn}`,
+          name: abr.entityName,
+          address: `${abr.address.suburb || ''} ${abr.address.stateCode || ''} ${abr.address.postcode || ''}`.trim(),
+          businessType: abr.entityType,
+          description: `ABN: ${abr.abn} - ${abr.status} business ${abr.gst ? 'with GST registration' : ''}`,
+          contactPhone: null,
+          contactEmail: null,
+          website: null,
+          territoryId,
+          lat: 0, // We'll enhance with geocoding later
+          lng: 0,
+          isVerified: true,
+          establishedYear: null,
+          employeeCount: null,
+          services: [],
+          certifications: abr.dgr ? ['DGR Status'] : [],
+          socialMedia: {},
+          abn: abr.abn,
+          source: 'ABR'
+        }))
+      ];
+      
+      res.json(combinedBusinesses);
     } catch (error) {
+      console.error("Error fetching businesses:", error);
       res.status(500).json({ message: "Failed to fetch businesses" });
     }
   });
@@ -107,6 +156,75 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(businesses);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch nearby businesses" });
+    }
+  });
+
+  // ABR Business Search Routes
+  
+  // Search businesses by name (ABR integration)
+  app.get("/api/abr/businesses/search", async (req, res) => {
+    try {
+      const { name, state, postcode } = req.query;
+      
+      if (!name || typeof name !== 'string') {
+        return res.status(400).json({ message: "Business name is required" });
+      }
+      
+      const results = await searchBusinessesByName(
+        name,
+        state as string,
+        postcode as string
+      );
+      
+      res.json(results);
+    } catch (error) {
+      console.error("Error searching ABR businesses:", error);
+      res.status(500).json({ message: "Failed to search businesses" });
+    }
+  });
+
+  // Get business by ABN
+  app.get("/api/abr/businesses/:abn", async (req, res) => {
+    try {
+      const { abn } = req.params;
+      
+      if (!abn) {
+        return res.status(400).json({ message: "ABN is required" });
+      }
+      
+      const business = await getBusinessByABN(abn);
+      
+      if (!business) {
+        return res.status(404).json({ message: "Business not found" });
+      }
+      
+      res.json(business);
+    } catch (error) {
+      console.error("Error fetching ABR business:", error);
+      res.status(500).json({ message: "Failed to fetch business details" });
+    }
+  });
+
+  // Search Indigenous businesses by postcode
+  app.get("/api/abr/businesses/postcode/:postcode", async (req, res) => {
+    try {
+      const { postcode } = req.params;
+      const { state } = req.query;
+      
+      if (!postcode) {
+        return res.status(400).json({ message: "Postcode is required" });
+      }
+      
+      const results = await searchBusinessesByPostcode(
+        postcode,
+        state as string,
+        ['indigenous', 'aboriginal', 'cultural', 'traditional']
+      );
+      
+      res.json(results);
+    } catch (error) {
+      console.error("Error searching businesses by postcode:", error);
+      res.status(500).json({ message: "Failed to search businesses" });
     }
   });
 

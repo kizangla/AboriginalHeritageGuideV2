@@ -1,0 +1,250 @@
+import { z } from 'zod';
+
+// ABR Web Service Configuration
+const ABR_GUID = '640c5f10-87b7-4f67-a3ce-5eb099dc25dd';
+const ABR_BASE_URL = 'https://abr.business.gov.au/abrxmlsearch/AbrXmlSearch.asmx';
+
+// ABR Response Types
+export interface ABRBusinessDetails {
+  abn: string;
+  entityName: string;
+  entityType: string;
+  status: string;
+  address: {
+    stateCode?: string;
+    postcode?: string;
+    suburb?: string;
+  };
+  gst: boolean;
+  dgr?: boolean;
+}
+
+export interface ABRSearchResult {
+  businesses: ABRBusinessDetails[];
+  totalResults: number;
+}
+
+// Search businesses by name
+export async function searchBusinessesByName(
+  name: string,
+  stateCode?: string,
+  postcode?: string
+): Promise<ABRSearchResult> {
+  try {
+    const params = new URLSearchParams({
+      guid: ABR_GUID,
+      name: name,
+      ...(stateCode && { stateCode }),
+      ...(postcode && { postcode }),
+      includeHistoricalDetails: 'N',
+      authenticationGuid: ABR_GUID
+    });
+
+    const url = `${ABR_BASE_URL}/ABRSearchByName?${params}`;
+    
+    const response = await fetch(url, {
+      headers: {
+        'Accept': 'application/xml',
+        'User-Agent': 'IndigenousAustraliaMap/1.0'
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`ABR API error: ${response.status} ${response.statusText}`);
+    }
+
+    const xmlData = await response.text();
+    return parseABRSearchResponse(xmlData);
+  } catch (error) {
+    console.error('Error searching ABR businesses:', error);
+    return { businesses: [], totalResults: 0 };
+  }
+}
+
+// Search businesses by ABN
+export async function getBusinessByABN(abn: string): Promise<ABRBusinessDetails | null> {
+  try {
+    const params = new URLSearchParams({
+      guid: ABR_GUID,
+      abn: abn.replace(/\s/g, ''), // Remove spaces
+      includeHistoricalDetails: 'N',
+      authenticationGuid: ABR_GUID
+    });
+
+    const url = `${ABR_BASE_URL}/ABRSearchByABN?${params}`;
+    
+    const response = await fetch(url, {
+      headers: {
+        'Accept': 'application/xml',
+        'User-Agent': 'IndigenousAustraliaMap/1.0'
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`ABR API error: ${response.status} ${response.statusText}`);
+    }
+
+    const xmlData = await response.text();
+    const result = parseABRSearchResponse(xmlData);
+    return result.businesses[0] || null;
+  } catch (error) {
+    console.error('Error fetching ABR business by ABN:', error);
+    return null;
+  }
+}
+
+// Search businesses by postcode (useful for territory-based searches)
+export async function searchBusinessesByPostcode(
+  postcode: string,
+  stateCode?: string,
+  searchTerms?: string[]
+): Promise<ABRSearchResult> {
+  try {
+    // If we have search terms (like "indigenous", "aboriginal"), include them
+    const nameFilter = searchTerms ? searchTerms.join(' OR ') : '';
+    
+    const params = new URLSearchParams({
+      guid: ABR_GUID,
+      postcode: postcode,
+      ...(stateCode && { stateCode }),
+      ...(nameFilter && { name: nameFilter }),
+      includeHistoricalDetails: 'N',
+      authenticationGuid: ABR_GUID
+    });
+
+    const url = `${ABR_BASE_URL}/ABRSearchByName?${params}`;
+    
+    const response = await fetch(url, {
+      headers: {
+        'Accept': 'application/xml',
+        'User-Agent': 'IndigenousAustraliaMap/1.0'
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`ABR API error: ${response.status} ${response.statusText}`);
+    }
+
+    const xmlData = await response.text();
+    return parseABRSearchResponse(xmlData);
+  } catch (error) {
+    console.error('Error searching ABR businesses by postcode:', error);
+    return { businesses: [], totalResults: 0 };
+  }
+}
+
+// Parse ABR XML response
+function parseABRSearchResponse(xmlData: string): ABRSearchResult {
+  try {
+    // Simple XML parsing - in production, consider using a proper XML parser
+    const businesses: ABRBusinessDetails[] = [];
+    
+    // Extract business entities from XML
+    const businessMatches = xmlData.match(/<businessEntity.*?<\/businessEntity>/g);
+    
+    if (businessMatches) {
+      for (const businessXml of businessMatches) {
+        const business = parseBusinessEntity(businessXml);
+        if (business) {
+          businesses.push(business);
+        }
+      }
+    }
+
+    return {
+      businesses,
+      totalResults: businesses.length
+    };
+  } catch (error) {
+    console.error('Error parsing ABR XML response:', error);
+    return { businesses: [], totalResults: 0 };
+  }
+}
+
+function parseBusinessEntity(xmlData: string): ABRBusinessDetails | null {
+  try {
+    const extractValue = (tag: string): string => {
+      const match = xmlData.match(new RegExp(`<${tag}[^>]*>([^<]*)<\/${tag}>`, 'i'));
+      return match ? match[1].trim() : '';
+    };
+
+    const abn = extractValue('abn');
+    const entityName = extractValue('organisationName') || extractValue('entityName');
+    
+    if (!abn || !entityName) {
+      return null;
+    }
+
+    return {
+      abn,
+      entityName,
+      entityType: extractValue('entityTypeName') || 'Business',
+      status: extractValue('entityStatusCode') || 'Active',
+      address: {
+        stateCode: extractValue('stateCode'),
+        postcode: extractValue('postcode'),
+        suburb: extractValue('suburb')
+      },
+      gst: xmlData.includes('<gstStatusCode>Active</gstStatusCode>'),
+      dgr: xmlData.includes('<dgrStatusCode>Active</dgrStatusCode>')
+    };
+  } catch (error) {
+    console.error('Error parsing business entity:', error);
+    return null;
+  }
+}
+
+// Helper function to identify potentially Indigenous businesses
+export function filterIndigenousBusinesses(businesses: ABRBusinessDetails[]): ABRBusinessDetails[] {
+  const indigenousKeywords = [
+    'indigenous', 'aboriginal', 'torres strait', 'first nations',
+    'koori', 'murri', 'yolngu', 'anangu', 'palawa', 'nunga',
+    'cultural', 'traditional', 'community', 'elders',
+    'dreamtime', 'country', 'mob', 'blackfella'
+  ];
+
+  return businesses.filter(business => {
+    const name = business.entityName.toLowerCase();
+    return indigenousKeywords.some(keyword => name.includes(keyword));
+  });
+}
+
+// Get businesses for a specific territory based on postcode/location
+export async function getBusinessesForTerritory(
+  territoryName: string,
+  postcode?: string,
+  stateCode?: string
+): Promise<ABRBusinessDetails[]> {
+  try {
+    let results: ABRBusinessDetails[] = [];
+
+    // First, try searching by territory name + indigenous keywords
+    const territorySearch = await searchBusinessesByName(
+      `${territoryName} indigenous`,
+      stateCode,
+      postcode
+    );
+    results = [...results, ...territorySearch.businesses];
+
+    // If we have a postcode, search businesses in that area
+    if (postcode) {
+      const postcodeSearch = await searchBusinessesByPostcode(
+        postcode,
+        stateCode,
+        ['indigenous', 'aboriginal', 'cultural']
+      );
+      results = [...results, ...postcodeSearch.businesses];
+    }
+
+    // Remove duplicates based on ABN
+    const uniqueResults = results.filter((business, index, self) => 
+      index === self.findIndex(b => b.abn === business.abn)
+    );
+
+    // Filter for likely Indigenous businesses
+    return filterIndigenousBusinesses(uniqueResults);
+  } catch (error) {
+    console.error('Error getting businesses for territory:', error);
+    return [];
+  }
+}
