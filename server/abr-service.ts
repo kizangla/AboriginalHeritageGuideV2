@@ -1,8 +1,8 @@
 import { z } from 'zod';
 
-// ABR Web Service Configuration (based on official ABN lookup sample code)
+// ABR JSON API Configuration (public open data - no extra credentials needed)
 const ABR_GUID = '640c5f10-87b7-4f67-a3ce-5eb099dc25dd';
-const ABR_BASE_URL = 'https://abr.business.gov.au/abrxmlsearch/AbrXmlSearch.asmx';
+const ABR_JSON_BASE_URL = 'https://abr.business.gov.au/json';
 
 // ABR Response Types
 export interface ABRBusinessDetails {
@@ -24,7 +24,7 @@ export interface ABRSearchResult {
   totalResults: number;
 }
 
-// Search businesses by name
+// Search businesses by name using ABR JSON API (public open data)
 export async function searchBusinessesByName(
   name: string,
   stateCode?: string,
@@ -35,26 +35,27 @@ export async function searchBusinessesByName(
       guid: ABR_GUID,
       name: name,
       ...(stateCode && { stateCode }),
-      ...(postcode && { postcode }),
-      includeHistoricalDetails: 'N',
-      authenticationGuid: ABR_GUID
+      ...(postcode && { postcode })
     });
 
-    const url = `${ABR_BASE_URL}/ABRSearchByName?${params}`;
+    const url = `${ABR_JSON_BASE_URL}/SearchByName?${params}`;
     
     const response = await fetch(url, {
       headers: {
-        'Accept': 'application/xml',
+        'Accept': 'application/json',
         'User-Agent': 'IndigenousAustraliaMap/1.0'
       }
     });
 
     if (!response.ok) {
-      throw new Error(`ABR API error: ${response.status} ${response.statusText}`);
+      console.log(`ABR JSON API response: ${response.status} - ${response.statusText}`);
+      return { businesses: [], totalResults: 0 };
     }
 
-    const xmlData = await response.text();
-    return parseABRSearchResponse(xmlData);
+    const jsonData = await response.json();
+    console.log('ABR JSON Response received:', jsonData);
+    
+    return parseABRJSONResponse(jsonData);
   } catch (error) {
     console.error('Error searching ABR businesses:', error);
     return { businesses: [], totalResults: 0 };
@@ -71,7 +72,7 @@ export async function getBusinessByABN(abn: string): Promise<ABRBusinessDetails 
       authenticationGuid: ABR_GUID
     });
 
-    const url = `${ABR_BASE_URL}/ABRSearchByABN?${params}`;
+    const url = `${ABR_JSON_BASE_URL}/SearchByAbn?${params}`;
     
     const response = await fetch(url, {
       headers: {
@@ -133,7 +134,44 @@ export async function searchBusinessesByPostcode(
   }
 }
 
-// Parse ABR XML response
+// Parse ABR JSON response (from public JSON API)
+function parseABRJSONResponse(jsonData: any): ABRSearchResult {
+  try {
+    const businesses: ABRBusinessDetails[] = [];
+    
+    // Handle ABR JSON response format
+    if (jsonData && jsonData.Names && Array.isArray(jsonData.Names)) {
+      for (const entity of jsonData.Names) {
+        if (entity.Abn && entity.Name) {
+          const business: ABRBusinessDetails = {
+            abn: entity.Abn,
+            entityName: entity.Name,
+            entityType: entity.EntityType || 'Business',
+            status: entity.EntityStatus || 'Unknown',
+            address: {
+              stateCode: entity.StateCode,
+              postcode: entity.Postcode,
+              suburb: entity.Suburb
+            },
+            gst: entity.Gst === 'Y' || entity.Gst === true,
+            dgr: entity.Dgr === 'Y' || entity.Dgr === true
+          };
+          businesses.push(business);
+        }
+      }
+    }
+
+    return {
+      businesses,
+      totalResults: businesses.length
+    };
+  } catch (error) {
+    console.error('Error parsing ABR JSON response:', error);
+    return { businesses: [], totalResults: 0 };
+  }
+}
+
+// Parse ABR XML response (legacy function for XML API)
 function parseABRSearchResponse(xmlData: string): ABRSearchResult {
   try {
     // Simple XML parsing - in production, consider using a proper XML parser
