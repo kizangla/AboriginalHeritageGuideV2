@@ -286,7 +286,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Geocoding endpoint (using Nominatim)
+  // Geocoding endpoint (using Google Maps API)
   app.get("/api/geocode", async (req, res) => {
     try {
       const query = req.query.q as string;
@@ -294,20 +294,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Query parameter 'q' is required" });
       }
 
-      // Use Nominatim for geocoding
-      const nominatimUrl = `https://nominatim.openstreetmap.org/search?format=json&limit=5&countrycodes=AU&q=${encodeURIComponent(query)}`;
-      
-      const response = await fetch(nominatimUrl, {
-        headers: {
-          'User-Agent': 'Aboriginal-Australia-Map/1.0'
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error(`Nominatim API error: ${response.statusText}`);
+      const googleApiKey = process.env.GOOGLE_MAPS_API_KEY;
+      if (!googleApiKey) {
+        throw new Error('Google Maps API key not configured');
       }
 
-      const results: SearchResult[] = await response.json();
+      // Use Google Geocoding API for more accurate results
+      const googleUrl = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(query)}&region=au&key=${googleApiKey}`;
+      
+      const response = await fetch(googleUrl);
+
+      if (!response.ok) {
+        throw new Error(`Google Geocoding API error: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      
+      if (data.status !== 'OK') {
+        throw new Error(`Google Geocoding API status: ${data.status}`);
+      }
+
+      // Convert Google results to our SearchResult format
+      const results: SearchResult[] = data.results.map((result: any) => ({
+        display_name: result.formatted_address,
+        lat: result.geometry.location.lat.toString(),
+        lon: result.geometry.location.lng.toString(),
+        place_id: result.place_id,
+        boundingbox: [
+          result.geometry.viewport.southwest.lat.toString(),
+          result.geometry.viewport.northeast.lat.toString(),
+          result.geometry.viewport.southwest.lng.toString(),
+          result.geometry.viewport.northeast.lng.toString()
+        ]
+      }));
+
       res.json(results);
     } catch (error) {
       console.error('Geocoding error:', error);
