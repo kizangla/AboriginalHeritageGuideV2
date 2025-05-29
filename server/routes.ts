@@ -166,7 +166,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/supply-nation/test", async (req, res) => {
     try {
       const { searchSupplyNationBusinesses } = await import('./supply-nation-service');
-      const results = await searchSupplyNationBusinesses("business", "australia");
+      const results = await searchSupplyNationBusinesses("construction", "australia");
       
       res.json({
         message: "Supply Nation test completed",
@@ -176,6 +176,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Supply Nation test error:", error);
       res.status(500).json({ message: "Supply Nation test failed", error: String(error) });
+    }
+  });
+
+  // Supply Nation search endpoint
+  app.get("/api/supply-nation/search", async (req, res) => {
+    try {
+      const { query, location, limit } = req.query;
+      
+      if (!query || typeof query !== 'string') {
+        return res.status(400).json({ message: "Search query is required" });
+      }
+      
+      const { searchSupplyNationBusinesses } = await import('./supply-nation-service');
+      const results = await searchSupplyNationBusinesses(query, location as string);
+      
+      const limitNumber = limit ? parseInt(limit as string) : undefined;
+      const businessesToReturn = limitNumber ? results.businesses.slice(0, limitNumber) : results.businesses;
+      
+      res.json({
+        businesses: businessesToReturn,
+        totalResults: results.totalResults,
+        searchQuery: query,
+        location: location || 'all'
+      });
+    } catch (error) {
+      console.error("Supply Nation search error:", error);
+      res.status(500).json({ message: "Supply Nation search failed", error: String(error) });
     }
   });
 

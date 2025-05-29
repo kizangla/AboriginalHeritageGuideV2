@@ -118,42 +118,66 @@ class SupplyNationScraper {
     try {
       console.log(`Searching Supply Nation for: "${query}" in location: "${location || 'all'}"`);
       
-      // Try different search approaches - first try the main search page
-      const searchUrl = `${this.baseUrl}/public/s/search-results`;
-      const searchParams = new URLSearchParams({
-        'search': query,
-        'searchfield': 'all',
-        ...(location && { 'location': location })
-      });
-
-      console.log(`Search URL: ${searchUrl}?${searchParams}`);
-
-      const searchResponse = await fetch(`${searchUrl}?${searchParams}`, {
+      // Step 1: Get the search page to obtain any necessary form tokens or CSRF tokens
+      const searchPageUrl = `${this.baseUrl}/public/s/search-results`;
+      const searchPageResponse = await fetch(searchPageUrl, {
         method: 'GET',
         headers: {
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
           'Cookie': this.sessionCookies,
-          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-          'Referer': `${this.baseUrl}/public/s/`,
-          'Accept-Language': 'en-US,en;q=0.9'
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8'
         }
       });
 
-      console.log(`Search response status: ${searchResponse.status}`);
-      console.log(`Search response URL: ${searchResponse.url}`);
-
-      if (!searchResponse.ok) {
-        console.error('Supply Nation search request failed:', searchResponse.status, await searchResponse.text());
+      if (!searchPageResponse.ok) {
+        console.error('Failed to load search page:', searchPageResponse.status);
         return { businesses: [], totalResults: 0 };
       }
 
-      const searchHtml = await searchResponse.text();
-      console.log(`Search response length: ${searchHtml.length} characters`);
+      const searchPageHtml = await searchPageResponse.text();
+      console.log('Search page loaded, length:', searchPageHtml.length);
+
+      // Step 2: Submit the search form with proper form data
+      const formData = new URLSearchParams();
+      formData.append('search', query);
+      formData.append('searchfield', 'all');
+      if (location) {
+        formData.append('location', location);
+      }
+
+      console.log(`Submitting search form with data:`, formData.toString());
+
+      const searchSubmitResponse = await fetch(searchPageUrl, {
+        method: 'POST',
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+          'Cookie': this.sessionCookies,
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+          'Referer': searchPageUrl,
+          'Accept-Language': 'en-US,en;q=0.9',
+          'Origin': this.baseUrl
+        },
+        body: formData
+      });
+
+      console.log(`Search submit response status: ${searchSubmitResponse.status}`);
+      console.log(`Search submit response URL: ${searchSubmitResponse.url}`);
+
+      if (!searchSubmitResponse.ok) {
+        console.error('Supply Nation search submission failed:', searchSubmitResponse.status);
+        const errorText = await searchSubmitResponse.text();
+        console.error('Error response:', errorText.substring(0, 500));
+        return { businesses: [], totalResults: 0 };
+      }
+
+      const searchResultsHtml = await searchSubmitResponse.text();
+      console.log(`Search results length: ${searchResultsHtml.length} characters`);
       
       // Save first 1000 chars for debugging
-      console.log('Search response sample:', searchHtml.substring(0, 1000));
+      console.log('Search results sample:', searchResultsHtml.substring(0, 1000));
       
-      return this.parseSearchResults(searchHtml);
+      return this.parseSearchResults(searchResultsHtml);
 
     } catch (error) {
       console.error('Supply Nation search error:', error);
