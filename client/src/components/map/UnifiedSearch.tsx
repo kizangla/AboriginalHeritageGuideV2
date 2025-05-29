@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { MapPin, Building2, Navigation, Search } from 'lucide-react';
+import L from 'leaflet';
 import type { SearchResult } from '@shared/schema';
 
 interface BusinessLocation {
@@ -96,6 +97,40 @@ export default function UnifiedSearch({ map, onLocationSelect, onBusinessSelect 
     if (onBusinessSelect) {
       onBusinessSelect(business);
     }
+    
+    // Add business marker to map
+    if (map) {
+      const marker = L.marker([business.lat, business.lng], {
+        icon: L.divIcon({
+          className: 'business-marker',
+          html: `
+            <div class="bg-orange-600 text-white rounded-full w-8 h-8 flex items-center justify-center shadow-lg border-2 border-white">
+              <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12 2l3.09 6.26L22 9l-5.91 0.74L12 22l-4.09-6.26L2 15l5.91-0.74L12 2z"/>
+              </svg>
+            </div>
+          `,
+          iconSize: [32, 32],
+          iconAnchor: [16, 32]
+        })
+      }).addTo(map);
+      
+      // Add popup with business details
+      marker.bindPopup(`
+        <div class="p-2">
+          <h3 class="font-semibold text-sm mb-1">${business.entityName}</h3>
+          <p class="text-xs text-gray-600 mb-1">ABN: ${business.abn}</p>
+          <p class="text-xs text-gray-600">${business.displayAddress}</p>
+          <span class="inline-block mt-1 px-2 py-1 bg-green-100 text-green-800 text-xs rounded">
+            ${business.status}
+          </span>
+        </div>
+      `).openPopup();
+      
+      // Store marker for cleanup
+      (marker as any).businessABN = business.abn;
+    }
+    
     setShouldSearch(false);
     setSearchQuery('');
   };
