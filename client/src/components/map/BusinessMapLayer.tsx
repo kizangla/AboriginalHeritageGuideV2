@@ -30,8 +30,14 @@ export default function BusinessMapLayer({ map, onBusinessSelect }: BusinessMapL
   const [isSearching, setIsSearching] = useState(false);
   const [businessMarkers, setBusinessMarkers] = useState<L.Marker[]>([]);
 
-  const { data: businessResults, refetch: searchBusinesses } = useQuery({
+  const { data: businessResults, refetch: searchBusinesses, isLoading } = useQuery({
     queryKey: ['/api/businesses/map', searchTerm],
+    queryFn: async () => {
+      if (!searchTerm.trim()) return { businesses: [], totalResults: 0 };
+      const response = await fetch(`/api/businesses/map?search=${encodeURIComponent(searchTerm)}`);
+      if (!response.ok) throw new Error('Search failed');
+      return response.json();
+    },
     enabled: false,
     select: (data) => data as { businesses: BusinessLocation[]; totalResults: number }
   });
@@ -46,12 +52,12 @@ export default function BusinessMapLayer({ map, onBusinessSelect }: BusinessMapL
     setBusinessMarkers([]);
 
     try {
-      await searchBusinesses();
+      const result = await searchBusinesses();
       
-      if (businessResults?.businesses) {
+      if (result.data?.businesses) {
         const newMarkers: L.Marker[] = [];
         
-        businessResults.businesses.forEach((business) => {
+        result.data.businesses.forEach((business) => {
           // Create custom business marker icon
           const businessIcon = L.divIcon({
             html: `<div style="
