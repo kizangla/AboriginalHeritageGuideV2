@@ -158,7 +158,7 @@ export default function UnifiedSearch({ map, onLocationSelect, onBusinessSelect 
   };
 
   return (
-    <div className="absolute top-20 left-4 z-[1000] w-80">
+    <div className="absolute top-20 left-16 z-[1000] w-80">
       <div className="bg-white rounded-xl shadow-md">
         {/* Search Bar */}
         <div className="flex gap-1 p-1">
