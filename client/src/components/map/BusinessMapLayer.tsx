@@ -131,7 +131,7 @@ export default function BusinessMapLayer({ map, onBusinessSelect }: BusinessMapL
   };
 
   return (
-    <div className="absolute top-4 left-4 z-[1000] bg-white rounded-xl shadow-md max-w-sm">
+    <div className="absolute top-36 left-4 z-[1000] bg-white rounded-xl shadow-md max-w-sm">
       <div className="flex gap-1 p-1">
         <Input
           type="text"
