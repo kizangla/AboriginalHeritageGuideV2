@@ -8,6 +8,7 @@ import {
   getBusinessByABN, 
   getBusinessesForTerritory,
   searchBusinessesByPostcode,
+  searchIndigenousBusinesses,
   type ABRBusinessDetails 
 } from "./abr-service";
 
@@ -161,6 +162,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // ABR Business Search Routes
   
+  // Search Indigenous businesses (Supply Nation verified)
+  app.get("/api/indigenous-businesses/search", async (req, res) => {
+    try {
+      const { name, location } = req.query;
+      
+      if (!name || typeof name !== 'string') {
+        return res.status(400).json({ message: "Business name is required" });
+      }
+      
+      const results = await searchIndigenousBusinesses(
+        name,
+        location as string
+      );
+      
+      res.json(results);
+    } catch (error) {
+      console.error("Error searching Indigenous businesses:", error);
+      res.status(500).json({ message: "Failed to search Indigenous businesses" });
+    }
+  });
+  
   // Search businesses by name (ABR integration)
   app.get("/api/abr/businesses/search", async (req, res) => {
     try {
@@ -237,7 +259,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: 'Search term is required' });
       }
 
-      const abrResult = await searchBusinessesByName(search);
+      const abrResult = await searchIndigenousBusinesses(search);
       const businessesWithLocations = [];
 
       for (const business of abrResult.businesses) {

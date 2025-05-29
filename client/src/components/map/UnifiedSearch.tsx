@@ -19,6 +19,12 @@ interface BusinessLocation {
     postcode: string;
     fullAddress: string;
   };
+  supplyNationVerified?: boolean;
+  supplyNationData?: {
+    companyName: string;
+    categories: string[];
+    description?: string;
+  };
 }
 
 interface BusinessSearchResult {
@@ -116,14 +122,26 @@ export default function UnifiedSearch({ map, onLocationSelect, onBusinessSelect 
       }).addTo(map);
       
       // Add popup with business details
+      const verificationBadge = business.supplyNationVerified 
+        ? '<span class="inline-block mt-1 px-2 py-1 bg-orange-100 text-orange-800 text-xs rounded font-medium">✓ Verified Indigenous Business</span>' 
+        : '';
+      
+      const categories = business.supplyNationData?.categories?.length 
+        ? `<p class="text-xs text-gray-500 mt-1">${business.supplyNationData.categories.slice(0, 3).join(', ')}</p>` 
+        : '';
+      
       marker.bindPopup(`
-        <div class="p-2">
+        <div class="p-3">
           <h3 class="font-semibold text-sm mb-1">${business.entityName}</h3>
           <p class="text-xs text-gray-600 mb-1">ABN: ${business.abn}</p>
           <p class="text-xs text-gray-600">${business.displayAddress}</p>
-          <span class="inline-block mt-1 px-2 py-1 bg-green-100 text-green-800 text-xs rounded">
-            ${business.status}
-          </span>
+          ${categories}
+          <div class="mt-2 flex flex-wrap gap-1">
+            <span class="inline-block px-2 py-1 bg-green-100 text-green-800 text-xs rounded">
+              ${business.status}
+            </span>
+            ${verificationBadge}
+          </div>
         </div>
       `).openPopup();
       
@@ -254,8 +272,20 @@ export default function UnifiedSearch({ map, onLocationSelect, onBusinessSelect 
                   <div className="flex items-start gap-2">
                     <Building2 className="w-4 h-4 text-orange-600 mt-0.5 flex-shrink-0" />
                     <div className="flex-1 min-w-0">
-                      <div className="font-medium text-gray-900 truncate">{business.entityName}</div>
+                      <div className="flex items-center gap-2 mb-1">
+                        <div className="font-medium text-gray-900 truncate">{business.entityName}</div>
+                        {business.supplyNationVerified && (
+                          <span className="inline-block px-1.5 py-0.5 bg-green-100 text-green-800 text-xs rounded font-medium">
+                            Verified Indigenous
+                          </span>
+                        )}
+                      </div>
                       <div className="text-xs text-gray-500">{business.displayAddress}</div>
+                      {business.supplyNationData?.categories && business.supplyNationData.categories.length > 0 && (
+                        <div className="text-xs text-gray-400 mt-1">
+                          {business.supplyNationData.categories.slice(0, 2).join(', ')}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </button>
