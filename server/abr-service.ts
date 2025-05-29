@@ -14,6 +14,8 @@ export interface ABRBusinessDetails {
     stateCode?: string;
     postcode?: string;
     suburb?: string;
+    streetAddress?: string;
+    fullAddress?: string;
   };
   gst: boolean;
   dgr?: boolean;
@@ -194,23 +196,23 @@ function parseBusinessDetailsJSON(jsonData: any): ABRBusinessDetails | null {
       abn: jsonData.Abn || '',
       entityName: jsonData.EntityName || '',
       entityType: jsonData.EntityTypeName || 'Business',
-      status: jsonData.AbnStatus === '0000000001' ? 'Active' : 'Inactive',
+      status: jsonData.AbnStatus === 'Active' ? 'Active' : 'Inactive',
       address: {
         stateCode: jsonData.AddressState || '',
         postcode: jsonData.AddressPostcode || '',
-        suburb: ''
+        suburb: '',
+        streetAddress: '',
+        fullAddress: ''
       },
-      gst: jsonData.Gst === 'Y' || jsonData.Gst === true,
+      gst: jsonData.Gst ? true : false,
       dgr: false
     };
 
-    // Build full address for geocoding
+    // Build complete address for geocoding and display
     const addressParts = [];
-    if (jsonData.AddressPostcode) addressParts.push(jsonData.AddressPostcode);
-    if (jsonData.AddressState) addressParts.push(jsonData.AddressState);
-    if (addressParts.length > 0) {
-      addressParts.push('Australia');
-      business.address.suburb = addressParts.join(', ');
+    if (jsonData.AddressPostcode && jsonData.AddressState) {
+      business.address.fullAddress = `${jsonData.AddressPostcode}, ${jsonData.AddressState}, Australia`;
+      business.address.suburb = `${jsonData.AddressPostcode}, ${jsonData.AddressState}`;
     }
 
     return business;

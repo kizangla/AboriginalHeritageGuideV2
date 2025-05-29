@@ -228,6 +228,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get businesses with geocoded locations for map display
+  app.get("/api/businesses/map", async (req, res) => {
+    try {
+      const { search } = req.query as { search?: string };
+      
+      if (!search) {
+        return res.status(400).json({ error: 'Search term is required' });
+      }
+
+      const abrResult = await searchBusinessesByName(search);
+      const businessesWithLocations = [];
+
+      for (const business of abrResult.businesses) {
+        if (business.address.fullAddress) {
+          try {
+            const geocodeResponse = await fetch(
+              `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(business.address.fullAddress)}&limit=1&countrycodes=au`,
+              {
+                headers: {
+                  'User-Agent': 'Aboriginal-Australia-Map/1.0'
+                }
+              }
+            );
+            
+            if (geocodeResponse.ok) {
+              const geocodeData = await geocodeResponse.json();
+              if (geocodeData.length > 0) {
+                const location = geocodeData[0];
+                businessesWithLocations.push({
+                  ...business,
+                  lat: parseFloat(location.lat),
+                  lng: parseFloat(location.lon),
+                  displayAddress: business.address.fullAddress
+                });
+              }
+            }
+          } catch (geocodeError) {
+            console.error('Geocoding error for business:', business.abn, geocodeError);
+          }
+        }
+      }
+
+      res.json({
+        businesses: businessesWithLocations,
+        totalResults: businessesWithLocations.length
+      });
+    } catch (error) {
+      console.error('Error getting businesses for map:', error);
+      res.status(500).json({ error: 'Failed to get businesses for map' });
+    }
+  });
+
   // Geocoding endpoint (using Nominatim)
   app.get("/api/geocode", async (req, res) => {
     try {
