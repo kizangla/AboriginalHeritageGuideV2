@@ -77,22 +77,28 @@ export async function getBusinessByABN(abn: string): Promise<ABRBusinessDetails 
       authenticationGuid: ABR_GUID
     });
 
-    const url = `${ABR_API}/AbnDetails.aspx?callback=callback&guid=${ABR_GUID}&abn=${abn}`;
+    const url = `${ABR_API}/AbnDetails.aspx?callback=callback&guid=${ABR_GUID}&abn=${abn.replace(/\s/g, '')}`;
     
     const response = await fetch(url, {
       headers: {
-        'Accept': 'application/xml',
+        'Accept': 'application/json, text/plain',
         'User-Agent': 'IndigenousAustraliaMap/1.0'
       }
     });
 
     if (!response.ok) {
-      throw new Error(`ABR API error: ${response.status} ${response.statusText}`);
+      console.log(`ABR Details API response: ${response.status} - ${response.statusText}`);
+      return null;
     }
 
-    const xmlData = await response.text();
-    const result = parseABRSearchResponse(xmlData);
-    return result.businesses[0] || null;
+    const jsonData = await response.text();
+    console.log('ABR Details Response received:', jsonData.substring(0, 200));
+    
+    // Parse JSONP callback response
+    const jsonString = jsonData.replace(/^callback\(/, '').replace(/\)$/, '');
+    const data = JSON.parse(jsonString);
+    
+    return parseBusinessDetailsJSON(data);
   } catch (error) {
     console.error('Error fetching ABR business by ABN:', error);
     return null;
@@ -173,6 +179,44 @@ function parseABRJSONResponse(jsonData: any): ABRSearchResult {
   } catch (error) {
     console.error('Error parsing ABR JSON response:', error);
     return { businesses: [], totalResults: 0 };
+  }
+}
+
+// Parse detailed business information from ABR JSON API
+function parseBusinessDetailsJSON(jsonData: any): ABRBusinessDetails | null {
+  try {
+    if (!jsonData || jsonData.Message) {
+      console.log('ABR Details API message:', jsonData?.Message || 'No data');
+      return null;
+    }
+
+    const business: ABRBusinessDetails = {
+      abn: jsonData.Abn || '',
+      entityName: jsonData.EntityName || '',
+      entityType: jsonData.EntityTypeName || 'Business',
+      status: jsonData.AbnStatus === '0000000001' ? 'Active' : 'Inactive',
+      address: {
+        stateCode: jsonData.AddressState || '',
+        postcode: jsonData.AddressPostcode || '',
+        suburb: ''
+      },
+      gst: jsonData.Gst === 'Y' || jsonData.Gst === true,
+      dgr: false
+    };
+
+    // Build full address for geocoding
+    const addressParts = [];
+    if (jsonData.AddressPostcode) addressParts.push(jsonData.AddressPostcode);
+    if (jsonData.AddressState) addressParts.push(jsonData.AddressState);
+    if (addressParts.length > 0) {
+      addressParts.push('Australia');
+      business.address.suburb = addressParts.join(', ');
+    }
+
+    return business;
+  } catch (error) {
+    console.error('Error parsing business details:', error);
+    return null;
   }
 }
 
