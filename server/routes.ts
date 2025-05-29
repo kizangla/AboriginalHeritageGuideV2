@@ -286,7 +286,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Geocoding endpoint (using Google Maps API)
+  // Geocoding endpoint (using enhanced Nominatim)
   app.get("/api/geocode", async (req, res) => {
     try {
       const query = req.query.q as string;
@@ -294,39 +294,74 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Query parameter 'q' is required" });
       }
 
-      const googleApiKey = process.env.GOOGLE_MAPS_API_KEY;
-      if (!googleApiKey) {
-        throw new Error('Google Maps API key not configured');
-      }
-
-      // Use Google Geocoding API for more accurate results
-      const googleUrl = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(query)}&region=au&key=${googleApiKey}`;
+      // Enhanced Nominatim search with better address handling
+      const nominatimUrl = `https://nominatim.openstreetmap.org/search?format=json&limit=5&countrycodes=AU&addressdetails=1&extratags=1&q=${encodeURIComponent(query)}`;
       
-      const response = await fetch(googleUrl);
+      const response = await fetch(nominatimUrl, {
+        headers: {
+          'User-Agent': 'Aboriginal-Australia-Map/1.0'
+        }
+      });
 
       if (!response.ok) {
-        throw new Error(`Google Geocoding API error: ${response.statusText}`);
+        throw new Error(`Nominatim API error: ${response.statusText}`);
       }
 
-      const data = await response.json();
+      const rawResults = await response.json();
       
-      if (data.status !== 'OK') {
-        throw new Error(`Google Geocoding API status: ${data.status}`);
-      }
-
-      // Convert Google results to our SearchResult format
-      const results: SearchResult[] = data.results.map((result: any) => ({
-        display_name: result.formatted_address,
-        lat: result.geometry.location.lat.toString(),
-        lon: result.geometry.location.lng.toString(),
-        place_id: result.place_id,
-        boundingbox: [
-          result.geometry.viewport.southwest.lat.toString(),
-          result.geometry.viewport.northeast.lat.toString(),
-          result.geometry.viewport.southwest.lng.toString(),
-          result.geometry.viewport.northeast.lng.toString()
-        ]
-      }));
+      // Enhanced results with better address formatting
+      const results: SearchResult[] = rawResults.map((result: any) => {
+        // Build a more detailed display name from address components
+        let displayName = result.display_name;
+        
+        if (result.address) {
+          const address = result.address;
+          const components = [];
+          
+          // Add house number and street
+          if (address.house_number && address.road) {
+            components.push(`${address.house_number} ${address.road}`);
+          } else if (address.road) {
+            components.push(address.road);
+          }
+          
+          // Add suburb/locality
+          if (address.suburb || address.locality || address.village) {
+            components.push(address.suburb || address.locality || address.village);
+          }
+          
+          // Add city/town
+          if (address.city || address.town) {
+            components.push(address.city || address.town);
+          }
+          
+          // Add state and postcode
+          if (address.state) {
+            let stateInfo = address.state;
+            if (address.postcode) {
+              stateInfo += ` ${address.postcode}`;
+            }
+            components.push(stateInfo);
+          }
+          
+          // Add country
+          if (address.country) {
+            components.push(address.country);
+          }
+          
+          if (components.length > 0) {
+            displayName = components.join(', ');
+          }
+        }
+        
+        return {
+          display_name: displayName,
+          lat: result.lat,
+          lon: result.lon,
+          place_id: result.place_id,
+          boundingbox: result.boundingbox
+        };
+      });
 
       res.json(results);
     } catch (error) {
