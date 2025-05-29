@@ -335,3 +335,24 @@ export async function getBusinessesForTerritory(
     return [];
   }
 }
+
+// Enrich business data with detailed location information from ABR
+export async function enrichBusinessWithLocation(business: ABRBusinessDetails): Promise<ABRBusinessDetails> {
+  try {
+    const detailedBusiness = await getBusinessByABN(business.abn);
+    if (detailedBusiness) {
+      return {
+        ...business,
+        address: detailedBusiness.address,
+        entityName: detailedBusiness.entityName || business.entityName,
+        status: detailedBusiness.status || business.status,
+        gst: detailedBusiness.gst,
+        dgr: detailedBusiness.dgr
+      };
+    }
+    return business;
+  } catch (error) {
+    console.error('Error enriching business location:', error);
+    return business;
+  }
+}
