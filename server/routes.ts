@@ -241,10 +241,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const businessesWithLocations = [];
 
       for (const business of abrResult.businesses) {
-        if (business.address.fullAddress) {
+        // Build geocoding address from postcode and state
+        const geocodeAddress = business.address.postcode && business.address.stateCode 
+          ? `${business.address.postcode}, ${business.address.stateCode}, Australia`
+          : null;
+          
+        if (geocodeAddress) {
           try {
+            console.log(`Geocoding business: ${business.entityName} at ${geocodeAddress}`);
             const geocodeResponse = await fetch(
-              `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(business.address.fullAddress)}&limit=1&countrycodes=au`,
+              `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(geocodeAddress)}&limit=1&countrycodes=au`,
               {
                 headers: {
                   'User-Agent': 'Aboriginal-Australia-Map/1.0'
@@ -260,7 +266,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   ...business,
                   lat: parseFloat(location.lat),
                   lng: parseFloat(location.lon),
-                  displayAddress: business.address.fullAddress
+                  displayAddress: geocodeAddress
                 });
               }
             }
