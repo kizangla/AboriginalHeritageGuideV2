@@ -5,6 +5,7 @@ import InfoPanel from '@/components/map/InfoPanel';
 import ControlPanel from '@/components/map/ControlPanel';
 import TerritoryModal from '@/components/map/TerritoryModal';
 import MapGuide from '@/components/map/MapGuide';
+import BusinessMapLayer from '@/components/map/BusinessMapLayer';
 import { Button } from '@/components/ui/button';
 import { Building2 } from 'lucide-react';
 import { Link } from 'wouter';
@@ -85,6 +86,13 @@ export default function MapPage() {
         />
         
         <SearchPanel onSearch={handleSearch} />
+        
+        <BusinessMapLayer 
+          map={mapInstance}
+          onBusinessSelect={(business) => {
+            console.log('Selected business:', business);
+          }}
+        />
         
         <InfoPanel 
           selectedTerritory={selectedTerritory}
