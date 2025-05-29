@@ -1,8 +1,8 @@
 import { z } from 'zod';
 
-// ABR JSON API Configuration (official endpoints from registration)
-const ABR_GUID = '640c5f10-87b7-4f67-a3ce-5eb099dc25dd';
-const ABR_JSON_BASE_URL = 'https://abr.business.gov.au/json';
+// ABR JSON API Configuration (following the implementation guide)
+const ABR_GUID = process.env.NEXT_PUBLIC_ABR_GUID || '640c5f10-87b7-4f67-a3ce-5eb099dc25dd';
+const ABR_API = 'https://abr.business.gov.au/json';
 
 // ABR Response Types
 export interface ABRBusinessDetails {
@@ -39,7 +39,7 @@ export async function searchBusinessesByName(
       includeHistoricalDetails: 'N'
     });
 
-    const url = `${ABR_JSON_BASE_URL}/MatchingNames.aspx?name=${encodeURIComponent(name)}&guid=${ABR_GUID}`;
+    const url = `${ABR_API}/MatchingNames.aspx?callback=callback&guid=${ABR_GUID}&name=${encodeURIComponent(name)}&maxResults=10`;
     
     const response = await fetch(url, {
       headers: {
@@ -77,7 +77,7 @@ export async function getBusinessByABN(abn: string): Promise<ABRBusinessDetails 
       authenticationGuid: ABR_GUID
     });
 
-    const url = `${ABR_JSON_BASE_URL}/AbnDetails.aspx?abn=${abn}&guid=${ABR_GUID}`;
+    const url = `${ABR_API}/AbnDetails.aspx?callback=callback&guid=${ABR_GUID}&abn=${abn}`;
     
     const response = await fetch(url, {
       headers: {
@@ -118,7 +118,7 @@ export async function searchBusinessesByPostcode(
       authenticationGuid: ABR_GUID
     });
 
-    const url = `${ABR_JSON_BASE_URL}/MatchingNames.aspx?postcode=${postcode}&guid=${ABR_GUID}`;
+    const url = `${ABR_API}/MatchingNames.aspx?callback=callback&guid=${ABR_GUID}&postcode=${postcode}&maxResults=10`;
     
     const response = await fetch(url, {
       headers: {
