@@ -361,3 +361,64 @@ export async function enrichBusinessWithLocation(business: ABRBusinessDetails): 
     return business;
   }
 }
+
+export async function searchIndigenousBusinesses(
+  query: string,
+  location?: string
+): Promise<ABRSearchResult> {
+  try {
+    // First search ABR for businesses
+    const abrResults = await searchBusinessesByName(query);
+    
+    // Then search Supply Nation for Indigenous verification
+    const supplyNationResults = await searchSupplyNationBusinesses(query, location);
+    
+    // Create a map of Supply Nation businesses by ABN for quick lookup
+    const supplyNationMap = new Map<string, SupplyNationBusiness>();
+    supplyNationResults.businesses.forEach(snBusiness => {
+      if (snBusiness.abn) {
+        supplyNationMap.set(snBusiness.abn, snBusiness);
+      }
+    });
+
+    // Filter ABR results to only include Indigenous businesses verified by Supply Nation
+    const verifiedBusinesses: ABRBusinessDetails[] = [];
+
+    for (const abrBusiness of abrResults.businesses) {
+      const supplyNationData = supplyNationMap.get(abrBusiness.abn);
+      
+      if (supplyNationData) {
+        // Business is verified in Supply Nation
+        verifiedBusinesses.push({
+          ...abrBusiness,
+          supplyNationVerified: true,
+          supplyNationData
+        });
+      } else {
+        // Check if business name matches Supply Nation listings (fallback for missing ABNs)
+        const nameMatch = supplyNationResults.businesses.find(snBusiness => 
+          snBusiness.companyName.toLowerCase().includes(abrBusiness.entityName.toLowerCase()) ||
+          abrBusiness.entityName.toLowerCase().includes(snBusiness.companyName.toLowerCase())
+        );
+        
+        if (nameMatch) {
+          verifiedBusinesses.push({
+            ...abrBusiness,
+            supplyNationVerified: true,
+            supplyNationData: nameMatch
+          });
+        }
+      }
+    }
+
+    return {
+      businesses: verifiedBusinesses,
+      totalResults: verifiedBusinesses.length
+    };
+
+  } catch (error) {
+    console.error('Error searching Indigenous businesses:', error);
+    // Fallback to ABR only if Supply Nation fails
+    return await searchBusinessesByName(query);
+  }
+}
