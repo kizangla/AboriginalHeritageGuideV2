@@ -162,6 +162,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // ABR Business Search Routes
   
+  // Test Supply Nation connection
+  app.get("/api/supply-nation/test", async (req, res) => {
+    try {
+      const { searchSupplyNationBusinesses } = await import('./supply-nation-service');
+      const results = await searchSupplyNationBusinesses("business", "australia");
+      
+      res.json({
+        message: "Supply Nation test completed",
+        resultsFound: results.totalResults,
+        sampleBusinesses: results.businesses.slice(0, 3)
+      });
+    } catch (error) {
+      console.error("Supply Nation test error:", error);
+      res.status(500).json({ message: "Supply Nation test failed", error: String(error) });
+    }
+  });
+
   // Search Indigenous businesses (Supply Nation verified)
   app.get("/api/indigenous-businesses/search", async (req, res) => {
     try {
@@ -171,10 +188,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Business name is required" });
       }
       
+      // For now, fall back to ABR search until Supply Nation is fully working
+      console.log("Searching for Indigenous businesses:", name);
+      const abrResults = await searchBusinessesByName(name);
+      
+      // Add some debug logging
+      console.log(`Found ${abrResults.totalResults} ABR results for "${name}"`);
+      
       const results = await searchIndigenousBusinesses(
         name,
         location as string
       );
+      
+      console.log(`Indigenous search returned ${results.totalResults} verified businesses`);
       
       res.json(results);
     } catch (error) {
@@ -259,7 +285,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: 'Search term is required' });
       }
 
-      const abrResult = await searchIndigenousBusinesses(search);
+      const abrResult = await searchBusinessesByName(search);
       const businessesWithLocations = [];
 
       for (const business of abrResult.businesses) {
