@@ -116,28 +116,43 @@ class SupplyNationScraper {
     }
 
     try {
-      // Build search parameters
+      console.log(`Searching Supply Nation for: "${query}" in location: "${location || 'all'}"`);
+      
+      // Try different search approaches - first try the main search page
+      const searchUrl = `${this.baseUrl}/public/s/search-results`;
       const searchParams = new URLSearchParams({
-        'q': query,
-        'type': 'business',
+        'search': query,
+        'searchfield': 'all',
         ...(location && { 'location': location })
       });
 
-      const searchResponse = await fetch(`${this.searchUrl}?${searchParams}`, {
+      console.log(`Search URL: ${searchUrl}?${searchParams}`);
+
+      const searchResponse = await fetch(`${searchUrl}?${searchParams}`, {
         method: 'GET',
         headers: {
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
           'Cookie': this.sessionCookies,
-          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8'
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+          'Referer': `${this.baseUrl}/public/s/`,
+          'Accept-Language': 'en-US,en;q=0.9'
         }
       });
 
+      console.log(`Search response status: ${searchResponse.status}`);
+      console.log(`Search response URL: ${searchResponse.url}`);
+
       if (!searchResponse.ok) {
-        console.error('Supply Nation search request failed:', searchResponse.status);
+        console.error('Supply Nation search request failed:', searchResponse.status, await searchResponse.text());
         return { businesses: [], totalResults: 0 };
       }
 
       const searchHtml = await searchResponse.text();
+      console.log(`Search response length: ${searchHtml.length} characters`);
+      
+      // Save first 1000 chars for debugging
+      console.log('Search response sample:', searchHtml.substring(0, 1000));
+      
       return this.parseSearchResults(searchHtml);
 
     } catch (error) {
@@ -150,55 +165,89 @@ class SupplyNationScraper {
     const $ = cheerio.load(html);
     const businesses: SupplyNationBusiness[] = [];
 
-    // Parse business listings (adjust selectors based on actual HTML structure)
-    $('.business-card, .search-result-item, .business-listing').each((index, element) => {
-      const $element = $(element);
-      
-      const companyName = $element.find('.company-name, .business-name, h3, h2').first().text().trim();
-      const location = $element.find('.location, .address, .suburb').first().text().trim();
-      const description = $element.find('.description, .summary, p').first().text().trim();
-      
-      // Extract ABN if visible
-      const abnText = $element.text();
-      const abnMatch = abnText.match(/ABN:?\s*(\d{2}\s?\d{3}\s?\d{3}\s?\d{3})/i);
-      const abn = abnMatch ? abnMatch[1].replace(/\s/g, '') : undefined;
+    console.log('Parsing Supply Nation HTML, page length:', html.length);
+    console.log('Sample HTML snippet:', html.substring(0, 500));
 
-      // Extract categories/industries
-      const categories: string[] = [];
-      $element.find('.category, .industry, .tags .tag').each((_, catEl) => {
-        const category = $(catEl).text().trim();
-        if (category) categories.push(category);
-      });
+    // Try multiple possible selectors for business listings
+    const possibleSelectors = [
+      '.business-card', '.search-result-item', '.business-listing',
+      '.result-item', '.supplier-card', '.business-profile',
+      '.search-result', '.listing', '.business-entry',
+      '[data-business]', '.card', '.item'
+    ];
 
-      // Extract contact information
-      const email = $element.find('a[href^="mailto:"]').attr('href')?.replace('mailto:', '');
-      const phone = $element.find('.phone, a[href^="tel:"]').text().trim();
-      const website = $element.find('a[href^="http"]').attr('href');
+    let foundElements = 0;
+    for (const selector of possibleSelectors) {
+      const elements = $(selector);
+      if (elements.length > 0) {
+        console.log(`Found ${elements.length} elements with selector: ${selector}`);
+        foundElements += elements.length;
+        
+        elements.each((index, element) => {
+          const $element = $(element);
+          const elementText = $element.text().trim();
+          
+          if (elementText.length > 10) { // Only process elements with substantial content
+            // Try multiple selectors for company name
+            const companyName = $element.find('h1, h2, h3, h4, .title, .name, .company-name, .business-name').first().text().trim() ||
+                               $element.find('a').first().text().trim();
+            
+            if (companyName && companyName.length > 2) {
+              console.log(`Found business: ${companyName}`);
+              
+              const location = $element.find('.location, .address, .suburb, .state').first().text().trim();
+              const description = $element.find('.description, .summary, p').first().text().trim();
+              
+              // Extract ABN if visible
+              const abnText = $element.text();
+              const abnMatch = abnText.match(/ABN:?\s*(\d{2}\s?\d{3}\s?\d{3}\s?\d{3})/i);
+              const abn = abnMatch ? abnMatch[1].replace(/\s/g, '') : undefined;
 
-      // Get Supply Nation ID from URL or data attributes
-      const profileLink = $element.find('a').attr('href') || '';
-      const supplynationId = profileLink.split('/').pop() || `sn_${index}`;
+              // Extract categories/industries
+              const categories: string[] = [];
+              $element.find('.category, .industry, .tags .tag, .service, .capability').each((_, catEl) => {
+                const category = $(catEl).text().trim();
+                if (category && category.length > 2) categories.push(category);
+              });
 
-      if (companyName) {
-        businesses.push({
-          abn,
-          companyName,
-          verified: true, // All Supply Nation businesses are verified Indigenous businesses
-          categories,
-          location,
-          contactInfo: {
-            email,
-            phone,
-            website
-          },
-          description,
-          supplynationId
+              // Extract contact information
+              const email = $element.find('a[href^="mailto:"]').attr('href')?.replace('mailto:', '');
+              const phone = $element.find('.phone, a[href^="tel:"]').text().trim();
+              const website = $element.find('a[href^="http"]').attr('href');
+
+              // Get Supply Nation ID from URL or data attributes
+              const profileLink = $element.find('a').attr('href') || '';
+              const supplynationId = profileLink.split('/').pop() || `sn_${businesses.length}`;
+
+              businesses.push({
+                abn,
+                companyName,
+                verified: true,
+                categories,
+                location,
+                contactInfo: {
+                  email,
+                  phone,
+                  website
+                },
+                description,
+                supplynationId
+              });
+            }
+          }
         });
       }
-    });
+    }
+
+    console.log(`Total elements found: ${foundElements}, businesses parsed: ${businesses.length}`);
+
+    // Also check if we're on a login page or error page
+    if (html.includes('login') || html.includes('sign in') || html.includes('authentication')) {
+      console.log('Detected login page - authentication may have failed');
+    }
 
     // Extract total results count
-    const totalText = $('.results-count, .total-results').text();
+    const totalText = $('.results-count, .total-results, .count, .total').text();
     const totalMatch = totalText.match(/(\d+)/);
     const totalResults = totalMatch ? parseInt(totalMatch[1]) : businesses.length;
 
