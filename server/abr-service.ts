@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { searchSupplyNationBusinesses, verifyIndigenousBusiness, type SupplyNationBusiness } from './supply-nation-service';
 
 // ABR JSON API Configuration (following the implementation guide)
 const ABR_GUID = process.env.NEXT_PUBLIC_ABR_GUID || '640c5f10-87b7-4f67-a3ce-5eb099dc25dd';
@@ -19,6 +20,8 @@ export interface ABRBusinessDetails {
   };
   gst: boolean;
   dgr?: boolean;
+  supplyNationVerified?: boolean;
+  supplyNationData?: SupplyNationBusiness;
 }
 
 export interface ABRSearchResult {
