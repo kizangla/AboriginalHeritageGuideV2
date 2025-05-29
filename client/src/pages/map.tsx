@@ -1,11 +1,7 @@
 import { useState } from 'react';
 import SimpleMap from '@/components/map/SimpleMap';
-import SearchPanel from '@/components/map/SearchPanel';
-import InfoPanel from '@/components/map/InfoPanel';
-import ControlPanel from '@/components/map/ControlPanel';
 import TerritoryModal from '@/components/map/TerritoryModal';
-import MapGuide from '@/components/map/MapGuide';
-import BusinessMapLayer from '@/components/map/BusinessMapLayer';
+import UnifiedSearch from '@/components/map/UnifiedSearch';
 import { Button } from '@/components/ui/button';
 import { Building2 } from 'lucide-react';
 import { Link } from 'wouter';
@@ -30,7 +26,7 @@ export default function MapPage() {
 
   const handleSearch = (lat: number, lng: number) => {
     if (mapInstance) {
-      mapInstance.setView([lat, lng], 10);
+      mapInstance.setView([lat, lng], 15);
     }
   };
 
@@ -69,10 +65,9 @@ export default function MapPage() {
           onTerritorySelect={handleTerritorySelect}
         />
         
-        <SearchPanel onSearch={handleSearch} />
-        
-        <BusinessMapLayer 
+        <UnifiedSearch 
           map={mapInstance}
+          onLocationSelect={handleSearch}
           onBusinessSelect={(business) => {
             console.log('Selected business:', business);
           }}
