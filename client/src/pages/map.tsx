@@ -41,45 +41,29 @@ export default function MapPage() {
   };
 
   return (
-    <div className="min-h-screen bg-earth-beige">
-      {/* Header */}
-      <header className="bg-earth-brown text-white shadow-lg relative overflow-hidden">
-        <div className="cultural-pattern absolute inset-0 opacity-30"></div>
-        <div className="container mx-auto px-6 py-4 relative z-10">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <svg className="w-8 h-8 text-earth-gold" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M12 2L13.09 8.26L20 9L13.09 9.74L12 16L10.91 9.74L4 9L10.91 8.26L12 2Z"/>
-                <path d="M12 8L12.5 10.5L15 11L12.5 11.5L12 14L11.5 11.5L9 11L11.5 10.5L12 8Z"/>
-              </svg>
-              <h1 className="text-2xl font-serif font-bold">Indigenous Australia Interactive Map</h1>
-            </div>
-            <div className="flex items-center space-x-4">
-              <Link href="/business-search">
-                <Button className="bg-earth-gold text-earth-dark px-4 py-2 rounded-lg hover:bg-yellow-400 transition-colors font-semibold">
-                  <Building2 className="w-4 h-4 mr-2" />
-                  Business Directory
-                </Button>
-              </Link>
-              <button className="bg-earth-gold text-earth-dark px-4 py-2 rounded-lg hover:bg-yellow-400 transition-colors font-semibold">
-                <svg className="w-4 h-4 inline mr-2" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M12 2C13.1 2 14 2.9 14 4C14 5.1 13.1 6 12 6C10.9 6 10 5.1 10 4C10 2.9 10.9 2 12 2ZM21 9V7L15 1H5C3.9 1 3 1.9 3 3V21C3 22.1 3.9 23 5 23H19C20.1 23 21 22.1 21V9Z"/>
-                </svg>
-                About
-              </button>
-              <button className="bg-earth-peru text-white px-4 py-2 rounded-lg hover:bg-yellow-600 transition-colors font-semibold">
-                <svg className="w-4 h-4 inline mr-2" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M19 3H5C3.9 3 3 3.9 3 5V19C3 20.1 3.9 21 5 21H19C20.1 21 21 20.1 21 19V5C21 3.9 20.1 3 19 3ZM5 19V5H19V19H5Z"/>
-                </svg>
-                Resources
-              </button>
-            </div>
+    <div className="h-screen w-screen bg-white">
+      {/* Minimalist Header */}
+      <div className="absolute top-0 left-0 right-0 z-[1010] bg-white/95 backdrop-blur-sm border-b border-gray-200">
+        <div className="flex items-center justify-between px-4 py-3">
+          <div className="flex items-center gap-3">
+            <svg className="w-6 h-6 text-orange-600" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M12 2L13.09 8.26L20 9L13.09 9.74L12 16L10.91 9.74L4 9L10.91 8.26L12 2Z"/>
+            </svg>
+            <h1 className="text-lg font-medium text-gray-900">Indigenous Australia</h1>
+          </div>
+          <div className="flex items-center gap-2">
+            <Link href="/business-search">
+              <Button variant="outline" size="sm" className="text-sm">
+                <Building2 className="w-4 h-4 mr-1" />
+                Directory
+              </Button>
+            </Link>
           </div>
         </div>
-      </header>
+      </div>
 
-      {/* Main Content */}
-      <main className="relative">
+      {/* Full Screen Map */}
+      <main className="h-full pt-16">
         <SimpleMap 
           onMapReady={setMapInstance}
           onTerritorySelect={handleTerritorySelect}
@@ -94,14 +78,40 @@ export default function MapPage() {
           }}
         />
         
-        <InfoPanel 
-          selectedTerritory={selectedTerritory}
-          onShowModal={handleShowModal}
-        />
+        {/* Minimalist Controls */}
+        <div className="absolute bottom-6 right-6 z-[1000] flex flex-col gap-2">
+          <Button
+            onClick={handleResetView}
+            size="sm"
+            variant="outline"
+            className="bg-white shadow-md h-10 w-10 p-0"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z" />
+            </svg>
+          </Button>
+        </div>
         
-        <ControlPanel 
-          onResetView={handleResetView}
-        />
+        {/* Territory Info Panel - Google Maps style */}
+        {selectedTerritory && (
+          <div className="absolute bottom-6 left-6 z-[1000] bg-white rounded-xl shadow-lg p-4 max-w-sm">
+            <div className="flex items-start justify-between mb-2">
+              <h3 className="font-medium text-gray-900">{selectedTerritory.name}</h3>
+              <Button
+                onClick={handleShowModal}
+                variant="ghost"
+                size="sm"
+                className="h-6 w-6 p-0 text-gray-500 hover:text-gray-700"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </Button>
+            </div>
+            <p className="text-sm text-gray-600 mb-1">{selectedTerritory.groupName}</p>
+            <p className="text-xs text-gray-500">{selectedTerritory.region}, {selectedTerritory.regionType}</p>
+          </div>
+        )}
 
         {showModal && selectedTerritory && (
           <TerritoryModal

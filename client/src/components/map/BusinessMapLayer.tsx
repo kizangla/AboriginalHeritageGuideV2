@@ -131,42 +131,34 @@ export default function BusinessMapLayer({ map, onBusinessSelect }: BusinessMapL
   };
 
   return (
-    <div className="absolute top-4 left-4 z-[1000] bg-white rounded-lg shadow-lg p-4 max-w-sm">
-      <div className="flex items-center gap-2 mb-3">
-        <Building2 className="h-5 w-5 text-orange-600" />
-        <h3 className="font-semibold text-sm">Indigenous Business Search</h3>
-      </div>
-      
-      <div className="flex gap-2">
+    <div className="absolute top-4 left-4 z-[1000] bg-white rounded-xl shadow-md max-w-sm">
+      <div className="flex gap-1 p-1">
         <Input
           type="text"
           placeholder="Search Indigenous businesses..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           onKeyPress={handleKeyPress}
-          className="flex-1"
+          className="flex-1 border-0 focus:ring-0 focus-visible:ring-0 text-sm h-10"
         />
         <Button 
           onClick={handleSearch} 
           disabled={isSearching || !searchTerm.trim()}
           size="sm"
+          className="h-10 w-10 p-0 bg-transparent hover:bg-gray-100 text-gray-600"
+          variant="ghost"
         >
           {isSearching ? (
-            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-400"></div>
           ) : (
             <Search className="h-4 w-4" />
           )}
         </Button>
       </div>
 
-      {businessResults && (
-        <div className="mt-3 text-sm text-gray-600">
-          <div className="flex items-center gap-1">
-            <MapPin className="h-4 w-4" />
-            <span>
-              Found {businessResults.totalResults} businesses from Australian Business Register
-            </span>
-          </div>
+      {businessResults && businessResults.totalResults > 0 && (
+        <div className="px-3 pb-2 text-xs text-gray-500">
+          {businessResults.totalResults} businesses found
         </div>
       )}
     </div>

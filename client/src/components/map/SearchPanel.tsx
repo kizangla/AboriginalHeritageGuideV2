@@ -48,71 +48,58 @@ export default function SearchPanel({ onSearch }: SearchPanelProps) {
   };
 
   return (
-    <Card className="search-container absolute top-5 left-5 z-[1000] bg-earth-beige/95 backdrop-blur-sm border-earth-brown/20 shadow-lg">
-      <div className="p-5">
-        <h3 className="font-serif font-bold text-earth-brown mb-4 flex items-center">
-          <svg className="w-5 h-5 mr-2 text-earth-gold" fill="currentColor" viewBox="0 0 24 24">
-            <path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
-          </svg>
-          Search Territory
-        </h3>
-        
-        <div className="space-y-3">
+    <div className="absolute top-20 left-4 z-[1000] w-80">
+      <div className="bg-white rounded-xl shadow-md">
+        <div className="flex gap-1 p-1">
           <Input
             type="text"
-            placeholder="Enter address or place name..."
+            placeholder="Search places..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             onKeyPress={handleKeyPress}
-            className="border-earth-peru/30 focus:ring-earth-gold"
+            className="flex-1 border-0 focus:ring-0 focus-visible:ring-0 text-sm h-10"
           />
-          
           <Button 
             onClick={handleSearch}
             disabled={isLoading || !searchQuery.trim()}
-            className="w-full bg-earth-brown hover:bg-earth-brown/90 text-white"
+            size="sm"
+            className="h-10 w-10 p-0 bg-transparent hover:bg-gray-100 text-gray-600"
+            variant="ghost"
           >
             {isLoading ? (
-              <>
-                <LoadingSpinner className="mr-2" />
-                Searching...
-              </>
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-400"></div>
             ) : (
-              'Search'
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
             )}
           </Button>
+        </div>
 
-          <div className="text-sm text-earth-dark/70 space-y-1">
-            <div className="flex items-center">
-              <svg className="w-4 h-4 mr-1 text-earth-gold" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M9,22A1,1 0 0,1 8,21V18H4A2,2 0 0,1 2,16V4C2,2.89 2.9,2 4,2H20A2,2 0 0,1 22,4V16A2,2 0 0,1 20,18H13.9L10.2,21.71C10,21.9 9.75,22 9.5,22V22H9Z"/>
-              </svg>
-              Try: "Sydney", "Alice Springs", or "Darwin"
-            </div>
-            <div className="text-xs text-earth-dark/50">
-              🌏 Search cities, landmarks, or postal codes
+        {/* Search Results */}
+        {searchResults && searchResults.length > 0 && (
+          <div className="border-t border-gray-100">
+            <div className="max-h-60 overflow-y-auto">
+              {searchResults.map((result, index) => (
+                <button
+                  key={index}
+                  onClick={() => handleResultSelect(result)}
+                  className="w-full text-left p-3 text-sm hover:bg-gray-50 border-b border-gray-50 last:border-b-0 transition-colors"
+                >
+                  <div className="flex items-start gap-2">
+                    <svg className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+                    </svg>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium text-gray-900 truncate">{result.display_name}</div>
+                    </div>
+                  </div>
+                </button>
+              ))}
             </div>
           </div>
-
-          {/* Search Results */}
-          {searchResults && searchResults.length > 0 && (
-            <div className="mt-3 space-y-2">
-              <h4 className="font-semibold text-earth-brown text-sm">Search Results:</h4>
-              <div className="max-h-40 overflow-y-auto space-y-1">
-                {searchResults.map((result, index) => (
-                  <button
-                    key={index}
-                    onClick={() => handleResultSelect(result)}
-                    className="w-full text-left p-2 text-sm bg-white hover:bg-earth-gold/20 rounded border border-earth-peru/20 transition-colors"
-                  >
-                    <div className="font-medium text-earth-brown">{result.display_name}</div>
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
+        )}
       </div>
-    </Card>
+    </div>
   );
 }
