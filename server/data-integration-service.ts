@@ -62,8 +62,10 @@ class DataIntegrationService {
     if (includeSupplyNation) {
       try {
         // Check cache first for fresh data
+        console.log('Checking Supply Nation cache...');
         const cachedResults = await supplyNationCache.searchCachedBusinesses(query);
         const hasFreshData = await supplyNationCache.hasFreshData(query);
+        console.log(`Cache check: hasFreshData=${hasFreshData}, cachedResults=${cachedResults.length}`);
         
         if (hasFreshData && cachedResults.length > 0) {
           console.log(`Using cached Supply Nation data: ${cachedResults.length} businesses`);
@@ -72,11 +74,19 @@ class DataIntegrationService {
           console.log('Scraping fresh Supply Nation data...');
           const snResults = await searchSupplyNationWithPuppeteer(query, location);
           supplyNationResults = snResults.businesses;
+          console.log(`Scraped ${supplyNationResults.length} businesses from Supply Nation`);
           
           // Store fresh data in database cache
           if (supplyNationResults.length > 0) {
-            await supplyNationCache.storeBusinesses(supplyNationResults);
-            console.log(`Cached ${supplyNationResults.length} Supply Nation businesses to database`);
+            console.log('Storing Supply Nation data in database...');
+            try {
+              await supplyNationCache.storeBusinesses(supplyNationResults);
+              console.log(`Successfully cached ${supplyNationResults.length} Supply Nation businesses to database`);
+            } catch (cacheError) {
+              console.error('Failed to cache Supply Nation data:', cacheError);
+            }
+          } else {
+            console.log('No Supply Nation businesses to cache');
           }
         }
         console.log(`Supply Nation found ${supplyNationResults.length} businesses`);
