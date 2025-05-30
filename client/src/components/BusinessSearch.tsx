@@ -499,7 +499,7 @@ export default function BusinessSearch() {
                         )}
 
                         {/* Certifications */}
-                        {business.supplyNationData.certifications && business.supplyNationData.certifications.length > 0 && (
+                        {business.supplyNationData && business.supplyNationData.certifications && business.supplyNationData.certifications.length > 0 && (
                           <div>
                             <h4 className="font-medium text-sm text-gray-900 mb-2">Certifications</h4>
                             <div className="flex flex-wrap gap-1">
