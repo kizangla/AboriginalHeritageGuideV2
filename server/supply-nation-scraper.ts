@@ -116,23 +116,153 @@ class SupplyNationScraper {
         return;
       }
 
-      // Check if login is required
-      const loginButton = await page.$('input[type="submit"][value*="Log"], button:contains("Log"), a:contains("Log")');
-      
-      if (loginButton) {
-        console.log('Authentication required, logging in...');
-        
-        // Fill in credentials
-        await page.type('input[type="email"], input[name*="username"], input[name*="email"]', username);
-        await page.type('input[type="password"], input[name*="password"]', password);
-        
-        // Submit login form
-        await Promise.all([
-          page.waitForNavigation({ waitUntil: 'networkidle0' }),
-          page.click('input[type="submit"], button[type="submit"]')
-        ]);
+      console.log(`Attempting Supply Nation login with: ${username.substring(0, 10)}...`);
 
-        console.log('Authentication completed');
+      // First, try to navigate to a page that requires login to trigger authentication
+      await page.goto('https://ibd.supplynation.org.au/public/s/search-results', { 
+        waitUntil: 'networkidle0',
+        timeout: 30000 
+      });
+
+      await page.waitForTimeout(3000);
+
+      // Look for login elements in Salesforce Lightning interface
+      const loginSelectors = [
+        'a[title*="Login" i]',
+        'button[title*="Login" i]',
+        'a[href*="login" i]',
+        '.slds-button[title*="Login" i]',
+        'lightning-button[variant="brand"]',
+        'button.slds-button--brand',
+        'a.login-link',
+        '[data-aura-class*="login"]'
+      ];
+
+      let loginElement = null;
+      for (const selector of loginSelectors) {
+        try {
+          loginElement = await page.$(selector);
+          if (loginElement) {
+            console.log(`Found login element: ${selector}`);
+            break;
+          }
+        } catch (e) {
+          // Continue to next selector
+        }
+      }
+
+      if (!loginElement) {
+        // Try to find login by text content
+        const elements = await page.$$('a, button');
+        for (const element of elements) {
+          const text = await page.evaluate(el => el.textContent, element);
+          if (text && text.toLowerCase().includes('login')) {
+            loginElement = element;
+            console.log('Found login element by text content');
+            break;
+          }
+        }
+      }
+
+      if (loginElement) {
+        console.log('Clicking login element...');
+        await loginElement.click();
+        await page.waitForTimeout(3000);
+
+        // Wait for login form to appear
+        const usernameSelectors = [
+          'input[type="email"]',
+          'input[name*="username" i]',
+          'input[name*="email" i]',
+          'input[placeholder*="email" i]',
+          'lightning-input[data-label*="email" i] input',
+          '.slds-input[type="email"]'
+        ];
+
+        const passwordSelectors = [
+          'input[type="password"]',
+          'input[name*="password" i]',
+          'lightning-input[data-label*="password" i] input',
+          '.slds-input[type="password"]'
+        ];
+
+        let usernameField = null;
+        let passwordField = null;
+
+        // Find username field
+        for (const selector of usernameSelectors) {
+          usernameField = await page.$(selector);
+          if (usernameField) {
+            console.log(`Found username field: ${selector}`);
+            break;
+          }
+        }
+
+        // Find password field
+        for (const selector of passwordSelectors) {
+          passwordField = await page.$(selector);
+          if (passwordField) {
+            console.log(`Found password field: ${selector}`);
+            break;
+          }
+        }
+
+        if (usernameField && passwordField) {
+          console.log('Filling login credentials...');
+          await usernameField.click();
+          await usernameField.type(username, { delay: 100 });
+          
+          await passwordField.click();
+          await passwordField.type(password, { delay: 100 });
+
+          // Find and click submit button
+          const submitSelectors = [
+            'button[type="submit"]',
+            'input[type="submit"]',
+            'lightning-button[type="submit"]',
+            '.slds-button[type="submit"]',
+            'button.slds-button--brand'
+          ];
+
+          let submitButton = null;
+          for (const selector of submitSelectors) {
+            submitButton = await page.$(selector);
+            if (submitButton) {
+              console.log(`Found submit button: ${selector}`);
+              break;
+            }
+          }
+
+          if (!submitButton) {
+            // Look for submit by text
+            const buttons = await page.$$('button, input[type="submit"]');
+            for (const button of buttons) {
+              const text = await page.evaluate(el => el.textContent || el.value, button);
+              if (text && (text.toLowerCase().includes('login') || text.toLowerCase().includes('sign in'))) {
+                submitButton = button;
+                console.log('Found submit button by text');
+                break;
+              }
+            }
+          }
+
+          if (submitButton) {
+            console.log('Submitting login form...');
+            await Promise.all([
+              page.waitForNavigation({ waitUntil: 'networkidle0', timeout: 15000 }).catch(() => {}),
+              submitButton.click()
+            ]);
+            
+            await page.waitForTimeout(3000);
+            console.log('Login form submitted');
+          } else {
+            console.log('Could not find submit button');
+          }
+        } else {
+          console.log('Could not find login form fields');
+        }
+      } else {
+        console.log('No login element found, may already be authenticated or login not required');
       }
     } catch (error) {
       console.log('Authentication not required or failed, continuing as guest');
