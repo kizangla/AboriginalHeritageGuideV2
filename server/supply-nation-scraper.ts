@@ -870,72 +870,118 @@ class SupplyNationScraper {
         
         // Extract detailed business information
         return await page.evaluate(() => {
-          // Extract company name
-          const companyNameEl = document.querySelector('h1') || 
-                               document.querySelector('.slds-page-header__title') ||
-                               document.querySelector('[class*="company-name"]');
-          const companyName = companyNameEl?.textContent?.trim() || 'Unknown Company';
+          // Helper function to extract text content safely
+          const extractText = (selector: string): string | undefined => {
+            const element = document.querySelector(selector);
+            return element?.textContent?.trim() || undefined;
+          };
+          
+          // Helper function to find text by pattern
+          const findTextByPattern = (pattern: RegExp): string | undefined => {
+            const walker = document.createTreeWalker(
+              document.body,
+              NodeFilter.SHOW_TEXT,
+              null,
+              false
+            );
+            
+            let node;
+            while (node = walker.nextNode()) {
+              const text = node.textContent?.trim();
+              if (text && pattern.test(text)) {
+                return text;
+              }
+            }
+            return undefined;
+          };
+          
+          // Extract company name - look for main heading
+          const companyName = extractText('h1') || 
+                             extractText('.company-name') || 
+                             extractText('[data-aura-class*="title"]') ||
+                             document.title.split(' | ')[0] || 
+                             'Unknown Company';
           
           // Extract trading name
-          const tradingText = Array.from(document.querySelectorAll('*')).find(el => 
-            el.textContent?.includes('Trading as:')
-          )?.textContent;
+          const tradingText = findTextByPattern(/Trading as:/i);
           const tradingName = tradingText?.replace(/Trading as:\s*/i, '').trim();
           
-          // Extract contact information
-          const phoneLink = document.querySelector('a[href^="tel:"]');
-          const phone = phoneLink?.textContent?.trim() || phoneLink?.getAttribute('href')?.replace('tel:', '');
-          
-          const emailLink = document.querySelector('a[href^="mailto:"]');
-          const email = emailLink?.textContent?.trim() || emailLink?.getAttribute('href')?.replace('mailto:', '');
-          
-          const websiteLink = document.querySelector('a[href*="www."], a[href^="http"]:not([href*="supplynation"])');
-          const website = websiteLink?.getAttribute('href') || websiteLink?.textContent?.trim();
-          
-          // Extract contact person
-          const contactPersonEl = Array.from(document.querySelectorAll('*')).find(el => 
-            el.textContent?.includes('Contact') && el.tagName !== 'A'
-          );
-          const contactPerson = contactPersonEl?.textContent?.replace(/Contact[:\s]*/i, '').trim();
-          
-          // Extract address
-          const addressEl = Array.from(document.querySelectorAll('p, div')).find(el => 
-            el.textContent?.match(/\d+\s+\w+\s+(ST|STREET|AVE|AVENUE|RD|ROAD)/i) ||
-            el.textContent?.match(/\w+\s+\w+\s+\d{4}/)
-          );
-          const fullAddress = addressEl?.textContent?.trim();
-          
-          // Extract services/what they provide
-          const servicesList = Array.from(document.querySelectorAll('li')).map(li => li.textContent?.trim()).filter(Boolean);
-          const services = servicesList.length > 0 ? servicesList.join('\n') : '';
-          
-          // Extract ABN and ACN
-          const bodyText = document.body.textContent || '';
-          const abnMatch = bodyText.match(/ABN:?\s*(\d{11})/i);
-          const abn = abnMatch?.[1];
-          
-          const acnMatch = bodyText.match(/ACN:?\s*(\d{9})/i);
-          const acn = acnMatch?.[1];
-          
-          // Extract last updated
-          const lastUpdatedMatch = bodyText.match(/Last updated:?\s*([\d\s\w]+)/i);
-          const lastUpdated = lastUpdatedMatch?.[1]?.trim();
-          
-          // Extract location from address
-          const locationMatch = fullAddress?.match(/([A-Z]{2,3})\s*(\d{4})/);
-          const location = locationMatch ? `${locationMatch[1]} ${locationMatch[2]}` : 'Australia';
-          
-          // Parse detailed address components
-          let detailedAddress;
-          if (fullAddress) {
-            const addressParts = fullAddress.split(',').map(part => part.trim());
-            detailedAddress = {
-              streetAddress: addressParts[0],
-              suburb: addressParts[1],
-              state: locationMatch?.[1],
-              postcode: locationMatch?.[2]
-            };
+          // Extract phone number - look for tel links and phone patterns
+          let phone = extractText('a[href^="tel:"]')?.replace(/[^\d\s\(\)\-\+]/g, '');
+          if (!phone) {
+            const phonePattern = findTextByPattern(/\(\d{2}\)\s*\d{4}\s*\d{4}|\d{2}\s*\d{4}\s*\d{4}|\+61\s*\d/);
+            phone = phonePattern?.match(/\(\d{2}\)\s*\d{4}\s*\d{4}|\d{2}\s*\d{4}\s*\d{4}|\+61\s*[\d\s]+/)?.[0];
           }
+          
+          // Extract email - look for mailto links and email patterns
+          let email = document.querySelector('a[href^="mailto:"]')?.getAttribute('href')?.replace('mailto:', '');
+          if (!email) {
+            const emailPattern = findTextByPattern(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
+            email = emailPattern?.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/)?.[0];
+          }
+          
+          // Extract website - look for external links
+          const websiteLink = Array.from(document.querySelectorAll('a[href^="http"]')).find(link => 
+            !link.href.includes('supplynation.org.au') && 
+            !link.href.includes('salesforce.com') &&
+            (link.href.includes('www.') || link.href.includes('.com') || link.href.includes('.au'))
+          ) as HTMLAnchorElement;
+          const website = websiteLink?.href;
+          
+          // Extract contact person - look for names near contact information
+          let contactPerson;
+          const contactSectionText = Array.from(document.querySelectorAll('*')).find(el => 
+            el.textContent?.toLowerCase().includes('contact') && 
+            el.textContent?.match(/[A-Z][a-z]+\s+[A-Z][a-z]+/)
+          )?.textContent;
+          
+          if (contactSectionText) {
+            const nameMatch = contactSectionText.match(/([A-Z][a-z]+\s+[A-Z][a-z]+)/);
+            contactPerson = nameMatch?.[1];
+          }
+          
+          // Extract street address - look for street patterns
+          let streetAddress, suburb, state, postcode;
+          const addressPattern = findTextByPattern(/\d+\s+[\w\s]+(ST|STREET|AVE|AVENUE|RD|ROAD|LANE|LN)/i);
+          if (addressPattern) {
+            streetAddress = addressPattern.match(/\d+\s+[\w\s]+(ST|STREET|AVE|AVENUE|RD|ROAD|LANE|LN)/i)?.[0];
+          }
+          
+          // Look for suburb, state, postcode pattern
+          const locationPattern = findTextByPattern(/[A-Z\s]+,?\s+[A-Z]{2,3}\s+\d{4}/);
+          if (locationPattern) {
+            const locationMatch = locationPattern.match(/([A-Z\s]+),?\s+([A-Z]{2,3})\s+(\d{4})/);
+            if (locationMatch) {
+              suburb = locationMatch[1].trim();
+              state = locationMatch[2];
+              postcode = locationMatch[3];
+            }
+          }
+          
+          // Extract services - look for "What we provide" or service lists
+          const serviceElements = Array.from(document.querySelectorAll('li, p')).filter(el => {
+            const text = el.textContent?.toLowerCase() || '';
+            return text.includes('services') || text.includes('construction') || 
+                   text.includes('electrical') || text.includes('mechanical') ||
+                   text.includes('management') || text.includes('consulting');
+          });
+          const services = serviceElements.map(el => el.textContent?.trim()).filter(Boolean).join('\n');
+          
+          // Extract ABN and ACN with more specific patterns
+          const bodyText = document.body.textContent || '';
+          const abnMatch = bodyText.match(/ABN:?\s*(\d{2}\s?\d{3}\s?\d{3}\s?\d{3}|\d{11})/i);
+          const abn = abnMatch?.[1]?.replace(/\s/g, '');
+          
+          const acnMatch = bodyText.match(/ACN:?\s*(\d{3}\s?\d{3}\s?\d{3}|\d{9})/i);
+          const acn = acnMatch?.[1]?.replace(/\s/g, '');
+          
+          // Extract last updated date
+          const lastUpdatedPattern = findTextByPattern(/Last updated:?\s*\d+\s+\w+\s+\d{4}/i);
+          const lastUpdated = lastUpdatedPattern?.match(/\d+\s+\w+\s+\d{4}/)?.[0];
+          
+          // Construct location string
+          const location = state && postcode ? `${state} ${postcode}` : 
+                          state ? state : 'Australia';
           
           // Get Supply Nation ID from URL
           const urlParams = new URLSearchParams(window.location.search);
@@ -960,7 +1006,12 @@ class SupplyNationScraper {
             abn: abn || undefined,
             acn: acn || undefined,
             lastUpdated: lastUpdated || undefined,
-            detailedAddress
+            detailedAddress: streetAddress ? {
+              streetAddress,
+              suburb,
+              state,
+              postcode
+            } : undefined
           };
         });
       });
