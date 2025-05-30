@@ -259,7 +259,7 @@ export default function BusinessSearch() {
                           </div>
 
                           {/* Trading Name */}
-                          {business.supplyNationData.tradingName && (
+                          {business.supplyNationData?.tradingName && (
                             <div>
                               <p className="text-xs text-blue-600 font-medium">Trading as:</p>
                               <p className="text-sm text-blue-900 font-medium">{business.supplyNationData.tradingName}</p>
