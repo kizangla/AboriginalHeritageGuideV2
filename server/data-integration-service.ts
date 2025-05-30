@@ -179,6 +179,30 @@ class DataIntegrationService {
         if (matchedSupplyNationData) {
           verificationSource = supplyNationData ? 'both' : 'supply_nation';
           verificationConfidence = 'high'; // Supply Nation verification is high confidence
+          
+          // If we have a Supply Nation ID, fetch detailed profile information
+          if (matchedSupplyNationData.supplynationId && matchedSupplyNationData.supplynationId !== 'unknown') {
+            try {
+              const profileUrl = `https://ibd.supplynation.org.au/public/s/supplierprofile?accid=${matchedSupplyNationData.supplynationId}`;
+              const { getSupplyNationProfileDetails } = await import('./supply-nation-scraper');
+              const detailedProfile = await getSupplyNationProfileDetails(profileUrl);
+              
+              if (detailedProfile) {
+                console.log(`Enhanced Supply Nation data for ${enrichedBusiness.entityName} with detailed profile`);
+                // Merge detailed profile data with existing Supply Nation data
+                matchedSupplyNationData = {
+                  ...matchedSupplyNationData,
+                  ...detailedProfile,
+                  // Preserve original data if detailed profile doesn't have it
+                  description: detailedProfile.description || matchedSupplyNationData.description,
+                  location: detailedProfile.location || matchedSupplyNationData.location
+                };
+              }
+            } catch (error) {
+              console.error(`Failed to fetch detailed profile for ${enrichedBusiness.entityName}:`, error);
+              // Continue with basic Supply Nation data if detailed extraction fails
+            }
+          }
         }
         
         const integratedBusiness: IntegratedBusiness = {
