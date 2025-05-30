@@ -1,4 +1,4 @@
-import { searchSupplyNationWithPuppeteer, SupplyNationBusiness } from './supply-nation-scraper';
+import { searchSupplyNationBusinesses, SupplyNationBusiness } from './supply-nation-service';
 import { searchBusinessesByName, enrichBusinessWithLocation, ABRBusinessDetails } from './abr-service';
 import { supplyNationCache } from './supply-nation-cache';
 
