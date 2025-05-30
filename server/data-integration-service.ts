@@ -244,8 +244,8 @@ class DataIntegrationService {
           address: enrichedBusiness.address,
           gst: enrichedBusiness.gst,
           dgr: enrichedBusiness.dgr,
-          lat: enrichedBusiness.lat,
-          lng: enrichedBusiness.lng,
+          lat: enrichedBusiness.lat || this.getAustralianStateCoordinates(enrichedBusiness.address?.stateCode).lat,
+          lng: enrichedBusiness.lng || this.getAustralianStateCoordinates(enrichedBusiness.address?.stateCode).lng,
           supplyNationVerified: !!matchedSupplyNationData,
           supplyNationData: matchedSupplyNationData,
           verificationSource,
@@ -325,6 +325,23 @@ class DataIntegrationService {
     
     const maxLength = Math.max(str1.length, str2.length);
     return maxLength === 0 ? 1 : 1 - matrix[str2.length][str1.length] / maxLength;
+  }
+
+  private getAustralianStateCoordinates(stateCode?: string): { lat: number; lng: number } {
+    // Provide center coordinates for each Australian state to ensure businesses appear within Australia
+    const stateCoordinates = {
+      'NSW': { lat: -32.1638, lng: 147.0160 },  // New South Wales
+      'VIC': { lat: -36.5986, lng: 144.6780 },  // Victoria
+      'QLD': { lat: -22.7359, lng: 142.7917 },  // Queensland
+      'WA': { lat: -25.2744, lng: 121.8339 },   // Western Australia
+      'SA': { lat: -30.0002, lng: 136.2092 },   // South Australia
+      'TAS': { lat: -42.0409, lng: 146.5289 },  // Tasmania
+      'NT': { lat: -19.4914, lng: 132.5510 },   // Northern Territory
+      'ACT': { lat: -35.4735, lng: 149.0124 }   // Australian Capital Territory
+    };
+
+    return stateCoordinates[stateCode as keyof typeof stateCoordinates] || 
+           { lat: -25.2744, lng: 133.7751 }; // Default to Australia center
   }
 }
 
