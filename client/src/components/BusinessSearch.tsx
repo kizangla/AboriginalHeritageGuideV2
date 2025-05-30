@@ -15,9 +15,27 @@ interface ABRBusiness {
     stateCode?: string;
     postcode?: string;
     suburb?: string;
+    fullAddress?: string;
   };
   gst: boolean;
   dgr?: boolean;
+  supplyNationVerified?: boolean;
+  verificationConfidence?: 'high' | 'medium' | 'low';
+  supplyNationData?: {
+    companyName: string;
+    verified: boolean;
+    categories: string[];
+    location: string;
+    contactInfo: {
+      email?: string;
+      phone?: string;
+      website?: string;
+    };
+    description?: string;
+    supplynationId: string;
+    capabilities?: string[];
+    certifications?: string[];
+  };
 }
 
 interface ABRSearchResult {
