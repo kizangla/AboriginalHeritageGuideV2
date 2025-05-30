@@ -244,7 +244,11 @@ export default function UnifiedSearch({ map, onLocationSelect, onBusinessSelect 
           </p>
           ${getContactInfo()}
         </div>
-      `).openPopup();
+      `, {
+        offset: [120, -10], // Move popup to the right to avoid search component overlap
+        maxWidth: 300,
+        className: 'business-popup'
+      }).openPopup();
       
       // Store marker for cleanup
       (marker as any).businessABN = business.abn;
