@@ -92,16 +92,31 @@ class DataIntegrationService {
         // Add geocoding for accurate map placement
         if (enrichedBusiness.address?.postcode && enrichedBusiness.address?.stateCode && !enrichedBusiness.lat) {
           const geocodeAddress = `${enrichedBusiness.address.postcode}, ${enrichedBusiness.address.stateCode}, Australia`;
+          console.log(`Geocoding business: ${enrichedBusiness.entityName} at ${geocodeAddress}`);
+          
           try {
-            const response = await fetch(`https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(geocodeAddress)}.json?access_token=${process.env.MAPBOX_ACCESS_TOKEN}&country=AU`);
+            const geocodeUrl = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(geocodeAddress)}.json?access_token=${process.env.MAPBOX_ACCESS_TOKEN}&country=AU&limit=1`;
+            console.log(`Geocoding URL: ${geocodeUrl.replace(process.env.MAPBOX_ACCESS_TOKEN || '', '[TOKEN]')}`);
+            
+            const response = await fetch(geocodeUrl);
+            console.log(`Geocoding response status: ${response.status}`);
+            
             if (response.ok) {
               const data = await response.json();
+              console.log(`Geocoding response:`, JSON.stringify(data, null, 2).substring(0, 500));
+              
               if (data.features && data.features.length > 0) {
                 const [lng, lat] = data.features[0].center;
                 enrichedBusiness.lat = lat;
                 enrichedBusiness.lng = lng;
                 enrichedBusiness.address.fullAddress = data.features[0].place_name;
+                console.log(`Geocoded ${enrichedBusiness.entityName} to coordinates: [${lat}, ${lng}]`);
+              } else {
+                console.log(`No geocoding results for ${geocodeAddress}`);
               }
+            } else {
+              const errorText = await response.text();
+              console.log(`Geocoding API error: ${response.status} - ${errorText}`);
             }
           } catch (geocodeError) {
             console.log(`Geocoding failed for ${geocodeAddress}:`, geocodeError);
@@ -144,6 +159,8 @@ class DataIntegrationService {
           address: enrichedBusiness.address,
           gst: enrichedBusiness.gst,
           dgr: enrichedBusiness.dgr,
+          lat: enrichedBusiness.lat,
+          lng: enrichedBusiness.lng,
           supplyNationVerified: !!matchedSupplyNationData,
           supplyNationData: matchedSupplyNationData,
           verificationSource,
