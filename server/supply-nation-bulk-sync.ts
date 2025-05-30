@@ -93,6 +93,30 @@ export class SupplyNationBulkSync {
   }
 
   /**
+   * Test the robust scraper with a single business extraction
+   */
+  async testRobustExtraction(): Promise<void> {
+    console.log('Testing robust Supply Nation extraction...');
+    
+    try {
+      await supplyNationRobustScraper.initialize();
+      const businesses = await supplyNationRobustScraper.extractBusinessDirectory();
+      
+      console.log(`Test extraction found ${businesses.length} businesses`);
+      
+      if (businesses.length > 0) {
+        console.log('Sample business:', businesses[0]);
+        await supplyNationRobustScraper.saveBusinessesToDatabase(businesses);
+        console.log('Test extraction completed successfully');
+      }
+    } catch (error) {
+      console.error('Test extraction failed:', error);
+    } finally {
+      await supplyNationRobustScraper.close();
+    }
+  }
+
+  /**
    * Extract specific business profiles for detailed information
    */
   async extractDetailedProfiles(profileUrls: string[]): Promise<SupplyNationBusiness[]> {
