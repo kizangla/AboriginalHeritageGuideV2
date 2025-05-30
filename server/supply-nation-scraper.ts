@@ -79,8 +79,13 @@ class SupplyNationScraper {
 
           // Handle authentication
           console.log('Starting Supply Nation authentication...');
-          await this.handleAuthentication(page);
-          console.log('Authentication process completed');
+          try {
+            await this.handleAuthentication(page);
+            console.log('Authentication process completed successfully');
+          } catch (authError) {
+            console.log('Authentication process failed:', authError.message);
+            console.log('Continuing with guest access');
+          }
 
           // Navigate to search page after authentication
           await page.goto('https://ibd.supplynation.org.au/public/s/search-results', {
@@ -222,41 +227,50 @@ class SupplyNationScraper {
         if (submitButton) {
           console.log('Found submit button, attempting login...');
           
-          // Click the submit button and wait for Salesforce Lightning to process
+          // Click the submit button and wait for Salesforce authentication redirects
           await submitButton.click();
-          console.log('Submit button clicked');
+          console.log('Submit button clicked, waiting for Salesforce redirects...');
           
-          // Wait longer for Salesforce Lightning components to load
-          await new Promise(resolve => setTimeout(resolve, 8000));
+          // Wait for the complete redirect chain to finish
+          // frontdoor.jsp → CommunitiesLanding → /public/s/
+          await new Promise(resolve => setTimeout(resolve, 12000));
           
-          console.log('Login form submitted, checking page transition...');
+          let currentUrl = page.url();
+          console.log(`URL after initial wait: ${currentUrl}`);
           
-          // Check if login was successful by looking for authenticated page elements
-          const currentUrl = page.url();
-          console.log(`Post-login URL: ${currentUrl}`);
+          // Check if we're in the Salesforce redirect chain
+          if (currentUrl.includes('frontdoor.jsp')) {
+            console.log('In Salesforce frontdoor redirect, waiting for completion...');
+            await new Promise(resolve => setTimeout(resolve, 5000));
+            currentUrl = page.url();
+            console.log(`URL after frontdoor wait: ${currentUrl}`);
+          }
           
-          // Look for dashboard or authenticated page indicators
-          const dashboardElements = await page.$$('.slds-scope, [data-aura-class], .oneApp');
-          const hasSupplierDashboard = await page.$('script[src*="SupplierDashboard"]') !== null;
+          if (currentUrl.includes('CommunitiesLanding')) {
+            console.log('In CommunitiesLanding redirect, waiting for homepage...');
+            await new Promise(resolve => setTimeout(resolve, 5000));
+            currentUrl = page.url();
+            console.log(`URL after CommunitiesLanding wait: ${currentUrl}`);
+          }
           
-          if (currentUrl.includes('/public/s/') && !currentUrl.includes('login') ||
-              currentUrl.includes('search-results') ||
-              dashboardElements.length > 0 ||
-              hasSupplierDashboard) {
-            console.log('Login appears successful - authenticated page detected');
+          // Check final authentication status
+          console.log(`Final post-login URL: ${currentUrl}`);
+          
+          if (currentUrl.includes('/public/s/') && !currentUrl.includes('login')) {
+            console.log('Login successful - reached authenticated homepage');
             
-            // Check if we're on the post-login dashboard page
-            if (currentUrl.includes('/public/s/') && !currentUrl.includes('search-results')) {
-              console.log('On post-login dashboard, navigating to search results...');
-              await page.goto('https://ibd.supplynation.org.au/public/s/search-results', {
-                waitUntil: 'networkidle0',
-                timeout: 15000
-              });
-              await new Promise(resolve => setTimeout(resolve, 3000));
-              console.log('Successfully navigated to authenticated search page');
-            }
+            // Navigate to search results page
+            console.log('Navigating to search results page...');
+            await page.goto('https://ibd.supplynation.org.au/public/s/search-results', {
+              waitUntil: 'networkidle0',
+              timeout: 15000
+            });
+            await new Promise(resolve => setTimeout(resolve, 3000));
+            console.log('Successfully navigated to authenticated search page');
+          } else if (currentUrl.includes('login')) {
+            console.log('Login failed - still on login page');
           } else {
-            console.log('Login may have failed - still on login page');
+            console.log('Login status unclear - unexpected URL pattern');
           }
         } else {
           console.log('Could not find submit button');
