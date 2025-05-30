@@ -263,7 +263,123 @@ export default function BusinessSearch() {
                           </div>
                         )}
 
-                        {/* Enhanced Supply Nation Profile Information */}
+                        {/* Contact Information */}
+                        {(business.supplyNationData?.contactInfo?.phone || 
+                          business.supplyNationData?.contactInfo?.email || 
+                          business.supplyNationData?.contactInfo?.website ||
+                          business.supplyNationData?.contactInfo?.contactPerson ||
+                          business.supplyNationData?.tradingName ||
+                          business.supplyNationData?.detailedAddress) && (
+                          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-3">
+                            <div className="flex items-center justify-between">
+                              <h4 className="font-semibold text-sm text-blue-900 flex items-center gap-2">
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 7.89a2 2 0 002.83 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                                </svg>
+                                Contact Information
+                              </h4>
+                              <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full font-medium">
+                                Supply Nation Profile
+                              </span>
+                            </div>
+
+                            {/* Trading Name */}
+                            {business.supplyNationData?.tradingName && (
+                              <div>
+                                <p className="text-xs text-blue-600 font-medium">Trading as:</p>
+                                <p className="text-sm text-blue-900 font-medium">{business.supplyNationData.tradingName}</p>
+                              </div>
+                            )}
+
+                            {/* Contact Person */}
+                            {business.supplyNationData?.contactInfo?.contactPerson && (
+                              <div className="flex items-center gap-2">
+                                <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                </svg>
+                                <div>
+                                  <p className="text-xs text-blue-600">Principal Contact</p>
+                                  <p className="text-sm font-medium text-blue-900">
+                                    {business.supplyNationData.contactInfo.contactPerson}
+                                  </p>
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Phone */}
+                            {business.supplyNationData?.contactInfo?.phone && (
+                              <div className="flex items-center gap-2">
+                                <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                                </svg>
+                                <a href={`tel:${business.supplyNationData.contactInfo.phone}`} 
+                                   className="text-sm text-blue-900 hover:text-blue-700 hover:underline">
+                                  {business.supplyNationData.contactInfo.phone}
+                                </a>
+                              </div>
+                            )}
+
+                            {/* Email */}
+                            {business.supplyNationData?.contactInfo?.email && (
+                              <div className="flex items-center gap-2">
+                                <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 7.89a2 2 0 002.83 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                                </svg>
+                                <a href={`mailto:${business.supplyNationData.contactInfo.email}`} 
+                                   className="text-sm text-blue-900 hover:text-blue-700 hover:underline">
+                                  {business.supplyNationData.contactInfo.email}
+                                </a>
+                              </div>
+                            )}
+
+                            {/* Website */}
+                            {business.supplyNationData?.contactInfo?.website && (
+                              <div className="flex items-center gap-2">
+                                <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9v-9m0-9v9m0 9c-5 0-9-4-9-9s4-9 9-9" />
+                                </svg>
+                                <a href={business.supplyNationData.contactInfo.website} 
+                                   target="_blank" 
+                                   rel="noopener noreferrer"
+                                   className="text-sm text-blue-900 hover:text-blue-700 hover:underline">
+                                  Visit Website
+                                </a>
+                              </div>
+                            )}
+
+                            {/* Detailed Address */}
+                            {business.supplyNationData?.detailedAddress && (
+                              <div className="flex items-start gap-2">
+                                <svg className="w-4 h-4 text-blue-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                                </svg>
+                                <div>
+                                  {business.supplyNationData.detailedAddress.streetAddress && (
+                                    <p className="text-sm font-medium text-blue-900">
+                                      {business.supplyNationData.detailedAddress.streetAddress}
+                                    </p>
+                                  )}
+                                  <p className="text-sm text-blue-800">
+                                    {[
+                                      business.supplyNationData.detailedAddress.suburb,
+                                      business.supplyNationData.detailedAddress.state,
+                                      business.supplyNationData.detailedAddress.postcode
+                                    ].filter(Boolean).join(', ')}
+                                  </p>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Enhanced Supply Nation Profile Information - fallback */}
+                        {!(business.supplyNationData?.contactInfo?.phone || 
+                          business.supplyNationData?.contactInfo?.email || 
+                          business.supplyNationData?.contactInfo?.website ||
+                          business.supplyNationData?.contactInfo?.contactPerson ||
+                          business.supplyNationData?.tradingName ||
+                          business.supplyNationData?.detailedAddress) && (
                         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-3">
                           <div className="flex items-center justify-between">
                             <h4 className="font-semibold text-sm text-blue-900 flex items-center gap-2">
@@ -380,6 +496,7 @@ export default function BusinessSearch() {
                             </div>
                           )}
                         </div>
+                        )}
 
                         {/* Certifications */}
                         {business.supplyNationData.certifications && business.supplyNationData.certifications.length > 0 && (
