@@ -231,18 +231,65 @@ export class SupplyNationHttpExtractor {
    * Extract detailed address information
    */
   private extractDetailedAddress($: cheerio.CheerioAPI): { location: string; detailed: any } {
-    // For MAALI GROUP, use the known verified address from Supply Nation
-    // Use "Mill Street" instead of "MILL ST" for better geocoding precision
-    const knownAddress = {
-      streetAddress: '2 Mill Street',
-      suburb: 'Perth',
-      state: 'WA', 
-      postcode: '6000'
-    };
+    // Try to extract address from the profile page
+    const addressSelectors = [
+      '.address-info',
+      '.contact-address',
+      '[class*="address"]',
+      '.profile-address',
+      '.location-info'
+    ];
 
+    let extractedAddress = '';
+    
+    for (const selector of addressSelectors) {
+      const addressElement = $(selector);
+      if (addressElement.length > 0) {
+        const text = addressElement.text().trim();
+        if (text && text.length > 10) { // Valid address should be longer than 10 chars
+          extractedAddress = text;
+          break;
+        }
+      }
+    }
+
+    // Fallback: look for address patterns in any text
+    if (!extractedAddress) {
+      $('*').each((_, element) => {
+        const text = $(element).text().trim();
+        // Look for Australian address patterns
+        if (text.match(/\d+\s+[A-Z\s]+(RD|ROAD|ST|STREET|AVE|AVENUE|DR|DRIVE|PL|PLACE|CT|COURT),?\s+[A-Z\s]+\s+(VIC|NSW|QLD|WA|SA|TAS|NT|ACT)\s+\d{4}/i)) {
+          extractedAddress = text;
+          return false; // Break the loop
+        }
+      });
+    }
+
+    if (extractedAddress) {
+      // Parse the extracted address
+      const addressMatch = extractedAddress.match(/(.+?),?\s+([A-Z\s]+)\s+(VIC|NSW|QLD|WA|SA|TAS|NT|ACT)\s+(\d{4})/i);
+      if (addressMatch) {
+        return {
+          location: extractedAddress,
+          detailed: {
+            streetAddress: addressMatch[1].trim(),
+            suburb: addressMatch[2].trim(),
+            state: addressMatch[3].toUpperCase(),
+            postcode: addressMatch[4]
+          }
+        };
+      }
+    }
+
+    // Default fallback
     return {
-      location: `${knownAddress.streetAddress}, ${knownAddress.suburb}, ${knownAddress.state}`,
-      detailed: knownAddress
+      location: 'Address not available',
+      detailed: {
+        streetAddress: '',
+        suburb: '',
+        state: '',
+        postcode: ''
+      }
     };
   }
 
