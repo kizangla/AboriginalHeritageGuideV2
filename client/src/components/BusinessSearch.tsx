@@ -170,11 +170,17 @@ export default function BusinessSearch() {
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <MapPin className="w-4 h-4" />
                       <span>
-                        {business.supplyNationData?.location || 
+                        {business.supplyNationData?.location ? 
+                         business.supplyNationData.location.trim().replace(/\s+/g, ' ') : 
                          [business.address.suburb, business.address.stateCode, business.address.postcode]
                            .filter(Boolean)
                            .join(', ')}
                       </span>
+                      {business.supplyNationData?.location && (
+                        <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">
+                          Supply Nation Address
+                        </span>
+                      )}
                     </div>
 
                     {/* Owner/Founder Information */}
