@@ -119,40 +119,6 @@ class DataIntegrationService {
         // Enrich with location data from ABR and geocode for map coordinates
         const enrichedBusiness = await enrichBusinessWithLocation(abrBusiness);
         
-        // Add geocoding for accurate map placement
-        if (enrichedBusiness.address?.postcode && enrichedBusiness.address?.stateCode && !enrichedBusiness.lat) {
-          const geocodeAddress = `${enrichedBusiness.address.postcode}, ${enrichedBusiness.address.stateCode}, Australia`;
-          console.log(`Geocoding business: ${enrichedBusiness.entityName} at ${geocodeAddress}`);
-          
-          try {
-            const geocodeUrl = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(geocodeAddress)}.json?access_token=${process.env.MAPBOX_ACCESS_TOKEN}&country=AU&limit=1`;
-            console.log(`Geocoding URL: ${geocodeUrl.replace(process.env.MAPBOX_ACCESS_TOKEN || '', '[TOKEN]')}`);
-            
-            const response = await fetch(geocodeUrl);
-            console.log(`Geocoding response status: ${response.status}`);
-            
-            if (response.ok) {
-              const data = await response.json();
-              console.log(`Geocoding response:`, JSON.stringify(data, null, 2).substring(0, 500));
-              
-              if (data.features && data.features.length > 0) {
-                const [lng, lat] = data.features[0].center;
-                enrichedBusiness.lat = lat;
-                enrichedBusiness.lng = lng;
-                enrichedBusiness.address.fullAddress = data.features[0].place_name;
-                console.log(`Geocoded ${enrichedBusiness.entityName} to coordinates: [${lat}, ${lng}]`);
-              } else {
-                console.log(`No geocoding results for ${geocodeAddress}`);
-              }
-            } else {
-              const errorText = await response.text();
-              console.log(`Geocoding API error: ${response.status} - ${errorText}`);
-            }
-          } catch (geocodeError) {
-            console.log(`Geocoding failed for ${geocodeAddress}:`, geocodeError);
-          }
-        }
-        
         // Check for Supply Nation verification
         const supplyNationData = supplyNationMap.get(abrBusiness.abn);
         let verificationSource: 'abr_only' | 'supply_nation' | 'both' = 'abr_only';
@@ -196,10 +162,76 @@ class DataIntegrationService {
                   description: detailedProfile.description || matchedSupplyNationData.description,
                   location: detailedProfile.location || matchedSupplyNationData.location
                 };
+
+                // Use Supply Nation detailed address for more accurate geocoding
+                if (detailedProfile.detailedAddress && detailedProfile.detailedAddress.streetAddress) {
+                  const supplyNationAddress = `${detailedProfile.detailedAddress.streetAddress}, ${detailedProfile.detailedAddress.suburb}, ${detailedProfile.detailedAddress.state} ${detailedProfile.detailedAddress.postcode}, Australia`;
+                  console.log(`Geocoding business using Supply Nation address: ${enrichedBusiness.entityName} at ${supplyNationAddress}`);
+                  
+                  try {
+                    const geocodeUrl = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(supplyNationAddress)}.json?access_token=${process.env.MAPBOX_ACCESS_TOKEN}&country=AU&limit=1`;
+                    console.log(`Supply Nation geocoding URL: ${geocodeUrl.replace(process.env.MAPBOX_ACCESS_TOKEN || '', '[TOKEN]')}`);
+                    
+                    const response = await fetch(geocodeUrl);
+                    console.log(`Supply Nation geocoding response status: ${response.status}`);
+                    
+                    if (response.ok) {
+                      const data = await response.json();
+                      console.log(`Supply Nation geocoding response:`, JSON.stringify(data, null, 2).substring(0, 500));
+                      
+                      if (data.features && data.features.length > 0) {
+                        const [lng, lat] = data.features[0].center;
+                        enrichedBusiness.lat = lat;
+                        enrichedBusiness.lng = lng;
+                        // Update address to use Supply Nation detailed address
+                        enrichedBusiness.address = {
+                          ...enrichedBusiness.address,
+                          streetAddress: detailedProfile.detailedAddress.streetAddress,
+                          suburb: detailedProfile.detailedAddress.suburb,
+                          stateCode: detailedProfile.detailedAddress.state,
+                          postcode: detailedProfile.detailedAddress.postcode,
+                          fullAddress: supplyNationAddress
+                        };
+                        console.log(`Geocoded ${enrichedBusiness.entityName} using Supply Nation address to coordinates: [${lat}, ${lng}]`);
+                      }
+                    }
+                  } catch (geocodeError) {
+                    console.log(`Supply Nation geocoding failed for ${supplyNationAddress}:`, geocodeError);
+                  }
+                }
               }
             } catch (error) {
               console.error(`Failed to fetch detailed profile for ${enrichedBusiness.entityName}:`, error);
               // Continue with basic Supply Nation data if detailed extraction fails
+            }
+          }
+
+          // Fallback to ABR geocoding if Supply Nation geocoding wasn't done
+          if (!enrichedBusiness.lat && enrichedBusiness.address?.postcode && enrichedBusiness.address?.stateCode) {
+            const geocodeAddress = `${enrichedBusiness.address.postcode}, ${enrichedBusiness.address.stateCode}, Australia`;
+            console.log(`Fallback geocoding business: ${enrichedBusiness.entityName} at ${geocodeAddress}`);
+            
+            try {
+              const geocodeUrl = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(geocodeAddress)}.json?access_token=${process.env.MAPBOX_ACCESS_TOKEN}&country=AU&limit=1`;
+              console.log(`Fallback geocoding URL: ${geocodeUrl.replace(process.env.MAPBOX_ACCESS_TOKEN || '', '[TOKEN]')}`);
+              
+              const response = await fetch(geocodeUrl);
+              console.log(`Fallback geocoding response status: ${response.status}`);
+              
+              if (response.ok) {
+                const data = await response.json();
+                console.log(`Fallback geocoding response:`, JSON.stringify(data, null, 2).substring(0, 500));
+                
+                if (data.features && data.features.length > 0) {
+                  const [lng, lat] = data.features[0].center;
+                  enrichedBusiness.lat = lat;
+                  enrichedBusiness.lng = lng;
+                  enrichedBusiness.address.fullAddress = data.features[0].place_name;
+                  console.log(`Fallback geocoded ${enrichedBusiness.entityName} to coordinates: [${lat}, ${lng}]`);
+                }
+              }
+            } catch (geocodeError) {
+              console.log(`Fallback geocoding failed for ${geocodeAddress}:`, geocodeError);
             }
           }
         }
