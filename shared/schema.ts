@@ -124,6 +124,48 @@ export const insertSupplyNationBusinessSchema = createInsertSchema(supplyNationB
 export type SupplyNationBusiness = typeof supplyNationBusinesses.$inferSelect;
 export type InsertSupplyNationBusiness = z.infer<typeof insertSupplyNationBusinessSchema>;
 
+// Integrated Business Type with Supply Nation data
+export interface IntegratedBusiness {
+  abn: string;
+  entityName: string;
+  entityType: string;
+  status: string;
+  lat?: number;
+  lng?: number;
+  displayAddress?: string;
+  address: {
+    stateCode?: string;
+    postcode?: string;
+    suburb?: string;
+    streetAddress?: string;
+    fullAddress?: string;
+  };
+  gst?: boolean;
+  dgr?: boolean;
+  supplyNationVerified: boolean;
+  verificationConfidence?: 'high' | 'medium' | 'low';
+  verificationSource?: 'abr_only' | 'supply_nation' | 'both';
+  supplyNationData?: {
+    companyName: string;
+    verified: boolean;
+    categories: string[];
+    location: string;
+    contactInfo: {
+      email?: string;
+      phone?: string;
+      website?: string;
+    };
+    description?: string;
+    supplynationId: string;
+    capabilities?: string[];
+    certifications?: string[];
+  };
+}
+
+export interface ABRBusiness extends IntegratedBusiness {
+  // ABRBusiness extends IntegratedBusiness for compatibility
+}
+
 // Relations
 import { relations } from "drizzle-orm";
 

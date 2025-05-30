@@ -284,27 +284,99 @@ export default function UnifiedSearch({ map, onLocationSelect, onBusinessSelect 
                 </button>
               ))}
               
-              {searchType === 'businesses' && businessResults?.businesses.map((business, index) => (
+              {searchType === 'businesses' && businessResults?.businesses.map((business: any, index: number) => (
                 <button
                   key={index}
                   onClick={() => handleBusinessSelect(business)}
-                  className="w-full text-left p-3 text-sm hover:bg-gray-50 border-b border-gray-50 last:border-b-0 transition-colors"
+                  className="w-full text-left p-3 text-sm hover:bg-gray-50 border-b border-gray-50 last:border-b-0 transition-colors hover:bg-orange-50"
                 >
-                  <div className="flex items-start gap-2">
-                    <Building2 className="w-4 h-4 text-orange-600 mt-0.5 flex-shrink-0" />
-                    <div className="flex-1 min-w-0">
+                  <div className="flex items-start gap-3">
+                    {/* Business Icon with Verification Indicator */}
+                    <div className="relative flex-shrink-0">
+                      <Building2 className="w-5 h-5 text-orange-600 mt-0.5" />
+                      {business.supplyNationVerified && (
+                        <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full flex items-center justify-center">
+                          <svg className="w-2 h-2 text-white" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                          </svg>
+                        </div>
+                      )}
+                    </div>
+                    
+                    <div className="flex-1 min-w-0 space-y-1">
+                      {/* Business Name and Verification */}
                       <div className="flex items-center gap-2 mb-1">
-                        <div className="font-medium text-gray-900 truncate">{business.entityName}</div>
+                        <div className="font-medium text-gray-900 truncate text-sm">{business.entityName}</div>
                         {business.supplyNationVerified && (
-                          <span className="inline-block px-1.5 py-0.5 bg-green-100 text-green-800 text-xs rounded font-medium">
-                            Verified Indigenous
+                          <div className="flex items-center gap-1 bg-green-100 text-green-800 px-1.5 py-0.5 rounded-full text-xs font-medium">
+                            <svg className="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                            </svg>
+                            Supply Nation
+                          </div>
+                        )}
+                      </div>
+                      
+                      {/* Business Status and Confidence */}
+                      <div className="flex items-center gap-1 mb-1">
+                        <span className={`inline-block px-1.5 py-0.5 rounded text-xs font-medium ${
+                          business.status === 'Active' 
+                            ? 'bg-blue-100 text-blue-800' 
+                            : 'bg-gray-100 text-gray-600'
+                        }`}>
+                          {business.status}
+                        </span>
+                        {business.verificationConfidence && (
+                          <span className={`inline-block px-1.5 py-0.5 rounded text-xs ${
+                            business.verificationConfidence === 'high' 
+                              ? 'bg-orange-100 text-orange-700'
+                              : business.verificationConfidence === 'medium'
+                              ? 'bg-yellow-100 text-yellow-700'
+                              : 'bg-gray-100 text-gray-600'
+                          }`}>
+                            {business.verificationConfidence} confidence
                           </span>
                         )}
                       </div>
-                      <div className="text-xs text-gray-500">{business.displayAddress}</div>
+                      
+                      {/* Location */}
+                      <div className="text-xs text-gray-500 flex items-center gap-1">
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                        {business.displayAddress}
+                      </div>
+                      
+                      {/* Supply Nation Categories */}
                       {business.supplyNationData?.categories && business.supplyNationData.categories.length > 0 && (
                         <div className="text-xs text-gray-400 mt-1">
-                          {business.supplyNationData.categories.slice(0, 2).join(', ')}
+                          <span className="font-medium">Services:</span> {business.supplyNationData.categories.slice(0, 2).join(', ')}
+                          {business.supplyNationData.categories.length > 2 && ' +more'}
+                        </div>
+                      )}
+                      
+                      {/* Supply Nation Description (truncated) */}
+                      {business.supplyNationData?.description && (
+                        <div className="text-xs text-gray-500 mt-1 line-clamp-2">
+                          {business.supplyNationData.description.substring(0, 80)}
+                          {business.supplyNationData.description.length > 80 && '...'}
+                        </div>
+                      )}
+                      
+                      {/* Certifications */}
+                      {business.supplyNationData?.certifications && business.supplyNationData.certifications.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {business.supplyNationData.certifications.slice(0, 2).map((cert: string, certIndex: number) => (
+                            <span key={certIndex} className="inline-block bg-green-50 text-green-700 px-1.5 py-0.5 rounded text-xs font-medium">
+                              {cert}
+                            </span>
+                          ))}
+                          {business.supplyNationData.certifications.length > 2 && (
+                            <span className="inline-block bg-gray-50 text-gray-600 px-1.5 py-0.5 rounded text-xs">
+                              +{business.supplyNationData.certifications.length - 2}
+                            </span>
+                          )}
                         </div>
                       )}
                     </div>
