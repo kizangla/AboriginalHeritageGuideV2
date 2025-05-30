@@ -244,8 +244,8 @@ export class SupplyNationHttpExtractor {
     ];
     
     for (const pattern of addressPatterns) {
-      const matches = addressText.matchAll(pattern);
-      for (const match of matches) {
+      let match;
+      while ((match = pattern.exec(addressText)) !== null) {
         if (match[0] && match[0].length > 15) { // Valid address should be reasonably long
           extractedAddress = match[0].trim();
           
@@ -268,6 +268,7 @@ export class SupplyNationHttpExtractor {
           }
         }
       }
+      pattern.lastIndex = 0; // Reset regex
     }
 
     // If no full address found, try to extract just the location mentioned in the profile

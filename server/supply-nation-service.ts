@@ -241,7 +241,25 @@ class SupplyNationScraper {
 
               // Get Supply Nation ID from URL or data attributes
               const profileLink = $element.find('a').attr('href') || '';
-              const supplynationId = profileLink.split('/').pop() || `sn_${businesses.length}`;
+              let supplynationId = 'unknown';
+              
+              // Extract authentic Supply Nation profile ID from the profile link
+              if (profileLink.includes('supplierprofile')) {
+                const urlParams = new URLSearchParams(profileLink.split('?')[1] || '');
+                supplynationId = urlParams.get('accid') || 'unknown';
+              } else if (profileLink.includes('/profile/') || profileLink.includes('/supplier/')) {
+                // Alternative URL patterns
+                const pathSegments = profileLink.split('/');
+                const idIndex = pathSegments.findIndex(segment => segment === 'profile' || segment === 'supplier');
+                if (idIndex >= 0 && idIndex < pathSegments.length - 1) {
+                  supplynationId = pathSegments[idIndex + 1];
+                }
+              }
+              
+              // Only use authentic profile IDs, don't create synthetic ones
+              if (supplynationId === 'unknown') {
+                console.log(`No authentic Supply Nation profile ID found for ${companyName}`);
+              }
 
               businesses.push({
                 abn,
