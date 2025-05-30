@@ -884,18 +884,39 @@ class SupplyNationScraper {
       return null;
     }
   }
-        
-        // Extract phone number
-        const phone = await page.$eval('a[href^="tel:"]', el => 
-          el.textContent?.trim()
-        ).catch(() => 
-          page.evaluate(() => {
-            const phoneMatch = document.body.textContent?.match(/\(\d{2}\)\s*\d{4}\s*\d{4}|\d{2}\s*\d{4}\s*\d{4}|\+61\s*[\d\s]+/);
-            return phoneMatch ? phoneMatch[0] : undefined;
-          }).catch(() => undefined)
-        );
-        
-        // Extract email
+
+  async close(): Promise<void> {
+    if (this.cluster) {
+      await this.cluster.close();
+      this.cluster = null;
+    }
+  }
+}
+
+export async function getSupplyNationScraper(): Promise<SupplyNationScraper> {
+  const scraper = new SupplyNationScraper();
+  await scraper.initialize();
+  return scraper;
+}
+
+export async function getSupplyNationProfileDetails(profileUrl: string): Promise<SupplyNationBusiness | null> {
+  const scraper = await getSupplyNationScraper();
+  try {
+    return await scraper.extractDetailedProfile(profileUrl);
+  } finally {
+    // Don't close here as it might be used by other operations
+  }
+}
+
+export async function searchSupplyNationWithPuppeteer(
+  query: string,
+  location?: string
+): Promise<ScrapingResult> {
+  const scraper = await getSupplyNationScraper();
+  try {
+    return await scraper.searchBusinesses(query, location);
+  } finally {
+    // Don't close here as it might be used by other operations
         const email = await page.$eval('a[href^="mailto:"]', el => 
           el.getAttribute('href')?.replace('mailto:', '')
         ).catch(() => 
