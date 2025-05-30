@@ -254,37 +254,113 @@ class SupplyNationScraper {
 
   private async extractBusinessData(page: Page): Promise<SupplyNationBusiness[]> {
     try {
-      // Wait for potential dynamic content loading
+      // Wait for dynamic content and potential lazy loading
+      await new Promise(resolve => setTimeout(resolve, 5000));
+      
+      // Scroll to trigger lazy loading
+      await page.evaluate(() => {
+        window.scrollTo(0, document.body.scrollHeight);
+      });
       await new Promise(resolve => setTimeout(resolve, 2000));
 
-      const businesses = await page.evaluate(() => {
-        const results: SupplyNationBusiness[] = [];
+      // Debug: Take screenshot and log page content
+      console.log('Current URL:', await page.url());
+      const pageTitle = await page.title();
+      console.log('Page title:', pageTitle);
+      
+      // Save page HTML for analysis
+      const pageContent = await page.content();
+      console.log('Page content length:', pageContent.length);
+      
+      // Log key page elements for debugging
+      const bodyText = await page.evaluate(() => document.body.innerText?.substring(0, 500));
+      console.log('Page body text sample:', bodyText);
 
-        // Multiple selectors to find business listings
+      const businesses = await page.evaluate(() => {
+        const results: any[] = [];
+
+        // Enhanced selectors for Salesforce Lightning components
         const businessSelectors = [
+          // Salesforce Lightning specific selectors
+          'c-search-results [data-key]',
+          'c-business-card',
+          '.slds-card',
+          '.slds-tile',
+          '[data-aura-class*="searchResult"]',
+          '[data-aura-class*="businessCard"]',
+          '[data-aura-class*="item"]',
+          // Generic selectors
           '.business-card',
           '.search-result',
           '.listing-item',
-          '[data-aura-class*="item"]',
-          '.slds-card',
           '.business-listing',
-          '.result-item'
+          '.result-item',
+          '.business-item',
+          // Fallback broad selectors
+          '[class*="business"]',
+          '[class*="result"]',
+          '[class*="card"]'
         ];
 
         let businessElements: NodeListOf<Element> | null = null;
+        let usedSelector = '';
 
         for (const selector of businessSelectors) {
           businessElements = document.querySelectorAll(selector);
-          if (businessElements.length > 0) {
-            console.log(`Found ${businessElements.length} businesses using selector: ${selector}`);
+          if (businessElements && businessElements.length > 0) {
+            usedSelector = selector;
+            console.log(`Found ${businessElements.length} elements using selector: ${selector}`);
             break;
           }
         }
 
         if (!businessElements || businessElements.length === 0) {
-          console.log('No business elements found, trying text-based extraction');
-          // Fallback: look for text patterns that might indicate business listings
-          const textContent = document.body.innerText;
+          console.log('No business elements found with selectors, trying text-based extraction');
+          
+          // Enhanced text-based extraction for dynamic content
+          const textContent = document.body.innerText || '';
+          const htmlContent = document.body.innerHTML || '';
+          
+          console.log('Text content length:', textContent.length);
+          console.log('HTML content length:', htmlContent.length);
+          
+          // Look for business name patterns in text
+          const lines = textContent.split('\n').map(line => line.trim()).filter(line => line.length > 3);
+          console.log('Total text lines found:', lines.length);
+          console.log('Sample lines:', lines.slice(0, 10));
+          
+          // Extract potential business names using patterns
+          const businessPatterns = [
+            /([A-Z][a-z]+ [A-Z][a-z]+ (PTY|Pty|Ltd|Limited|Group|Services|Solutions|Company))/g,
+            /([A-Z][A-Z]+ [A-Z][a-z]+)/g,
+            /([A-Z][a-z]+ & [A-Z][a-z]+)/g
+          ];
+          
+          let foundBusinesses = 0;
+          
+          businessPatterns.forEach((pattern, patternIndex) => {
+            const matches = textContent.match(pattern);
+            if (matches) {
+              console.log(`Pattern ${patternIndex} found ${matches.length} matches:`, matches.slice(0, 5));
+              
+              matches.slice(0, 10).forEach((match, index) => {
+                if (match.length > 5 && match.length < 100) {
+                  results.push({
+                    companyName: match.trim(),
+                    verified: true,
+                    categories: ['Indigenous Business'],
+                    location: 'Australia',
+                    contactInfo: {},
+                    supplynationId: `sn_text_${patternIndex}_${index}`,
+                    description: 'Extracted from Supply Nation directory'
+                  });
+                  foundBusinesses++;
+                }
+              });
+            }
+          });
+          
+          // Look for ABN patterns
           const abnPattern = /ABN[:\s]*(\d{2}\s?\d{3}\s?\d{3}\s?\d{3})/gi;
           const abnMatches = textContent.match(abnPattern);
           
@@ -292,6 +368,7 @@ class SupplyNationScraper {
             console.log(`Found ${abnMatches.length} ABN references in page text`);
           }
           
+          console.log(`Text-based extraction found ${foundBusinesses} potential businesses`);
           return results;
         }
 
