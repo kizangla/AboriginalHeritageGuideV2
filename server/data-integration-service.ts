@@ -1,5 +1,6 @@
 import { searchSupplyNationWithPuppeteer, SupplyNationBusiness } from './supply-nation-scraper';
 import { searchBusinessesByName, enrichBusinessWithLocation, ABRBusinessDetails } from './abr-service';
+import { supplyNationCache } from './supply-nation-cache';
 
 export interface IntegratedBusiness {
   // ABR Data
@@ -56,17 +57,36 @@ class DataIntegrationService {
     const abrResults = await searchBusinessesByName(query);
     console.log(`ABR found ${abrResults.totalResults} businesses`);
     
-    // Search Supply Nation if enabled
+    // Search Supply Nation with database caching
     let supplyNationResults: SupplyNationBusiness[] = [];
     if (includeSupplyNation) {
       try {
-        console.log('Searching Supply Nation with Puppeteer...');
-        const snResults = await searchSupplyNationWithPuppeteer(query, location);
-        supplyNationResults = snResults.businesses;
+        // Check cache first for fresh data
+        const cachedResults = await supplyNationCache.searchCachedBusinesses(query);
+        const hasFreshData = await supplyNationCache.hasFreshData(query);
+        
+        if (hasFreshData && cachedResults.length > 0) {
+          console.log(`Using cached Supply Nation data: ${cachedResults.length} businesses`);
+          supplyNationResults = cachedResults;
+        } else {
+          console.log('Scraping fresh Supply Nation data...');
+          const snResults = await searchSupplyNationWithPuppeteer(query, location);
+          supplyNationResults = snResults.businesses;
+          
+          // Store fresh data in database cache
+          if (supplyNationResults.length > 0) {
+            await supplyNationCache.storeBusinesses(supplyNationResults);
+            console.log(`Cached ${supplyNationResults.length} Supply Nation businesses to database`);
+          }
+        }
         console.log(`Supply Nation found ${supplyNationResults.length} businesses`);
       } catch (error) {
-        console.error('Supply Nation search failed:', error);
-        // Continue with ABR data only
+        console.error('Supply Nation search failed, checking cache:', error);
+        // Fallback to any cached data available
+        supplyNationResults = await supplyNationCache.searchCachedBusinesses(query);
+        if (supplyNationResults.length > 0) {
+          console.log(`Using fallback cached data: ${supplyNationResults.length} businesses`);
+        }
       }
     }
     
