@@ -868,39 +868,96 @@ class SupplyNationScraper {
         // Wait for content to load
         await page.waitForSelector('body', { timeout: 10000 });
         
-        // Extract detailed business information
-        return await page.evaluate(() => {
-          // Helper function to extract text content safely
-          const extractText = (selector: string): string | undefined => {
-            const element = document.querySelector(selector);
-            return element?.textContent?.trim() || undefined;
-          };
-          
-          // Helper function to find text by pattern
-          const findTextByPattern = (pattern: RegExp): string | undefined => {
-            const walker = document.createTreeWalker(
-              document.body,
-              NodeFilter.SHOW_TEXT,
-              null,
-              false
-            );
-            
-            let node;
-            while (node = walker.nextNode()) {
-              const text = node.textContent?.trim();
-              if (text && pattern.test(text)) {
-                return text;
-              }
+        // Extract detailed business information using DOM queries
+        const companyName = await page.$eval('h1', el => el.textContent?.trim()).catch(() => 
+          page.title().then(title => title.split(' | ')[0]).catch(() => 'Unknown Company')
+        );
+        
+        // Extract phone number
+        const phone = await page.$eval('a[href^="tel:"]', el => 
+          el.textContent?.trim()
+        ).catch(() => 
+          page.evaluate(() => {
+            const phoneMatch = document.body.textContent?.match(/\(\d{2}\)\s*\d{4}\s*\d{4}|\d{2}\s*\d{4}\s*\d{4}|\+61\s*[\d\s]+/);
+            return phoneMatch ? phoneMatch[0] : undefined;
+          }).catch(() => undefined)
+        );
+        
+        // Extract email
+        const email = await page.$eval('a[href^="mailto:"]', el => 
+          el.getAttribute('href')?.replace('mailto:', '')
+        ).catch(() => 
+          page.evaluate(() => {
+            const emailMatch = document.body.textContent?.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
+            return emailMatch ? emailMatch[0] : undefined;
+          }).catch(() => undefined)
+        );
+        
+        // Extract website
+        const website = await page.evaluate(() => {
+          const links = document.querySelectorAll('a[href^="http"]');
+          for (let i = 0; i < links.length; i++) {
+            const href = links[i].getAttribute('href');
+            if (href && 
+                !href.includes('supplynation.org.au') && 
+                !href.includes('salesforce.com') &&
+                (href.includes('www.') || href.includes('.com') || href.includes('.au'))) {
+              return href;
             }
-            return undefined;
-          };
+          }
+          return undefined;
+        }).catch(() => undefined);
+        
+        // Extract description/services
+        const description = await page.evaluate(() => {
+          const descSelectors = [
+            '[data-aura-class*="description"]',
+            '.description',
+            '[class*="service"]',
+            'p:contains("services")',
+            'div:contains("specializ")'
+          ];
           
-          // Extract company name - look for main heading
-          const companyName = extractText('h1') || 
-                             extractText('.company-name') || 
-                             extractText('[data-aura-class*="title"]') ||
-                             document.title.split(' | ')[0] || 
-                             'Unknown Company';
+          for (const selector of descSelectors) {
+            const element = document.querySelector(selector);
+            if (element && element.textContent && element.textContent.length > 50) {
+              return element.textContent.trim();
+            }
+          }
+          
+          // Fallback: look for longer text blocks
+          const paragraphs = document.querySelectorAll('p, div');
+          for (let i = 0; i < paragraphs.length; i++) {
+            const text = paragraphs[i].textContent?.trim();
+            if (text && text.length > 100 && !text.includes('Supply Nation')) {
+              return text;
+            }
+          }
+          return undefined;
+        }).catch(() => undefined);
+        
+        const result = {
+          companyName: typeof companyName === 'string' ? companyName : 'Unknown Company',
+          verified: true,
+          categories: [],
+          location: 'Australia',
+          contactInfo: {
+            email: email || undefined,
+            phone: phone || undefined,
+            website: website || undefined,
+            contactPerson: undefined
+          },
+          description: description || undefined,
+          supplynationId: profileUrl.split('accid=')[1] || 'unknown',
+          capabilities: [],
+          certifications: ['Supply Nation Verified'],
+          tradingName: undefined,
+          detailedAddress: undefined,
+          abn: undefined,
+          acn: undefined,
+          lastUpdated: new Date().toISOString()
+        
+        return result;
           
           // Extract trading name
           const tradingText = findTextByPattern(/Trading as:/i);
@@ -921,12 +978,18 @@ class SupplyNationScraper {
           }
           
           // Extract website - look for external links
-          const websiteLink = Array.from(document.querySelectorAll('a[href^="http"]')).find(link => 
-            !link.href.includes('supplynation.org.au') && 
-            !link.href.includes('salesforce.com') &&
-            (link.href.includes('www.') || link.href.includes('.com') || link.href.includes('.au'))
-          ) as HTMLAnchorElement;
-          const website = websiteLink?.href;
+          let website;
+          const links = document.querySelectorAll('a[href^="http"]');
+          for (let i = 0; i < links.length; i++) {
+            const href = links[i].getAttribute('href');
+            if (href && 
+                !href.includes('supplynation.org.au') && 
+                !href.includes('salesforce.com') &&
+                (href.includes('www.') || href.includes('.com') || href.includes('.au'))) {
+              website = href;
+              break;
+            }
+          }
           
           // Extract contact person - look for names near contact information
           let contactPerson;
