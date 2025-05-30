@@ -235,7 +235,11 @@ export default function BusinessSearch() {
                           <div>
                             <h4 className="font-medium text-sm text-gray-900 mb-1">Services & Capabilities</h4>
                             <p className="text-sm text-gray-600 leading-relaxed">
-                              {business.supplyNationData.description}
+                              {business.supplyNationData.description
+                                .split(/(?=[A-Z][a-z])/)
+                                .filter(s => s.trim())
+                                .map(service => service.trim())
+                                .join(' • ')}
                             </p>
                           </div>
                         )}
