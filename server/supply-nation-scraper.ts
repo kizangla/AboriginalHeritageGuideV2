@@ -846,6 +846,134 @@ class SupplyNationScraper {
     }
   }
 
+  async extractDetailedProfile(profileUrl: string): Promise<SupplyNationBusiness | null> {
+    if (!this.cluster) {
+      throw new Error('Scraper not initialized');
+    }
+
+    try {
+      console.log(`Extracting detailed profile from: ${profileUrl}`);
+      
+      const result = await this.cluster.execute(async ({ page }) => {
+        // Navigate to the profile page
+        await page.goto(profileUrl, { waitUntil: 'networkidle0', timeout: 30000 });
+        
+        // Handle authentication if needed
+        const currentUrl = page.url();
+        if (currentUrl.includes('login') || currentUrl.includes('frontdoor')) {
+          await this.handleAuthentication(page);
+          await page.goto(profileUrl, { waitUntil: 'networkidle0', timeout: 30000 });
+        }
+        
+        // Wait for content to load
+        await page.waitForSelector('body', { timeout: 10000 });
+        
+        // Extract detailed business information
+        return await page.evaluate(() => {
+          // Extract company name
+          const companyNameEl = document.querySelector('h1') || 
+                               document.querySelector('.slds-page-header__title') ||
+                               document.querySelector('[class*="company-name"]');
+          const companyName = companyNameEl?.textContent?.trim() || 'Unknown Company';
+          
+          // Extract trading name
+          const tradingText = Array.from(document.querySelectorAll('*')).find(el => 
+            el.textContent?.includes('Trading as:')
+          )?.textContent;
+          const tradingName = tradingText?.replace(/Trading as:\s*/i, '').trim();
+          
+          // Extract contact information
+          const phoneLink = document.querySelector('a[href^="tel:"]');
+          const phone = phoneLink?.textContent?.trim() || phoneLink?.getAttribute('href')?.replace('tel:', '');
+          
+          const emailLink = document.querySelector('a[href^="mailto:"]');
+          const email = emailLink?.textContent?.trim() || emailLink?.getAttribute('href')?.replace('mailto:', '');
+          
+          const websiteLink = document.querySelector('a[href*="www."], a[href^="http"]:not([href*="supplynation"])');
+          const website = websiteLink?.getAttribute('href') || websiteLink?.textContent?.trim();
+          
+          // Extract contact person
+          const contactPersonEl = Array.from(document.querySelectorAll('*')).find(el => 
+            el.textContent?.includes('Contact') && el.tagName !== 'A'
+          );
+          const contactPerson = contactPersonEl?.textContent?.replace(/Contact[:\s]*/i, '').trim();
+          
+          // Extract address
+          const addressEl = Array.from(document.querySelectorAll('p, div')).find(el => 
+            el.textContent?.match(/\d+\s+\w+\s+(ST|STREET|AVE|AVENUE|RD|ROAD)/i) ||
+            el.textContent?.match(/\w+\s+\w+\s+\d{4}/)
+          );
+          const fullAddress = addressEl?.textContent?.trim();
+          
+          // Extract services/what they provide
+          const servicesList = Array.from(document.querySelectorAll('li')).map(li => li.textContent?.trim()).filter(Boolean);
+          const services = servicesList.length > 0 ? servicesList.join('\n') : '';
+          
+          // Extract ABN and ACN
+          const bodyText = document.body.textContent || '';
+          const abnMatch = bodyText.match(/ABN:?\s*(\d{11})/i);
+          const abn = abnMatch?.[1];
+          
+          const acnMatch = bodyText.match(/ACN:?\s*(\d{9})/i);
+          const acn = acnMatch?.[1];
+          
+          // Extract last updated
+          const lastUpdatedMatch = bodyText.match(/Last updated:?\s*([\d\s\w]+)/i);
+          const lastUpdated = lastUpdatedMatch?.[1]?.trim();
+          
+          // Extract location from address
+          const locationMatch = fullAddress?.match(/([A-Z]{2,3})\s*(\d{4})/);
+          const location = locationMatch ? `${locationMatch[1]} ${locationMatch[2]}` : 'Australia';
+          
+          // Parse detailed address components
+          let detailedAddress;
+          if (fullAddress) {
+            const addressParts = fullAddress.split(',').map(part => part.trim());
+            detailedAddress = {
+              streetAddress: addressParts[0],
+              suburb: addressParts[1],
+              state: locationMatch?.[1],
+              postcode: locationMatch?.[2]
+            };
+          }
+          
+          // Get Supply Nation ID from URL
+          const urlParams = new URLSearchParams(window.location.search);
+          const supplynationId = urlParams.get('accid') || 'unknown';
+          
+          return {
+            companyName,
+            tradingName,
+            verified: true,
+            categories: [],
+            location,
+            contactInfo: {
+              email: email || undefined,
+              phone: phone || undefined,
+              website: website || undefined,
+              contactPerson: contactPerson || undefined
+            },
+            description: services || undefined,
+            supplynationId,
+            capabilities: [],
+            certifications: ['Supply Nation Verified'],
+            abn: abn || undefined,
+            acn: acn || undefined,
+            lastUpdated: lastUpdated || undefined,
+            detailedAddress
+          };
+        });
+      });
+      
+      console.log(`Successfully extracted detailed profile for: ${result.companyName}`);
+      return result;
+      
+    } catch (error) {
+      console.error(`Error extracting detailed profile from ${profileUrl}:`, error);
+      return null;
+    }
+  }
+
   async close(): Promise<void> {
     if (this.cluster) {
       await this.cluster.close();
@@ -864,6 +992,16 @@ export async function getSupplyNationScraper(): Promise<SupplyNationScraper> {
     await scraperInstance.initialize();
   }
   return scraperInstance;
+}
+
+export async function getSupplyNationProfileDetails(profileUrl: string): Promise<SupplyNationBusiness | null> {
+  try {
+    const scraper = await getSupplyNationScraper();
+    return await scraper.extractDetailedProfile(profileUrl);
+  } catch (error) {
+    console.error('Error fetching Supply Nation profile details:', error);
+    return null;
+  }
 }
 
 export async function searchSupplyNationWithPuppeteer(
