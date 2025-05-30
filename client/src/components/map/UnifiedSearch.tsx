@@ -145,11 +145,16 @@ export default function UnifiedSearch({ map, onLocationSelect, onBusinessSelect 
       // Enhanced popup with Supply Nation contact information
       const getVerificationBadge = () => {
         if (business.supplyNationVerified) {
-          return `<div style="background: #2ECC71; color: white; padding: 4px 8px; border-radius: 12px; font-size: 11px; font-weight: bold; display: inline-block; margin-bottom: 8px;">
-            ✓ Supply Nation Verified
+          return `<div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; flex-wrap: wrap;">
+            <div style="background: #2ECC71; color: white; padding: 4px 8px; border-radius: 12px; font-size: 11px; font-weight: bold; display: inline-block;">
+              ✓ Supply Nation Verified
+            </div>
+            <img src="https://ibd.supplynation.org.au/public/resource/1651046831000/sna/certifiled_new.png" 
+                 alt="Supply Nation Certified" 
+                 style="height: 24px; width: auto; border-radius: 4px;" />
           </div>`;
         }
-        const confidence = business.verificationConfidence || 'low';
+        const confidence = (business as any).verificationConfidence || 'low';
         const badgeColor = confidence === 'high' ? '#F39C12' : confidence === 'medium' ? '#3498DB' : '#95A5A6';
         return `<div style="background: ${badgeColor}; color: white; padding: 4px 8px; border-radius: 12px; font-size: 11px; font-weight: bold; display: inline-block; margin-bottom: 8px;">
           ${confidence.toUpperCase()} Confidence Indigenous
