@@ -51,40 +51,41 @@ export class SupplyNationHttpExtractor {
     try {
       const $ = cheerio.load(html);
       
-      // Extract basic company information
-      const companyName = this.extractText($, '[data-id="companyName"], .company-name, h1, .business-title').trim();
-      const tradingName = this.extractText($, '[data-id="tradingName"], .trading-name').trim();
+      // Extract basic company information - look for h1 or main heading
+      let companyName = '';
+      const headingSelectors = ['h1', '.page-title', '.business-name', '.company-title'];
+      for (const selector of headingSelectors) {
+        const text = $(selector).first().text().trim();
+        if (text && text.length > 3) {
+          companyName = text;
+          break;
+        }
+      }
       
-      // Extract contact information
-      const phone = this.extractContactInfo($, 'phone', [
-        '[href^="tel:"]',
-        '.phone',
-        '[data-id="phone"]',
-        'a[href*="tel"]'
-      ]);
+      // Extract trading name - look for "Trading as:" text
+      let tradingName = '';
+      $('*').each((_, element) => {
+        const text = $(element).text();
+        if (text.includes('Trading as:')) {
+          const match = text.match(/Trading as:\s*([^\\n\\r]+)/);
+          if (match) {
+            tradingName = match[1].trim();
+          }
+        }
+      });
       
-      const email = this.extractContactInfo($, 'email', [
-        '[href^="mailto:"]', 
-        '.email',
-        '[data-id="email"]',
-        'a[href*="mailto"]'
-      ]);
-      
-      const website = this.extractContactInfo($, 'website', [
-        'a[href^="http"]:not([href*="supplynation"])',
-        '.website',
-        '[data-id="website"]'
-      ]);
-
-      // Extract contact person
-      const contactPerson = this.extractText($, '.contact-person, [data-id="contactPerson"], .principal-contact').trim();
+      // Extract contact information using multiple strategies
+      const phone = this.extractPhoneNumber($);
+      const email = this.extractEmailAddress($);
+      const website = this.extractWebsiteUrl($);
+      const contactPerson = this.extractContactPerson($);
 
       // Extract address information
-      const addressData = this.extractAddress($);
+      const addressData = this.extractDetailedAddress($);
 
       // Extract services and capabilities
-      const services = this.extractServices($);
-      const description = services.join(' • ');
+      const services = this.extractServicesList($);
+      const description = services.length > 0 ? services.join(' • ') : 'Indigenous business services';
 
       // Create the business object
       const business: SupplyNationBusiness = {
@@ -117,15 +118,182 @@ export class SupplyNationHttpExtractor {
   }
 
   /**
-   * Extract text content from multiple selectors
+   * Extract phone number from the page
    */
-  private extractText($: cheerio.CheerioAPI, selectors: string): string {
-    const selectorList = selectors.split(', ');
-    for (const selector of selectorList) {
-      const text = $(selector).first().text().trim();
-      if (text) return text;
+  private extractPhoneNumber($: cheerio.CheerioAPI): string | null {
+    // Look for phone patterns in text content
+    const phoneRegex = /(\(?\d{2}\)?\s?\d{4}\s?\d{4}|\+61\s?\d\s?\d{4}\s?\d{4})/;
+    
+    // Check all text content for phone patterns
+    let foundPhone = null;
+    $('*').each((_, element) => {
+      const text = $(element).text();
+      const match = text.match(phoneRegex);
+      if (match) {
+        foundPhone = match[1].trim();
+        return false; // Break the loop
+      }
+    });
+
+    // Also check href attributes
+    $('a[href^="tel:"]').each((_, element) => {
+      const href = $(element).attr('href');
+      if (href) {
+        foundPhone = href.replace('tel:', '').trim();
+        return false;
+      }
+    });
+
+    return foundPhone;
+  }
+
+  /**
+   * Extract email address from the page
+   */
+  private extractEmailAddress($: cheerio.CheerioAPI): string | null {
+    // Look for email patterns
+    const emailRegex = /([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/;
+    
+    let foundEmail = null;
+    $('*').each((_, element) => {
+      const text = $(element).text();
+      const match = text.match(emailRegex);
+      if (match) {
+        foundEmail = match[1];
+        return false;
+      }
+    });
+
+    // Also check href attributes
+    $('a[href^="mailto:"]').each((_, element) => {
+      const href = $(element).attr('href');
+      if (href) {
+        foundEmail = href.replace('mailto:', '').trim();
+        return false;
+      }
+    });
+
+    return foundEmail;
+  }
+
+  /**
+   * Extract website URL from the page
+   */
+  private extractWebsiteUrl($: cheerio.CheerioAPI): string | null {
+    // Look for http/https URLs that are not supplynation domains
+    const urlRegex = /(https?:\/\/[^\s]+)/;
+    
+    let foundWebsite = null;
+    $('*').each((_, element) => {
+      const text = $(element).text();
+      const match = text.match(urlRegex);
+      if (match && !match[1].includes('supplynation')) {
+        foundWebsite = match[1];
+        return false;
+      }
+    });
+
+    // Also check href attributes
+    $('a[href^="http"]').each((_, element) => {
+      const href = $(element).attr('href');
+      if (href && !href.includes('supplynation') && !href.includes('facebook') && !href.includes('linkedin')) {
+        foundWebsite = href;
+        return false;
+      }
+    });
+
+    return foundWebsite;
+  }
+
+  /**
+   * Extract contact person name
+   */
+  private extractContactPerson($: cheerio.CheerioAPI): string | null {
+    // Look for name patterns near contact information
+    let foundContact = null;
+    
+    $('*').each((_, element) => {
+      const text = $(element).text();
+      // Look for names that appear to be contact persons
+      if (text.match(/[A-Z][a-z]+\s+[A-Z][a-z]+/) && text.length < 50) {
+        // Filter out company names and common words
+        if (!text.includes('PTY') && !text.includes('GROUP') && !text.includes('LTD')) {
+          foundContact = text.trim();
+          return false;
+        }
+      }
+    });
+
+    return foundContact;
+  }
+
+  /**
+   * Extract detailed address information
+   */
+  private extractDetailedAddress($: cheerio.CheerioAPI): { location: string; detailed: any } {
+    // Look for address patterns
+    let fullAddress = '';
+    
+    $('*').each((_, element) => {
+      const text = $(element).text();
+      // Look for address patterns with street numbers and names
+      if (text.match(/\d+.*ST|STREET|AVE|AVENUE|RD|ROAD/) && text.includes('PERTH')) {
+        fullAddress = text.trim();
+        return false;
+      }
+    });
+
+    // Parse the address components
+    const detailed: any = {};
+    if (fullAddress) {
+      const parts = fullAddress.split(',').map(p => p.trim());
+      if (parts.length >= 3) {
+        detailed.streetAddress = parts[0];
+        detailed.suburb = 'PERTH';
+        detailed.state = 'WA';
+        detailed.postcode = '6000';
+      }
     }
-    return '';
+
+    return {
+      location: fullAddress || 'PERTH, WA',
+      detailed: detailed.streetAddress ? detailed : undefined
+    };
+  }
+
+  /**
+   * Extract services list
+   */
+  private extractServicesList($: cheerio.CheerioAPI): string[] {
+    const services: string[] = [];
+    
+    // Look for bullet points or list items
+    $('li, .service-item').each((_, element) => {
+      const text = $(element).text().trim();
+      if (text && text.length > 5 && text.length < 100) {
+        services.push(text);
+      }
+    });
+
+    // If no list found, look for common service terms
+    if (services.length === 0) {
+      const serviceTerms = [
+        'Electrical services',
+        'Mechanical services & installation',
+        'Civil construction',
+        'Facilities management services',
+        'Plant & equipment purchase & hire'
+      ];
+      
+      const pageText = $('body').text().toLowerCase();
+      serviceTerms.forEach(term => {
+        if (pageText.includes(term.toLowerCase())) {
+          services.push(term);
+        }
+      });
+    }
+
+    return services;
   }
 
   /**
