@@ -86,8 +86,27 @@ class DataIntegrationService {
     // Process ABR businesses and enrich with Supply Nation data
     for (const abrBusiness of abrResults.businesses) {
       try {
-        // Enrich with location data from ABR
+        // Enrich with location data from ABR and geocode for map coordinates
         const enrichedBusiness = await enrichBusinessWithLocation(abrBusiness);
+        
+        // Add geocoding for accurate map placement
+        if (enrichedBusiness.address?.postcode && enrichedBusiness.address?.stateCode && !enrichedBusiness.lat) {
+          const geocodeAddress = `${enrichedBusiness.address.postcode}, ${enrichedBusiness.address.stateCode}, Australia`;
+          try {
+            const response = await fetch(`https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(geocodeAddress)}.json?access_token=${process.env.MAPBOX_ACCESS_TOKEN}&country=AU`);
+            if (response.ok) {
+              const data = await response.json();
+              if (data.features && data.features.length > 0) {
+                const [lng, lat] = data.features[0].center;
+                enrichedBusiness.lat = lat;
+                enrichedBusiness.lng = lng;
+                enrichedBusiness.address.fullAddress = data.features[0].place_name;
+              }
+            }
+          } catch (geocodeError) {
+            console.log(`Geocoding failed for ${geocodeAddress}:`, geocodeError);
+          }
+        }
         
         // Check for Supply Nation verification
         const supplyNationData = supplyNationMap.get(abrBusiness.abn);

@@ -76,7 +76,13 @@ export default function BusinessMapLayer({ map, onBusinessSelect }: BusinessMapL
       if (result.data?.businesses) {
         const newMarkers: L.Marker[] = [];
         
-        result.data.businesses.forEach((business) => {
+        result.data.businesses.forEach((business: any) => {
+          // Skip businesses without valid coordinates
+          if (!business.lat || !business.lng || business.lat === 0 || business.lng === 0) {
+            console.log(`Skipping business ${business.entityName} - no valid coordinates`);
+            return;
+          }
+
           // Determine marker color based on verification status
           const getMarkerColor = () => {
             if (business.supplyNationVerified) return '#2ECC71'; // Green for verified
@@ -90,31 +96,50 @@ export default function BusinessMapLayer({ map, onBusinessSelect }: BusinessMapL
             return '🏢'; // Building for unverified
           };
 
-          // Create custom business marker icon with verification status
+          // Enhanced marker design with better visibility
           const businessIcon = L.divIcon({
             html: `<div style="
               background: ${getMarkerColor()};
               color: white;
               border-radius: 50%;
-              width: 28px;
-              height: 28px;
+              width: 32px;
+              height: 32px;
               display: flex;
               align-items: center;
               justify-content: center;
-              border: 2px solid white;
-              box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-              font-size: 14px;
+              border: 3px solid white;
+              box-shadow: 0 3px 8px rgba(0,0,0,0.4);
+              font-size: 16px;
               font-weight: bold;
-            ">${getMarkerIcon()}</div>`,
+              cursor: pointer;
+              transition: transform 0.2s ease;
+            " onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">${getMarkerIcon()}</div>`,
             className: 'business-marker',
-            iconSize: [28, 28],
-            iconAnchor: [14, 14]
+            iconSize: [32, 32],
+            iconAnchor: [16, 16]
           });
+
+          console.log(`Adding marker for ${business.entityName} at [${business.lat}, ${business.lng}]`);
+          
+          // Enhanced popup with verification badges
+          const getVerificationBadge = () => {
+            if (business.supplyNationVerified) {
+              return `<div style="background: #2ECC71; color: white; padding: 4px 8px; border-radius: 12px; font-size: 11px; font-weight: bold; display: inline-block; margin-bottom: 8px;">
+                ✓ Supply Nation Verified
+              </div>`;
+            }
+            const confidence = business.verificationConfidence || 'low';
+            const badgeColor = confidence === 'high' ? '#F39C12' : confidence === 'medium' ? '#3498DB' : '#95A5A6';
+            return `<div style="background: ${badgeColor}; color: white; padding: 4px 8px; border-radius: 12px; font-size: 11px; font-weight: bold; display: inline-block; margin-bottom: 8px;">
+              ${confidence.toUpperCase()} Confidence Indigenous
+            </div>`;
+          };
 
           const marker = L.marker([business.lat, business.lng], { icon: businessIcon })
             .bindPopup(`
-              <div style="min-width: 200px;">
-                <h3 style="margin: 0 0 8px 0; font-size: 14px; font-weight: bold; color: #333;">
+              <div style="min-width: 220px; font-family: system-ui, -apple-system, sans-serif;">
+                ${getVerificationBadge()}
+                <h3 style="margin: 0 0 8px 0; font-size: 16px; font-weight: bold; color: #2c3e50; line-height: 1.3;">
                   ${business.entityName}
                 </h3>
                 <p style="margin: 0 0 4px 0; font-size: 12px; color: #666;">

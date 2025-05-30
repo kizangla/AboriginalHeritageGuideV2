@@ -20,6 +20,8 @@ export interface ABRBusinessDetails {
   };
   gst: boolean;
   dgr?: boolean;
+  lat?: number;
+  lng?: number;
   supplyNationVerified?: boolean;
   supplyNationData?: SupplyNationBusiness;
 }
