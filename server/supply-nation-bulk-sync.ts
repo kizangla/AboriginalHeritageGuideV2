@@ -1,6 +1,5 @@
-import { supplyNationDirect } from './supply-nation-direct';
+import { supplyNationRobustScraper, SupplyNationBusinessData } from './supply-nation-robust-scraper';
 import { supplyNationCache } from './supply-nation-cache';
-import { SupplyNationBusiness } from './supply-nation-direct';
 
 /**
  * Bulk synchronization service for Supply Nation business directory
@@ -45,60 +44,32 @@ export class SupplyNationBulkSync {
     }
 
     this.isRunning = true;
-    console.log('Starting Supply Nation bulk synchronization...');
+    console.log('Starting robust Supply Nation directory extraction...');
 
     try {
-      const allBusinesses: SupplyNationBusiness[] = [];
+      // Initialize the robust scraper
+      await supplyNationRobustScraper.initialize();
 
-      // Extract businesses using known search patterns
-      const searchTerms = [
-        'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm',
-        'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z',
-        'construction', 'consulting', 'services', 'group', 'solutions',
-        'enterprises', 'trading', 'australia', 'aboriginal', 'indigenous'
-      ];
+      // Extract the complete business directory
+      console.log('Extracting complete Supply Nation business directory...');
+      const businesses = await supplyNationRobustScraper.extractBusinessDirectory();
 
-      console.log(`Extracting Supply Nation businesses using ${searchTerms.length} search patterns...`);
+      console.log(`Extracted ${businesses.length} authentic Supply Nation businesses`);
 
-      for (const term of searchTerms) {
-        try {
-          console.log(`Searching for businesses with term: "${term}"`);
-          const results = await supplyNationDirect.searchBusinesses(term);
-          
-          if (results.businesses.length > 0) {
-            // Avoid duplicates by checking ABN
-            const newBusinesses = results.businesses.filter(business => 
-              !allBusinesses.some(existing => 
-                existing.abn === business.abn && existing.abn !== ''
-              )
-            );
-            
-            allBusinesses.push(...newBusinesses);
-            console.log(`Found ${newBusinesses.length} new businesses for term "${term}"`);
-          }
-
-          // Rate limiting - wait 2 seconds between searches
-          await new Promise(resolve => setTimeout(resolve, 2000));
-        } catch (error) {
-          console.error(`Error searching for term "${term}":`, error);
-        }
-      }
-
-      console.log(`Total authentic Supply Nation businesses extracted: ${allBusinesses.length}`);
-
-      // Store all businesses in database cache
-      if (allBusinesses.length > 0) {
-        console.log('Storing all extracted businesses in database...');
-        await supplyNationCache.storeBusinesses(allBusinesses);
-        console.log(`Successfully cached ${allBusinesses.length} Supply Nation businesses`);
+      // Save businesses directly to database
+      if (businesses.length > 0) {
+        console.log('Saving businesses to database...');
+        await supplyNationRobustScraper.saveBusinessesToDatabase(businesses);
+        console.log(`Successfully saved ${businesses.length} Supply Nation businesses to database`);
       }
 
       this.lastSyncTimestamp = new Date();
-      console.log(`Supply Nation bulk sync completed at ${this.lastSyncTimestamp.toISOString()}`);
+      console.log(`Supply Nation directory sync completed at ${this.lastSyncTimestamp.toISOString()}`);
 
     } catch (error) {
-      console.error('Supply Nation bulk sync failed:', error);
+      console.error('Supply Nation directory sync failed:', error);
     } finally {
+      await supplyNationRobustScraper.close();
       this.isRunning = false;
     }
   }

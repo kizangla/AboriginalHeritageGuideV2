@@ -48,16 +48,92 @@ export const businesses = pgTable("businesses", {
   priceRange: text("price_range"), // e.g., "$", "$$", "$$$"
   socialMedia: jsonb("social_media"), // JSON object for various social platforms
   // ABR Integration fields
-  abn: text("abn").unique(),
-  abnEntityName: text("abn_entity_name"),
+  abn: text("abn"),
   abnStatus: text("abn_status"),
-  gstRegistered: integer("gst_registered").default(0),
+  entityType: text("entity_type"),
+});
+
+// Supply Nation certified businesses database table
+export const supplyNationBusinesses = pgTable("supply_nation_businesses", {
+  id: serial("id").primaryKey(),
+  
+  // Core business information
+  abn: text("abn").notNull(),
+  companyName: text("company_name").notNull(),
+  tradingName: text("trading_name"),
+  supplynationId: text("supplynation_id").notNull().unique(),
+  
+  // Verification and certification status
+  verified: integer("verified").notNull().default(1), // 1 for verified, 0 for not
+  certifications: text("certifications").array().default([]), // Array of certification types
+  certificationBadges: jsonb("certification_badges"), // JSON object storing badge details
+  
+  // Contact information
+  contactPhone: text("contact_phone"),
+  contactEmail: text("contact_email"),
+  website: text("website"),
+  contactPerson: text("contact_person"),
+  
+  // Address details
+  streetAddress: text("street_address"),
+  suburb: text("suburb"),
+  state: text("state"),
+  postcode: text("postcode"),
+  fullAddress: text("full_address"),
+  
+  // Geolocation
+  lat: real("lat"),
+  lng: real("lng"),
+  
+  // Business services and categories
+  categories: text("categories").array().default([]),
+  capabilities: text("capabilities").array().default([]),
+  description: text("description"),
+  
+  // Supply Nation specific data
+  profileUrl: text("profile_url"),
+  lastUpdated: text("last_updated"),
+  
+  // Metadata
+  extractedAt: text("extracted_at").notNull(),
+  dataSource: text("data_source").notNull().default('supply_nation'),
+});
+
+// ABR business data cache table
+export const abrBusinesses = pgTable("abr_businesses", {
+  id: serial("id").primaryKey(),
+  
+  // ABR identifiers
+  abn: text("abn").notNull().unique(),
+  acn: text("acn"),
+  
+  // Business details
+  entityName: text("entity_name").notNull(),
+  entityType: text("entity_type"),
+  abnStatus: text("abn_status"),
+  abnStatusEffectiveFrom: text("abn_status_effective_from"),
+  
+  // Address information
+  addressPostcode: text("address_postcode"),
+  addressState: text("address_state"),
+  addressSuburb: text("address_suburb"),
+  addressStreet: text("address_street"),
+  fullAddress: text("full_address"),
+  
+  // Business names
+  businessNames: text("business_names").array().default([]),
+  
+  // GST and DGR status
+  gstStatus: integer("gst_status").default(0),
   dgrStatus: integer("dgr_status").default(0),
-  // Indigenous verification fields
-  verificationSource: text("verification_source"), // 'manual', 'abr_keywords', 'supply_nation'
-  verificationConfidence: text("verification_confidence"), // 'high', 'medium', 'low'
-  verificationNotes: text("verification_notes"),
-  verifiedBy: text("verified_by"),
+  
+  // Geolocation (enriched)
+  lat: real("lat"),
+  lng: real("lng"),
+  
+  // Cache metadata
+  lastFetched: text("last_fetched").notNull(),
+  dataSource: text("data_source").notNull().default('abr'),
 });
 
 export const culturalSites = pgTable("cultural_sites", {
@@ -79,23 +155,6 @@ export const culturalSites = pgTable("cultural_sites", {
   artworkDisplays: text("artwork_displays").array().default([]),
   guidedTours: integer("guided_tours").default(0),
   respectGuidelines: text("respect_guidelines"),
-});
-
-export const supplyNationBusinesses = pgTable("supply_nation_businesses", {
-  id: serial("id").primaryKey(),
-  abn: text("abn"),
-  companyName: text("company_name").notNull(),
-  verified: integer("verified").default(1),
-  categories: text("categories").array(),
-  location: text("location"),
-  email: text("email"),
-  phone: text("phone"),
-  website: text("website"),
-  description: text("description"),
-  supplynationId: text("supplynation_id").notNull().unique(),
-  capabilities: text("capabilities").array(),
-  certifications: text("certifications").array(),
-  lastScraped: text("last_scraped"),
   createdAt: text("created_at")
 });
 
