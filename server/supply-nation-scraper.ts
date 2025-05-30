@@ -11,11 +11,21 @@ export interface SupplyNationBusiness {
     email?: string;
     phone?: string;
     website?: string;
+    contactPerson?: string;
   };
   description?: string;
   supplynationId: string;
   capabilities?: string[];
   certifications?: string[];
+  tradingName?: string;
+  detailedAddress?: {
+    streetAddress?: string;
+    suburb?: string;
+    state?: string;
+    postcode?: string;
+  };
+  acn?: string;
+  lastUpdated?: string;
 }
 
 export interface ScrapingResult {
