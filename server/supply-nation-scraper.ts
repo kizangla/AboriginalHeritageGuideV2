@@ -374,22 +374,80 @@ class SupplyNationScraper {
 
         businessElements.forEach((element, index) => {
           try {
+            // Enhanced business name extraction
             const companyName = 
-              element.querySelector('h1, h2, h3, .title, .name, .company-name')?.textContent?.trim() ||
-              element.querySelector('a')?.textContent?.trim() ||
+              element.querySelector('h1, h2, h3, .title, .name, .company-name, [data-company-name]')?.textContent?.trim() ||
+              element.querySelector('a[href*="business"], .business-title, .listing-title')?.textContent?.trim() ||
+              element.querySelector('strong, .bold, .heading')?.textContent?.trim() ||
               `Business ${index + 1}`;
 
             if (companyName && companyName.length > 2) {
-              const description = element.querySelector('.description, .summary, p')?.textContent?.trim() || '';
-              const location = element.querySelector('.location, .address, .suburb')?.textContent?.trim() || '';
+              // Enhanced description extraction
+              const description = 
+                element.querySelector('.description, .summary, .about, .services, .overview')?.textContent?.trim() ||
+                element.querySelector('p:not(.location):not(.contact)')?.textContent?.trim() ||
+                '';
+
+              // Enhanced location extraction  
+              const location = 
+                element.querySelector('.location, .address, .suburb, .state, .postcode')?.textContent?.trim() ||
+                element.querySelector('[data-location], [data-address]')?.textContent?.trim() ||
+                '';
               
-              // Extract ABN if present
+              // Enhanced ABN extraction
               const elementText = element.textContent || '';
               const abnMatch = elementText.match(/ABN[:\s]*(\d{2}\s?\d{3}\s?\d{3}\s?\d{3})/i);
               const abn = abnMatch ? abnMatch[1].replace(/\s/g, '') : undefined;
 
-              // Extract categories
+              // Enhanced contact information extraction
+              const contactInfo: { email?: string; phone?: string; website?: string } = {};
+              
+              // Email extraction
+              const emailMatch = elementText.match(/[\w.-]+@[\w.-]+\.\w+/);
+              if (emailMatch) contactInfo.email = emailMatch[0];
+              
+              // Phone extraction
+              const phoneMatch = elementText.match(/(\+?61\s?)?[0-9\s\-\(\)]{8,15}/);
+              if (phoneMatch) contactInfo.phone = phoneMatch[0].trim();
+              
+              // Website extraction
+              const websiteElement = element.querySelector('a[href^="http"], a[href^="www"]');
+              if (websiteElement) contactInfo.website = websiteElement.getAttribute('href') || '';
+
+              // Enhanced categories extraction
               const categories: string[] = [];
+              const categorySelectors = [
+                '.category, .service, .industry, .tags, .capabilities, .sectors',
+                '[data-category], [data-service], [data-industry]',
+                '.badge, .chip, .label'
+              ];
+              
+              categorySelectors.forEach(selector => {
+                element.querySelectorAll(selector).forEach(catEl => {
+                  const catText = catEl.textContent?.trim();
+                  if (catText && catText.length > 2 && catText.length < 50) {
+                    categories.push(catText);
+                  }
+                });
+              });
+
+              // Extract certification information
+              const certifications: string[] = [];
+              const certificationKeywords = ['certified', 'registered', 'accredited', 'verified', 'approved'];
+              certificationKeywords.forEach(keyword => {
+                if (elementText.toLowerCase().includes(keyword)) {
+                  certifications.push(`Supply Nation ${keyword.charAt(0).toUpperCase() + keyword.slice(1)}`);
+                }
+              });
+
+              // Extract capabilities
+              const capabilities: string[] = [];
+              const capabilityKeywords = ['consulting', 'services', 'solutions', 'management', 'development', 'training', 'design', 'construction'];
+              capabilityKeywords.forEach(capability => {
+                if (elementText.toLowerCase().includes(capability)) {
+                  capabilities.push(capability.charAt(0).toUpperCase() + capability.slice(1));
+                }
+              });
               element.querySelectorAll('.category, .tag, .capability').forEach(cat => {
                 const categoryText = cat.textContent?.trim();
                 if (categoryText) categories.push(categoryText);
