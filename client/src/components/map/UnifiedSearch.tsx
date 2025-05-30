@@ -59,16 +59,37 @@ export default function UnifiedSearch({ map, onLocationSelect, onBusinessSelect 
     enabled: shouldSearch && searchType === 'places' && searchQuery.trim().length > 0,
   });
 
-  // Business search query
+  // Business search query using integrated ABR + Supply Nation system
   const { data: businessResults, isLoading: isLoadingBusinesses } = useQuery({
-    queryKey: ['/api/businesses/map', searchQuery],
+    queryKey: ['/api/indigenous-businesses/integrated-search', searchQuery],
     queryFn: async () => {
       if (!searchQuery.trim()) return { businesses: [], totalResults: 0 };
-      const response = await fetch(`/api/businesses/map?search=${encodeURIComponent(searchQuery)}`);
+      const response = await fetch(`/api/indigenous-businesses/integrated-search?name=${encodeURIComponent(searchQuery)}&includeSupplyNation=true`);
       if (!response.ok) {
         throw new Error('Business search failed');
       }
-      return response.json() as Promise<BusinessSearchResult>;
+      const data = await response.json();
+      
+      // Transform integrated business data to match expected format
+      const businesses = data.businesses?.map((business: any) => ({
+        abn: business.abn,
+        entityName: business.entityName,
+        entityType: business.entityType,
+        status: business.status,
+        lat: business.lat || 0,
+        lng: business.lng || 0,
+        displayAddress: business.address?.fullAddress || `${business.address?.postcode}, ${business.address?.stateCode}`,
+        address: {
+          stateCode: business.address?.stateCode || '',
+          postcode: business.address?.postcode || '',
+          fullAddress: business.address?.fullAddress || ''
+        },
+        supplyNationVerified: business.supplyNationVerified,
+        verificationConfidence: business.verificationConfidence,
+        supplyNationData: business.supplyNationData
+      })) || [];
+      
+      return { businesses, totalResults: data.totalResults || 0 };
     },
     enabled: shouldSearch && searchType === 'businesses' && searchQuery.trim().length > 0,
   });
