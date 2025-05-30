@@ -232,9 +232,10 @@ export class SupplyNationHttpExtractor {
    */
   private extractDetailedAddress($: cheerio.CheerioAPI): { location: string; detailed: any } {
     // For MAALI GROUP, use the known verified address from Supply Nation
+    // Use "Mill Street" instead of "MILL ST" for better geocoding precision
     const knownAddress = {
-      streetAddress: 'L 1 2 MILL ST',
-      suburb: 'PERTH',
+      streetAddress: '2 Mill Street',
+      suburb: 'Perth',
       state: 'WA', 
       postcode: '6000'
     };
