@@ -313,9 +313,9 @@ class SupplyNationScraper {
               });
 
               // Extract contact info
-              const email = element.querySelector('a[href^="mailto:"]')?.getAttribute('href')?.replace('mailto:', '');
-              const phone = element.querySelector('.phone, a[href^="tel:"]')?.textContent?.trim();
-              const website = element.querySelector('a[href^="http"]')?.getAttribute('href');
+              const email = element.querySelector('a[href^="mailto:"]')?.getAttribute('href')?.replace('mailto:', '') || undefined;
+              const phone = element.querySelector('.phone, a[href^="tel:"]')?.textContent?.trim() || undefined;
+              const website = element.querySelector('a[href^="http"]')?.getAttribute('href') || undefined;
 
               results.push({
                 abn,

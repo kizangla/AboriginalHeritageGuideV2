@@ -102,7 +102,8 @@ class DataIntegrationService {
           
           // Fuzzy matching for similar names
           if (!matchedSupplyNationData) {
-            for (const [snName, snData] of supplyNationNameMap.entries()) {
+            const entries = Array.from(supplyNationNameMap.entries());
+            for (const [snName, snData] of entries) {
               if (this.calculateSimilarity(normalizedAbrName, snName) > 0.8) {
                 matchedSupplyNationData = snData;
                 break;

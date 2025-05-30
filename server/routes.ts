@@ -317,6 +317,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Integrated Indigenous business search (ABR + Supply Nation with Puppeteer)
+  app.get("/api/indigenous-businesses/integrated-search", async (req, res) => {
+    try {
+      const { name, location, includeSupplyNation = "true" } = req.query;
+      
+      if (!name || typeof name !== 'string') {
+        return res.status(400).json({ message: "Business name is required" });
+      }
+      
+      console.log(`Integrated search for: "${name}" with Supply Nation: ${includeSupplyNation}`);
+      
+      const { dataIntegrationService } = await import('./data-integration-service');
+      const results = await dataIntegrationService.searchIntegratedBusinesses(
+        name,
+        location as string,
+        includeSupplyNation === "true"
+      );
+      
+      res.json(results);
+      
+    } catch (error) {
+      console.error("Integrated search error:", error);
+      res.status(500).json({ message: "Failed to perform integrated search" });
+    }
+  });
+
   // Search businesses by name (ABR integration)  
   app.get("/api/abr/businesses/search", async (req, res) => {
     try {
