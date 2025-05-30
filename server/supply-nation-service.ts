@@ -118,47 +118,64 @@ class SupplyNationScraper {
     try {
       console.log(`Searching Supply Nation for: "${query}" in location: "${location || 'all'}"`);
       
-      // Try direct API endpoints that Salesforce Lightning uses
-      const apiEndpoints = [
-        `/services/data/v54.0/sobjects/Account/describe`,
-        `/services/apexrest/search`,
-        `/s/sfsites/aura?r=0&aura.ApexAction.execute=1`
-      ];
-      
-      // First try the modern approach - check for Lightning component data
-      const searchUrl = `${this.baseUrl}/public/s/search-results?search=${encodeURIComponent(query)}${location ? `&location=${encodeURIComponent(location)}` : ''}`;
-      
-      console.log(`Trying direct search URL: ${searchUrl}`);
-      
-      const searchResponse = await fetch(searchUrl, {
+      // Step 1: Get the search page to obtain any necessary form tokens or CSRF tokens
+      const searchPageUrl = `${this.baseUrl}/public/s/search-results`;
+      const searchPageResponse = await fetch(searchPageUrl, {
         method: 'GET',
         headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36',
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
           'Cookie': this.sessionCookies,
-          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-          'Accept-Language': 'en-US,en;q=0.9',
-          'Accept-Encoding': 'gzip, deflate, br',
-          'Cache-Control': 'no-cache',
-          'Pragma': 'no-cache'
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8'
         }
       });
 
-      console.log(`Direct search response status: ${searchResponse.status}`);
-      console.log(`Direct search response URL: ${searchResponse.url}`);
-
-      if (!searchResponse.ok) {
-        console.error('Direct search failed:', searchResponse.status);
+      if (!searchPageResponse.ok) {
+        console.error('Failed to load search page:', searchPageResponse.status);
         return { businesses: [], totalResults: 0 };
       }
 
-      const searchResultsHtml = await searchResponse.text();
+      const searchPageHtml = await searchPageResponse.text();
+      console.log('Search page loaded, length:', searchPageHtml.length);
+
+      // Step 2: Submit the search form with proper form data
+      const formData = new URLSearchParams();
+      formData.append('search', query);
+      formData.append('searchfield', 'all');
+      if (location) {
+        formData.append('location', location);
+      }
+
+      console.log(`Submitting search form with data:`, formData.toString());
+
+      const searchSubmitResponse = await fetch(searchPageUrl, {
+        method: 'POST',
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+          'Cookie': this.sessionCookies,
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+          'Referer': searchPageUrl,
+          'Accept-Language': 'en-US,en;q=0.9',
+          'Origin': this.baseUrl
+        },
+        body: formData
+      });
+
+      console.log(`Search submit response status: ${searchSubmitResponse.status}`);
+      console.log(`Search submit response URL: ${searchSubmitResponse.url}`);
+
+      if (!searchSubmitResponse.ok) {
+        console.error('Supply Nation search submission failed:', searchSubmitResponse.status);
+        const errorText = await searchSubmitResponse.text();
+        console.error('Error response:', errorText.substring(0, 500));
+        return { businesses: [], totalResults: 0 };
+      }
+
+      const searchResultsHtml = await searchSubmitResponse.text();
       console.log(`Search results length: ${searchResultsHtml.length} characters`);
       
-      // Check for dynamic content loading indicators
-      if (searchResultsHtml.includes('aura:') || searchResultsHtml.includes('lightning:') || searchResultsHtml.includes('$A.')) {
-        console.log('Detected Lightning framework - attempting to extract embedded data');
-        return this.extractLightningData(searchResultsHtml, query);
-      }
+      // Save first 1000 chars for debugging
+      console.log('Search results sample:', searchResultsHtml.substring(0, 1000));
       
       return this.parseSearchResults(searchResultsHtml);
 
@@ -168,128 +185,19 @@ class SupplyNationScraper {
     }
   }
 
-  private extractLightningData(html: string, query: string): SupplyNationSearchResult {
-    const businesses: SupplyNationBusiness[] = [];
-    
-    // Look for JSON data embedded in script tags or data attributes
-    const jsonMatches = html.match(/"suppliers?":\s*\[(.*?)\]/gi) || 
-                       html.match(/"results?":\s*\[(.*?)\]/gi) ||
-                       html.match(/"businesses?":\s*\[(.*?)\]/gi);
-    
-    console.log(`Found ${jsonMatches?.length || 0} potential JSON data blocks`);
-    
-    if (jsonMatches) {
-      for (const match of jsonMatches) {
-        try {
-          // Try to parse the JSON data
-          const jsonData = JSON.parse(`{${match}}`);
-          console.log('Parsed embedded JSON data:', Object.keys(jsonData));
-          
-          // Extract business data from various possible structures
-          const dataArrays = Object.values(jsonData).filter(Array.isArray);
-          for (const dataArray of dataArrays) {
-            for (const item of dataArray as any[]) {
-              if (item && typeof item === 'object' && (item.name || item.companyName || item.businessName)) {
-                const business: SupplyNationBusiness = {
-                  companyName: item.name || item.companyName || item.businessName,
-                  verified: true,
-                  categories: item.categories || item.services || item.industries || [],
-                  location: item.location || item.address || item.state || '',
-                  contactInfo: {
-                    email: item.email || item.contactEmail,
-                    phone: item.phone || item.contactPhone,
-                    website: item.website || item.url
-                  },
-                  description: item.description || item.summary || '',
-                  supplynationId: item.id || item.supplynationId || `sn_${businesses.length}`,
-                  abn: item.abn
-                };
-                businesses.push(business);
-                console.log(`Extracted business: ${business.companyName}`);
-              }
-            }
-          }
-        } catch (parseError) {
-          console.log('Failed to parse JSON match:', parseError);
-        }
-      }
-    }
-    
-    // Fallback: Look for structured data in script tags
-    if (businesses.length === 0) {
-      const scriptTags = html.match(/<script[^>]*>(.*?)<\/script>/gi) || [];
-      console.log(`Checking ${scriptTags.length} script tags for business data`);
-      
-      for (const scriptTag of scriptTags) {
-        if (scriptTag.includes(query) || scriptTag.includes('supplier') || scriptTag.includes('business')) {
-          // Look for object literals or arrays that might contain business data
-          const objectMatches = scriptTag.match(/\{[^{}]*(?:"name"|"companyName")[^{}]*\}/gi) || [];
-          for (const objMatch of objectMatches) {
-            try {
-              const obj = JSON.parse(objMatch);
-              if (obj.name || obj.companyName) {
-                const business: SupplyNationBusiness = {
-                  companyName: obj.name || obj.companyName,
-                  verified: true,
-                  categories: [],
-                  location: obj.location || '',
-                  contactInfo: {},
-                  description: obj.description || '',
-                  supplynationId: `sn_script_${businesses.length}`
-                };
-                businesses.push(business);
-                console.log(`Extracted from script: ${business.companyName}`);
-              }
-            } catch (e) {
-              // Continue searching
-            }
-          }
-        }
-      }
-    }
-    
-    return {
-      businesses,
-      totalResults: businesses.length
-    };
-  }
-
   private parseSearchResults(html: string): SupplyNationSearchResult {
     const $ = cheerio.load(html);
     const businesses: SupplyNationBusiness[] = [];
 
     console.log('Parsing Supply Nation HTML, page length:', html.length);
     console.log('Sample HTML snippet:', html.substring(0, 500));
-    
-    // Debug: Log all unique class names to understand page structure
-    const allClasses = new Set<string>();
-    $('*[class]').each((_, element) => {
-      const classes = $(element).attr('class')?.split(' ') || [];
-      classes.forEach(cls => cls.trim() && allClasses.add(cls));
-    });
-    console.log('Found CSS classes (first 20):', Array.from(allClasses).slice(0, 20));
-    
-    // Debug: Check for specific Supply Nation patterns
-    const salesforceComponents = $('[data-aura-class], [data-ltng-class], .slds-, .forceRecordLayout, c-').length;
-    console.log('Salesforce/Lightning components found:', salesforceComponents);
 
     // Try multiple possible selectors for business listings
     const possibleSelectors = [
-      // Salesforce Lightning Component selectors
-      'c-supplier-search-result', 'c-business-card', 'c-search-result',
-      '[data-aura-class*="supplier"]', '[data-aura-class*="business"]',
-      '.slds-card', '.forceListViewManagerPrimaryDisplayManager',
-      '.forceRecordLayout', '.slds-grid_vertical',
-      
-      // Traditional selectors
       '.business-card', '.search-result-item', '.business-listing',
       '.result-item', '.supplier-card', '.business-profile',
       '.search-result', '.listing', '.business-entry',
-      '[data-business]', '.card', '.item',
-      
-      // More generic patterns
-      '[class*="supplier"]', '[class*="business"]', '[class*="result"]',
-      'article', '.row', '.col'
+      '[data-business]', '.card', '.item'
     ];
 
     let foundElements = 0;

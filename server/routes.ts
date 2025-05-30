@@ -11,9 +11,6 @@ import {
   searchIndigenousBusinesses,
   type ABRBusinessDetails 
 } from "./abr-service";
-import { supplyNationBulkSync } from './supply-nation-bulk-sync';
-import { cachedSearchService } from './cached-search-service';
-import { businessDatabaseService } from './business-database-service';
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Get all territories as GeoJSON
@@ -320,26 +317,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Cached business search - serves from database first
-  app.get("/api/indigenous-businesses/cached-search", async (req, res) => {
-    try {
-      const { name, location } = req.query;
-      
-      if (!name || typeof name !== 'string') {
-        return res.status(400).json({ message: "Business name is required" });
-      }
-      
-      console.log(`Cached search for: "${name}"`);
-      const results = await cachedSearchService.searchBusinesses(name, location as string);
-      
-      res.json(results);
-      
-    } catch (error) {
-      console.error("Cached search error:", error);
-      res.status(500).json({ message: "Failed to perform cached search" });
-    }
-  });
-
   // Integrated Indigenous business search (ABR + Supply Nation with Puppeteer)
   app.get("/api/indigenous-businesses/integrated-search", async (req, res) => {
     try {
@@ -351,8 +328,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log(`Integrated search for: "${name}" with Supply Nation: ${includeSupplyNation}`);
       
-      // Use cached search service instead of external APIs
-      const results = await cachedSearchService.searchBusinesses(name, location as string);
+      const { dataIntegrationService } = await import('./data-integration-service');
+      let results = await dataIntegrationService.searchIntegratedBusinesses(
+        name,
+        location as string,
+        includeSupplyNation === "true"
+      );
+      
+      // Enhance with verified contact information
+      const { enhanceWithVerifiedContactInfo } = await import('./supply-nation-contact-enhancer');
+      results.businesses = results.businesses.map(business => enhanceWithVerifiedContactInfo(business));
       
       res.json(results);
       
@@ -598,100 +583,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Reverse geocoding error:', error);
       res.status(500).json({ message: "Reverse geocoding service unavailable" });
-    }
-  });
-
-  // Supply Nation bulk synchronization endpoints
-  app.post("/api/supply-nation/sync", async (req, res) => {
-    try {
-      console.log('Manual Supply Nation sync triggered via API');
-      
-      // Start sync in background
-      supplyNationBulkSync.triggerManualSync().catch(error => {
-        console.error('Background sync failed:', error);
-      });
-      
-      res.json({
-        message: "Supply Nation bulk synchronization started",
-        status: "running",
-        note: "This process will run in the background and may take several minutes"
-      });
-      
-    } catch (error) {
-      console.error("Failed to start Supply Nation sync:", error);
-      res.status(500).json({ message: "Failed to start synchronization" });
-    }
-  });
-
-  app.get("/api/supply-nation/sync/status", async (req, res) => {
-    try {
-      const status = supplyNationBulkSync.getSyncStatus();
-      res.json(status);
-    } catch (error) {
-      console.error("Failed to get sync status:", error);
-      res.status(500).json({ message: "Failed to get synchronization status" });
-    }
-  });
-
-  // Test comprehensive Puppeteer extraction
-  app.post("/api/supply-nation/extract", async (req, res) => {
-    try {
-      console.log('Testing comprehensive Supply Nation extraction...');
-      
-      const { supplyNationRobustScraper } = await import('./supply-nation-robust-scraper');
-      
-      // Initialize and extract
-      await supplyNationRobustScraper.initialize();
-      const businesses = await supplyNationRobustScraper.extractBusinessDirectory();
-      
-      if (businesses.length > 0) {
-        await supplyNationRobustScraper.saveBusinessesToDatabase(businesses);
-      }
-      
-      await supplyNationRobustScraper.close();
-      
-      res.json({
-        message: "Supply Nation extraction completed",
-        businessesExtracted: businesses.length,
-        businesses: businesses.slice(0, 5) // Show first 5 as sample
-      });
-      
-    } catch (error) {
-      console.error("Supply Nation extraction failed:", error);
-      res.status(500).json({ message: "Failed to extract Supply Nation data", error: String(error) });
-    }
-  });
-
-  // Get cache statistics
-  app.get("/api/cache/stats", async (req, res) => {
-    try {
-      const stats = await businessDatabaseService.getCacheStatistics();
-      res.json(stats);
-    } catch (error) {
-      console.error("Failed to get cache stats:", error);
-      res.status(500).json({ message: "Failed to get cache statistics" });
-    }
-  });
-
-  // Refresh all business data
-  app.post("/api/cache/refresh", async (req, res) => {
-    try {
-      console.log('Starting comprehensive data refresh...');
-      
-      // Start refresh in background
-      cachedSearchService.refreshAllBusinessData().catch(error => {
-        console.error('Background refresh failed:', error);
-      });
-      
-      res.json({
-        message: "Comprehensive data refresh started",
-        status: "running",
-        note: "This will extract complete business directories from Supply Nation and ABR"
-      });
-      
-    } catch (error) {
-      console.error("Failed to start data refresh:", error);
-      res.status(500).json({ message: "Failed to start data refresh" });
     }
   });
 

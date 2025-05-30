@@ -151,12 +151,20 @@ export class SupplyNationHttpExtractor {
    * Extract email address from the page
    */
   private extractEmailAddress($: cheerio.CheerioAPI): string | null {
-    // Look for email patterns in text content, excluding image sources and scripts
+    // Look for email patterns
     const emailRegex = /([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/;
     
     let foundEmail = null;
-    
-    // First check mailto links
+    $('*').each((_, element) => {
+      const text = $(element).text();
+      const match = text.match(emailRegex);
+      if (match) {
+        foundEmail = match[1];
+        return false;
+      }
+    });
+
+    // Also check href attributes
     $('a[href^="mailto:"]').each((_, element) => {
       const href = $(element).attr('href');
       if (href) {
@@ -165,31 +173,6 @@ export class SupplyNationHttpExtractor {
       }
     });
 
-    // If no mailto found, search text content but exclude scripts, styles, and img src
-    if (!foundEmail) {
-      $('*').each((_, element) => {
-        const $el = $(element);
-        
-        // Skip script tags, style tags, and img elements
-        if ($el.is('script, style, img') || $el.attr('src') || $el.attr('data-src')) {
-          return;
-        }
-        
-        const text = $el.text().trim();
-        if (text && text.length < 200) { // Avoid very long text blocks
-          const match = text.match(emailRegex);
-          if (match) {
-            const email = match[1];
-            // Validate it's not an image file or script reference
-            if (!email.includes('.png') && !email.includes('.jpg') && !email.includes('.js')) {
-              foundEmail = email;
-              return false;
-            }
-          }
-        }
-      });
-    }
-
     return foundEmail;
   }
 
@@ -197,31 +180,25 @@ export class SupplyNationHttpExtractor {
    * Extract website URL from the page
    */
   private extractWebsiteUrl($: cheerio.CheerioAPI): string | null {
-    let foundWebsite = null;
+    // Look for http/https URLs that are not supplynation domains
+    const urlRegex = /(https?:\/\/[^\s]+)/;
     
-    // Check href attributes for business websites, excluding tracking and social media
+    let foundWebsite = null;
+    $('*').each((_, element) => {
+      const text = $(element).text();
+      const match = text.match(urlRegex);
+      if (match && !match[1].includes('supplynation')) {
+        foundWebsite = match[1];
+        return false;
+      }
+    });
+
+    // Also check href attributes
     $('a[href^="http"]').each((_, element) => {
       const href = $(element).attr('href');
-      if (href) {
-        // Exclude tracking scripts, analytics, social media, and non-business URLs
-        if (!href.includes('supplynation') && 
-            !href.includes('googletagmanager') &&
-            !href.includes('google-analytics') &&
-            !href.includes('facebook') &&
-            !href.includes('linkedin') &&
-            !href.includes('twitter') &&
-            !href.includes('gtm.js') &&
-            !href.includes('tracking') &&
-            !href.includes('analytics') &&
-            !href.includes('tag') &&
-            href.length < 200) { // Avoid very long URLs which are likely scripts
-          
-          // Check if it looks like a business website
-          if (href.includes('.com.au') || href.includes('.com') || href.includes('.org') || href.includes('.net')) {
-            foundWebsite = href.trim();
-            return false;
-          }
-        }
+      if (href && !href.includes('supplynation') && !href.includes('facebook') && !href.includes('linkedin')) {
+        foundWebsite = href;
+        return false;
       }
     });
 
@@ -232,33 +209,17 @@ export class SupplyNationHttpExtractor {
    * Extract contact person name
    */
   private extractContactPerson($: cheerio.CheerioAPI): string | null {
-    // Look for name patterns that appear to be contact persons
+    // Look for name patterns near contact information
     let foundContact = null;
     
     $('*').each((_, element) => {
-      const $el = $(element);
-      
-      // Skip script and style elements
-      if ($el.is('script, style')) {
-        return;
-      }
-      
-      const text = $el.text().trim();
-      
-      // Look for first-last name patterns in shorter text blocks
-      if (text.length > 5 && text.length < 80) {
-        const nameMatch = text.match(/\b([A-Z][a-z]+-?[a-z]*\s+[A-Z][a-z]+-?[a-z]*)\b/);
-        if (nameMatch) {
-          const name = nameMatch[1];
-          // Filter out company names, locations, and common business terms
-          if (!name.match(/PTY|LTD|GROUP|SERVICES|CONSULTING|AUSTRALIA|ABORIGINAL|INDIGENOUS|STREET|ROAD|AVENUE|DRIVE|PERTH|MELBOURNE|SYDNEY|BRISBANE|ADELAIDE|DARWIN|HOBART|CANBERRA/i)) {
-            // Validate it looks like a person's name
-            const words = name.split(/\s+/);
-            if (words.length === 2 && words.every(word => word.length > 1)) {
-              foundContact = name;
-              return false;
-            }
-          }
+      const text = $(element).text();
+      // Look for names that appear to be contact persons
+      if (text.match(/[A-Z][a-z]+\s+[A-Z][a-z]+/) && text.length < 50) {
+        // Filter out company names and common words
+        if (!text.includes('PTY') && !text.includes('GROUP') && !text.includes('LTD')) {
+          foundContact = text.trim();
+          return false;
         }
       }
     });
