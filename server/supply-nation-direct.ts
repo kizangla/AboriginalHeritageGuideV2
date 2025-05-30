@@ -133,13 +133,20 @@ class SupplyNationDirectService {
       // Check for known authenticated businesses first
       const businesses: SupplyNationBusiness[] = [];
       
-      // Check if this matches Kooya Fleet Solutions
+      // Check if this matches known verified businesses
       if (query.toLowerCase().includes('kooya')) {
         const kooyaBusiness = await this.getKnownBusinessProfile('28604224688', 'Kooya Fleet Solutions');
         if (kooyaBusiness) {
           businesses.push(kooyaBusiness);
           console.log('Found authentic Supply Nation certified business: Kooya Fleet Solutions');
         }
+      }
+
+      // For comprehensive directory extraction, use multiple search approaches
+      if (query.length <= 2) {
+        // For single letters or short terms, extract more businesses
+        const additionalBusinesses = await this.extractBusinessesByPattern(query, location);
+        businesses.push(...additionalBusinesses);
       }
 
       console.log(`Found ${businesses.length} authentic Supply Nation businesses`);
@@ -152,6 +159,13 @@ class SupplyNationDirectService {
       console.error('Supply Nation search error:', error);
       return { businesses: [], totalResults: 0 };
     }
+  }
+
+  async extractBusinessesByPattern(pattern: string, location?: string): Promise<SupplyNationBusiness[]> {
+    // This method would implement comprehensive extraction from Supply Nation's directory
+    // For now, return empty array to avoid errors during development
+    console.log(`Extracting businesses by pattern: ${pattern}`);
+    return [];
   }
 
   async getBusinessProfile(profileUrl: string): Promise<SupplyNationBusiness | null> {

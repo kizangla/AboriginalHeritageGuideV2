@@ -11,6 +11,7 @@ import {
   searchIndigenousBusinesses,
   type ABRBusinessDetails 
 } from "./abr-service";
+import { supplyNationBulkSync } from './supply-nation-bulk-sync';
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Get all territories as GeoJSON
@@ -583,6 +584,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Reverse geocoding error:', error);
       res.status(500).json({ message: "Reverse geocoding service unavailable" });
+    }
+  });
+
+  // Supply Nation bulk synchronization endpoints
+  app.post("/api/supply-nation/sync", async (req, res) => {
+    try {
+      console.log('Manual Supply Nation sync triggered via API');
+      
+      // Start sync in background
+      supplyNationBulkSync.triggerManualSync().catch(error => {
+        console.error('Background sync failed:', error);
+      });
+      
+      res.json({
+        message: "Supply Nation bulk synchronization started",
+        status: "running",
+        note: "This process will run in the background and may take several minutes"
+      });
+      
+    } catch (error) {
+      console.error("Failed to start Supply Nation sync:", error);
+      res.status(500).json({ message: "Failed to start synchronization" });
+    }
+  });
+
+  app.get("/api/supply-nation/sync/status", async (req, res) => {
+    try {
+      const status = supplyNationBulkSync.getSyncStatus();
+      res.json(status);
+    } catch (error) {
+      console.error("Failed to get sync status:", error);
+      res.status(500).json({ message: "Failed to get synchronization status" });
     }
   });
 
