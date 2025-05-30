@@ -288,16 +288,55 @@ function parseBusinessEntity(xmlData: string): ABRBusinessDetails | null {
 
 // Helper function to identify potentially Indigenous businesses
 export function filterIndigenousBusinesses(businesses: ABRBusinessDetails[]): ABRBusinessDetails[] {
-  const indigenousKeywords = [
-    'indigenous', 'aboriginal', 'torres strait', 'first nations',
-    'koori', 'murri', 'yolngu', 'anangu', 'palawa', 'nunga',
-    'cultural', 'traditional', 'community', 'elders',
-    'dreamtime', 'country', 'mob', 'blackfella'
+  const strongIndicators = [
+    'aboriginal', 'indigenous', 'first nations', 'torres strait', 'native title',
+    'koori', 'murri', 'yolngu', 'anangu', 'palawa', 'nunga', 'noongar', 'yuin',
+    'gunditjmara', 'wardandi', 'nyungar', 'yamatji', 'arrernte', 'pitjantjatjara'
+  ];
+
+  const culturalKeywords = [
+    'cultural', 'traditional', 'dreamtime', 'corroboree', 'ceremony', 'sacred',
+    'country', 'land', 'elder', 'community', 'mob', 'clan', 'nation', 'people',
+    'heritage', 'ancestral', 'totemic', 'songline', 'reconciliation', 'healing'
+  ];
+
+  const commonIndigenousNames = [
+    'maali', 'jarjum', 'yurra', 'warru', 'ngurra', 'boorong', 'kirra', 'yarra',
+    'kambu', 'jindabyne', 'gurrumul', 'tjandrawati', 'kulka', 'birrong'
+  ];
+
+  const serviceTypes = [
+    'art centre', 'cultural centre', 'ranger', 'land management', 'native title',
+    'bush medicine', 'cultural tourism', 'ranger service', 'land council'
   ];
 
   return businesses.filter(business => {
-    const name = business.entityName.toLowerCase();
-    return indigenousKeywords.some(keyword => name.includes(keyword));
+    const searchText = `${business.entityName} ${business.address.suburb || ''} ${business.address.stateCode || ''}`.toLowerCase();
+    
+    // High confidence: Strong Indigenous indicators
+    const hasStrongIndicator = strongIndicators.some(keyword => 
+      searchText.includes(keyword.toLowerCase())
+    );
+    
+    if (hasStrongIndicator) {
+      return true;
+    }
+    
+    // Medium confidence: Cultural keywords + Indigenous names
+    const culturalMatches = culturalKeywords.filter(keyword => 
+      searchText.includes(keyword.toLowerCase())
+    ).length;
+    
+    const nameMatches = commonIndigenousNames.filter(name => 
+      searchText.includes(name.toLowerCase())
+    ).length;
+    
+    const serviceMatches = serviceTypes.some(service => 
+      searchText.includes(service.toLowerCase())
+    );
+    
+    // Require multiple indicators for medium confidence
+    return (culturalMatches >= 2) || (nameMatches >= 1 && culturalMatches >= 1) || serviceMatches;
   });
 }
 

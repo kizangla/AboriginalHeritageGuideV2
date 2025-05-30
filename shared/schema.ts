@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, jsonb, real } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, jsonb, real, timestamp } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -47,6 +47,18 @@ export const businesses = pgTable("businesses", {
   accessibility: text("accessibility"),
   priceRange: text("price_range"), // e.g., "$", "$$", "$$$"
   socialMedia: jsonb("social_media"), // JSON object for various social platforms
+  // ABR Integration fields
+  abn: text("abn").unique(),
+  abnEntityName: text("abn_entity_name"),
+  abnStatus: text("abn_status"),
+  gstRegistered: integer("gst_registered").default(0),
+  dgrStatus: integer("dgr_status").default(0),
+  // Indigenous verification fields
+  verificationSource: text("verification_source"), // 'manual', 'abr_keywords', 'supply_nation'
+  verificationConfidence: text("verification_confidence"), // 'high', 'medium', 'low'
+  verificationNotes: text("verification_notes"),
+  verifiedAt: timestamp("verified_at"),
+  verifiedBy: text("verified_by"),
 });
 
 export const culturalSites = pgTable("cultural_sites", {
