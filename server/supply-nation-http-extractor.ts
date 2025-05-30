@@ -104,7 +104,7 @@ export class SupplyNationHttpExtractor {
         capabilities: services,
         certifications: ['Supply Nation Verified'],
         tradingName: tradingName || undefined,
-        detailedAddress: addressData.detailed.streetAddress ? addressData.detailed : undefined,
+        detailedAddress: addressData.detailed && addressData.detailed.streetAddress ? addressData.detailed : undefined,
         lastUpdated: new Date().toISOString()
       };
 

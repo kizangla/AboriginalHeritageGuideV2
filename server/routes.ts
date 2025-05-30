@@ -329,11 +329,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(`Integrated search for: "${name}" with Supply Nation: ${includeSupplyNation}`);
       
       const { dataIntegrationService } = await import('./data-integration-service');
-      const results = await dataIntegrationService.searchIntegratedBusinesses(
+      let results = await dataIntegrationService.searchIntegratedBusinesses(
         name,
         location as string,
         includeSupplyNation === "true"
       );
+      
+      // Enhance with verified contact information
+      const { enhanceWithVerifiedContactInfo } = await import('./supply-nation-contact-enhancer');
+      results.businesses = results.businesses.map(business => enhanceWithVerifiedContactInfo(business));
       
       res.json(results);
       
