@@ -142,27 +142,102 @@ export default function UnifiedSearch({ map, onLocationSelect, onBusinessSelect 
         })
       }).addTo(map);
       
-      // Add popup with business details
-      const verificationBadge = business.supplyNationVerified 
-        ? '<span class="inline-block mt-1 px-2 py-1 bg-orange-100 text-orange-800 text-xs rounded font-medium">✓ Verified Indigenous Business</span>' 
-        : '';
-      
-      const categories = business.supplyNationData?.categories?.length 
-        ? `<p class="text-xs text-gray-500 mt-1">${business.supplyNationData.categories.slice(0, 3).join(', ')}</p>` 
-        : '';
+      // Enhanced popup with Supply Nation contact information
+      const getVerificationBadge = () => {
+        if (business.supplyNationVerified) {
+          return `<div style="background: #2ECC71; color: white; padding: 4px 8px; border-radius: 12px; font-size: 11px; font-weight: bold; display: inline-block; margin-bottom: 8px;">
+            ✓ Supply Nation Verified
+          </div>`;
+        }
+        const confidence = business.verificationConfidence || 'low';
+        const badgeColor = confidence === 'high' ? '#F39C12' : confidence === 'medium' ? '#3498DB' : '#95A5A6';
+        return `<div style="background: ${badgeColor}; color: white; padding: 4px 8px; border-radius: 12px; font-size: 11px; font-weight: bold; display: inline-block; margin-bottom: 8px;">
+          ${confidence.toUpperCase()} Confidence Indigenous
+        </div>`;
+      };
+
+      const getContactInfo = () => {
+        if (!business.supplyNationData) return '';
+        
+        let contactHtml = '';
+        const contactInfo = business.supplyNationData.contactInfo || {};
+        const detailedAddress = business.supplyNationData.detailedAddress;
+        
+        // Trading name
+        if (business.supplyNationData.tradingName) {
+          contactHtml += `
+            <p style="margin: 0 0 6px 0; font-size: 12px; color: #666;">
+              <strong>Trading as:</strong> ${business.supplyNationData.tradingName}
+            </p>`;
+        }
+        
+        // Contact person
+        if (contactInfo.contactPerson) {
+          contactHtml += `
+            <p style="margin: 0 0 6px 0; font-size: 12px; color: #666;">
+              <strong>Contact:</strong> ${contactInfo.contactPerson}
+            </p>`;
+        }
+        
+        // Phone
+        if (contactInfo.phone) {
+          contactHtml += `
+            <p style="margin: 0 0 6px 0; font-size: 12px; color: #666;">
+              <strong>Phone:</strong> <a href="tel:${contactInfo.phone}" style="color: #3498db; text-decoration: none;">${contactInfo.phone}</a>
+            </p>`;
+        }
+        
+        // Email
+        if (contactInfo.email) {
+          contactHtml += `
+            <p style="margin: 0 0 6px 0; font-size: 12px; color: #666;">
+              <strong>Email:</strong> <a href="mailto:${contactInfo.email}" style="color: #3498db; text-decoration: none;">${contactInfo.email}</a>
+            </p>`;
+        }
+        
+        // Website
+        if (contactInfo.website) {
+          contactHtml += `
+            <p style="margin: 0 0 6px 0; font-size: 12px; color: #666;">
+              <strong>Website:</strong> <a href="${contactInfo.website}" target="_blank" style="color: #3498db; text-decoration: none;">Visit Website</a>
+            </p>`;
+        }
+        
+        // Detailed address
+        if (detailedAddress && detailedAddress.streetAddress) {
+          contactHtml += `
+            <p style="margin: 0 0 6px 0; font-size: 12px; color: #666;">
+              <strong>Address:</strong> ${detailedAddress.streetAddress}, ${detailedAddress.suburb} ${detailedAddress.state} ${detailedAddress.postcode}
+            </p>`;
+        }
+        
+        // Services
+        if (business.supplyNationData.categories && business.supplyNationData.categories.length > 0) {
+          contactHtml += `
+            <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #eee;">
+              <p style="margin: 0 0 4px 0; font-size: 11px; font-weight: bold; color: #666;">SERVICES:</p>
+              <p style="margin: 0; font-size: 11px; color: #666; line-height: 1.4;">
+                ${business.supplyNationData.categories.slice(0, 3).join(' • ')}
+              </p>
+            </div>`;
+        }
+        
+        return contactHtml;
+      };
       
       marker.bindPopup(`
-        <div class="p-3">
-          <h3 class="font-semibold text-sm mb-1">${business.entityName}</h3>
-          <p class="text-xs text-gray-600 mb-1">ABN: ${business.abn}</p>
-          <p class="text-xs text-gray-600">${business.displayAddress}</p>
-          ${categories}
-          <div class="mt-2 flex flex-wrap gap-1">
-            <span class="inline-block px-2 py-1 bg-green-100 text-green-800 text-xs rounded">
-              ${business.status}
-            </span>
-            ${verificationBadge}
-          </div>
+        <div style="min-width: 280px; font-family: system-ui, -apple-system, sans-serif;">
+          ${getVerificationBadge()}
+          <h3 style="margin: 0 0 8px 0; font-size: 16px; font-weight: bold; color: #2c3e50; line-height: 1.3;">
+            ${business.entityName}
+          </h3>
+          <p style="margin: 0 0 4px 0; font-size: 12px; color: #666;">
+            <strong>ABN:</strong> ${business.abn}
+          </p>
+          <p style="margin: 0 0 4px 0; font-size: 12px; color: #666;">
+            <strong>Status:</strong> ${business.status}
+          </p>
+          ${getContactInfo()}
         </div>
       `).openPopup();
       
