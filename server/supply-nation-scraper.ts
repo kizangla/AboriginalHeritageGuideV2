@@ -34,8 +34,9 @@ class SupplyNationScraper {
 
     this.cluster = await Cluster.launch({
       concurrency: Cluster.CONCURRENCY_CONTEXT,
-      maxConcurrency: 3, // Limit to be respectful to the server
+      maxConcurrency: 2, // Conservative limit for system resources
       puppeteerOptions: {
+        executablePath: '/nix/store/zi4f80l169xlmivz8vja8wlphq74qqk0-chromium-125.0.6422.141/bin/chromium',
         headless: true,
         args: [
           '--no-sandbox',
@@ -44,10 +45,15 @@ class SupplyNationScraper {
           '--disable-accelerated-2d-canvas',
           '--no-first-run',
           '--no-zygote',
-          '--disable-gpu'
+          '--disable-gpu',
+          '--disable-background-timer-throttling',
+          '--disable-backgrounding-occluded-windows',
+          '--disable-renderer-backgrounding',
+          '--disable-features=TranslateUI',
+          '--disable-ipc-flooding-protection'
         ]
       },
-      timeout: 30000
+      timeout: 60000 // Increased timeout for Supply Nation's heavy JavaScript
     });
 
     this.isInitialized = true;

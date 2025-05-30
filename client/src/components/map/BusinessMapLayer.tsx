@@ -31,15 +31,34 @@ export default function BusinessMapLayer({ map, onBusinessSelect }: BusinessMapL
   const [businessMarkers, setBusinessMarkers] = useState<L.Marker[]>([]);
 
   const { data: businessResults, refetch: searchBusinesses, isLoading } = useQuery({
-    queryKey: ['/api/businesses/map', searchTerm],
+    queryKey: ['/api/indigenous-businesses/integrated-search', searchTerm],
     queryFn: async () => {
       if (!searchTerm.trim()) return { businesses: [], totalResults: 0 };
-      const response = await fetch(`/api/businesses/map?search=${encodeURIComponent(searchTerm)}`);
+      const response = await fetch(`/api/indigenous-businesses/integrated-search?name=${encodeURIComponent(searchTerm)}&includeSupplyNation=true`);
       if (!response.ok) throw new Error('Search failed');
       return response.json();
     },
     enabled: false,
-    select: (data) => data as { businesses: BusinessLocation[]; totalResults: number }
+    select: (data) => {
+      // Transform integrated business data to BusinessLocation format
+      const businesses = data.businesses?.map((business: any) => ({
+        abn: business.abn,
+        entityName: business.entityName,
+        entityType: business.entityType,
+        status: business.status,
+        lat: business.lat || 0,
+        lng: business.lng || 0,
+        displayAddress: business.address?.fullAddress || `${business.address?.postcode}, ${business.address?.stateCode}`,
+        address: {
+          stateCode: business.address?.stateCode || '',
+          postcode: business.address?.postcode || '',
+          fullAddress: business.address?.fullAddress || ''
+        },
+        supplyNationVerified: business.supplyNationVerified,
+        verificationConfidence: business.verificationConfidence
+      })) || [];
+      return { businesses, totalResults: data.totalResults || 0 };
+    }
   });
 
   const handleSearch = async () => {
@@ -58,24 +77,38 @@ export default function BusinessMapLayer({ map, onBusinessSelect }: BusinessMapL
         const newMarkers: L.Marker[] = [];
         
         result.data.businesses.forEach((business) => {
-          // Create custom business marker icon
+          // Determine marker color based on verification status
+          const getMarkerColor = () => {
+            if (business.supplyNationVerified) return '#2ECC71'; // Green for verified
+            if (business.verificationConfidence === 'high') return '#F39C12'; // Orange for high confidence
+            if (business.verificationConfidence === 'medium') return '#3498DB'; // Blue for medium confidence
+            return '#95A5A6'; // Gray for low confidence
+          };
+
+          const getMarkerIcon = () => {
+            if (business.supplyNationVerified) return '✓'; // Checkmark for verified
+            return '🏢'; // Building for unverified
+          };
+
+          // Create custom business marker icon with verification status
           const businessIcon = L.divIcon({
             html: `<div style="
-              background: #ff6b35;
+              background: ${getMarkerColor()};
               color: white;
               border-radius: 50%;
-              width: 24px;
-              height: 24px;
+              width: 28px;
+              height: 28px;
               display: flex;
               align-items: center;
               justify-content: center;
               border: 2px solid white;
               box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-              font-size: 12px;
-            ">🏢</div>`,
+              font-size: 14px;
+              font-weight: bold;
+            ">${getMarkerIcon()}</div>`,
             className: 'business-marker',
-            iconSize: [24, 24],
-            iconAnchor: [12, 12]
+            iconSize: [28, 28],
+            iconAnchor: [14, 14]
           });
 
           const marker = L.marker([business.lat, business.lng], { icon: businessIcon })
