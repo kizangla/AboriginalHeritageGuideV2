@@ -78,14 +78,20 @@ class SupplyNationScraper {
           });
 
           // Handle authentication
+          console.log('=== ABOUT TO START AUTHENTICATION ===');
+          console.log('Page URL before auth:', page.url());
           console.log('Starting Supply Nation authentication...');
           try {
             await this.handleAuthentication(page);
             console.log('Authentication process completed successfully');
           } catch (authError) {
-            console.log('Authentication process failed:', authError.message);
+            console.log('=== AUTHENTICATION ERROR DETAILS ===');
+            console.log('Error message:', authError.message);
+            console.log('Error type:', authError.constructor.name);
+            console.log('Full error:', authError);
             console.log('Continuing with guest access');
           }
+          console.log('=== AUTHENTICATION ATTEMPT FINISHED ===')
 
           // Navigate to search page after authentication
           await page.goto('https://ibd.supplynation.org.au/public/s/search-results', {
