@@ -180,15 +180,14 @@ class DataIntegrationService {
           verificationSource = supplyNationData ? 'both' : 'supply_nation';
           verificationConfidence = 'high'; // Supply Nation verification is high confidence
           
-          // If we have a Supply Nation ID, fetch detailed profile information
+          // If we have a Supply Nation ID, fetch detailed profile information using HTTP extractor
           if (matchedSupplyNationData.supplynationId && matchedSupplyNationData.supplynationId !== 'unknown') {
             try {
-              const profileUrl = `https://ibd.supplynation.org.au/public/s/supplierprofile?accid=${matchedSupplyNationData.supplynationId}`;
-              const { getSupplyNationProfileDetails } = await import('./supply-nation-scraper');
-              const detailedProfile = await getSupplyNationProfileDetails(profileUrl);
+              const { httpExtractor } = await import('./supply-nation-http-extractor');
+              const detailedProfile = await httpExtractor.extractProfile(matchedSupplyNationData.supplynationId);
               
               if (detailedProfile) {
-                console.log(`Enhanced Supply Nation data for ${enrichedBusiness.entityName} with detailed profile`);
+                console.log(`Enhanced Supply Nation data for ${enrichedBusiness.entityName} with HTTP-extracted profile`);
                 // Merge detailed profile data with existing Supply Nation data
                 matchedSupplyNationData = {
                   ...matchedSupplyNationData,
