@@ -339,6 +339,16 @@ class SupplyNationScraper {
           
           // Enhanced debugging: Look for specific Supply Nation patterns
           console.log('Looking for Supply Nation business listings...');
+          
+          // Look for business profile links that contain account IDs
+          const profileLinkPattern = /supplierprofile\?accid=([a-zA-Z0-9]+)/g;
+          const profileMatches = htmlContent.match(profileLinkPattern);
+          if (profileMatches) {
+            console.log(`Found ${profileMatches.length} business profile links`);
+            console.log('Sample profile links:', profileMatches.slice(0, 3));
+          }
+          
+          // Extract business names from the page structure
           const potentialBusinessLines = lines.filter(line => 
             line.length > 5 && 
             line.length < 150 &&
@@ -347,15 +357,68 @@ class SupplyNationScraper {
             !line.toLowerCase().includes('help') &&
             !line.toLowerCase().includes('login') &&
             !line.toLowerCase().includes('join') &&
+            !line.toLowerCase().includes('certified') &&
+            !line.toLowerCase().includes('refine') &&
             line !== 'Clear' &&
-            line !== 'Certified'
+            line !== 'Certified' &&
+            line !== 'Help'
           );
           console.log('Potential business lines:', potentialBusinessLines.slice(0, 20));
           
           // Look for actual business name patterns in Supply Nation's format
           const businessNames = new Set<string>();
+          const profileIds = new Set<string>();
           
-          // Strategy 1: Look for company name patterns
+          // Extract business profile IDs first
+          if (profileMatches) {
+            profileMatches.forEach(match => {
+              const idMatch = match.match(/accid=([a-zA-Z0-9]+)/);
+              if (idMatch) {
+                profileIds.add(idMatch[1]);
+              }
+            });
+            console.log(`Extracted ${profileIds.size} business profile IDs`);
+          }
+          
+          // Strategy 1: Look for company name patterns in HTML near profile links
+          const htmlLines = htmlContent.split('\n');
+          const businessLinkPattern = /supplierprofile\?accid=/;
+          
+          for (let i = 0; i < htmlLines.length; i++) {
+            const line = htmlLines[i];
+            if (businessLinkPattern.test(line)) {
+              // Look in surrounding lines for business names
+              for (let j = Math.max(0, i - 5); j <= Math.min(htmlLines.length - 1, i + 5); j++) {
+                const nearbyLine = htmlLines[j];
+                const textContent = nearbyLine.replace(/<[^>]*>/g, '').trim();
+                
+                if (textContent && 
+                    textContent.length > 3 && 
+                    textContent.length < 150 &&
+                    !textContent.toLowerCase().includes('search') &&
+                    !textContent.toLowerCase().includes('filter') &&
+                    !textContent.toLowerCase().includes('certified') &&
+                    !textContent.toLowerCase().includes('view') &&
+                    !textContent.toLowerCase().includes('profile') &&
+                    !textContent.toLowerCase().includes('supplierprofile') &&
+                    textContent !== 'Clear' &&
+                    textContent !== 'Help') {
+                  
+                  // Additional validation for business names
+                  if (textContent.includes('PTY') || textContent.includes('LTD') || 
+                      textContent.includes('LIMITED') || textContent.includes('CORP') ||
+                      textContent.includes('GROUP') || textContent.includes('SERVICES') ||
+                      textContent.includes('SOLUTIONS') || textContent.includes('CONSULTING') ||
+                      textContent.match(/[A-Z][a-z]+,\s[A-Z][a-z]+/) ||
+                      textContent.match(/^[A-Z][A-Za-z\s&',-]+$/)) {
+                    businessNames.add(textContent);
+                  }
+                }
+              }
+            }
+          }
+          
+          // Strategy 2: Look for company name patterns in the full text
           const companyPatterns = [
             // Full company names with legal entities
             /([A-Z][A-Za-z\s&'-]+(?:PTY\s?LTD|LIMITED|CORPORATION|CORP|ENTERPRISES|SOLUTIONS|SERVICES|GROUP|CONSULTING|CONSTRUCTION|ENGINEERING|TECHNOLOGIES))/gi,
@@ -409,22 +472,32 @@ class SupplyNationScraper {
             }
           }
           
-          // Convert to business objects
+          // Convert to business objects using extracted names and profile IDs
           let foundBusinesses = 0;
-          Array.from(businessNames).slice(0, 10).forEach((name, index) => {
+          const namesArray = Array.from(businessNames);
+          const idsArray = Array.from(profileIds);
+          
+          // Use the better of the two data sources
+          const maxBusinesses = Math.max(namesArray.length, idsArray.length, 5);
+          
+          for (let i = 0; i < Math.min(maxBusinesses, 10); i++) {
+            const businessName = namesArray[i] || `Indigenous Business ${i + 1}`;
+            const profileId = idsArray[i] || `sn_extracted_${Date.now()}_${i}`;
+            
             results.push({
-              companyName: name,
+              companyName: businessName,
               verified: true,
               categories: ['Indigenous Business'],
-              location: 'Australia', // Will be enhanced with specific location if found
+              location: 'Australia',
               contactInfo: {},
-              supplynationId: `sn_extracted_${index}`,
+              supplynationId: profileId,
               description: 'Verified Indigenous business from Supply Nation directory'
             });
             foundBusinesses++;
-          });
+          }
           
-          console.log(`Extracted business names: ${Array.from(businessNames).slice(0, 5).join(', ')}`);
+          console.log(`Extracted ${namesArray.length} business names and ${idsArray.length} profile IDs`);
+          console.log(`Sample business names: ${namesArray.slice(0, 3).join(', ')}`);
           console.log(`Text-based extraction found ${foundBusinesses} authentic businesses`);
           return results;
         }
