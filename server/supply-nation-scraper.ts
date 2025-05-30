@@ -126,143 +126,121 @@ class SupplyNationScraper {
 
       await new Promise(resolve => setTimeout(resolve, 3000));
 
-      // Look for login elements in Salesforce Lightning interface
-      const loginSelectors = [
-        'a[title*="Login" i]',
-        'button[title*="Login" i]',
-        'a[href*="login" i]',
-        '.slds-button[title*="Login" i]',
-        'lightning-button[variant="brand"]',
-        'button.slds-button--brand',
-        'a.login-link',
-        '[data-aura-class*="login"]'
+      // Since we're already on the login page, look directly for login form fields
+      console.log('On login page, looking for form fields...');
+
+      // Wait for login form to appear
+      const usernameSelectors = [
+        'input[type="email"]',
+        'input[name*="username" i]',
+        'input[name*="email" i]',
+        'input[placeholder*="email" i]',
+        'lightning-input[data-label*="email" i] input',
+        '.slds-input[type="email"]',
+        'input[name="username"]',
+        'input[id*="username"]',
+        'input[id*="email"]'
       ];
 
-      let loginElement = null;
-      for (const selector of loginSelectors) {
-        try {
-          loginElement = await page.$(selector);
-          if (loginElement) {
-            console.log(`Found login element: ${selector}`);
-            break;
-          }
-        } catch (e) {
-          // Continue to next selector
+      const passwordSelectors = [
+        'input[type="password"]',
+        'input[name*="password" i]',
+        'lightning-input[data-label*="password" i] input',
+        '.slds-input[type="password"]',
+        'input[name="password"]',
+        'input[id*="password"]'
+      ];
+
+      let usernameField = null;
+      let passwordField = null;
+
+      // Find username field
+      for (const selector of usernameSelectors) {
+        usernameField = await page.$(selector);
+        if (usernameField) {
+          console.log(`Found username field: ${selector}`);
+          break;
         }
       }
 
-      if (!loginElement) {
-        // Try to find login by text content
-        const elements = await page.$$('a, button');
-        for (const element of elements) {
-          const text = await page.evaluate(el => el.textContent, element);
-          if (text && text.toLowerCase().includes('login')) {
-            loginElement = element;
-            console.log('Found login element by text content');
-            break;
-          }
+      // Find password field
+      for (const selector of passwordSelectors) {
+        passwordField = await page.$(selector);
+        if (passwordField) {
+          console.log(`Found password field: ${selector}`);
+          break;
         }
       }
 
-      if (loginElement) {
-        console.log('Clicking login element...');
-        await loginElement.click();
-        await new Promise(resolve => setTimeout(resolve, 3000));
+      if (usernameField && passwordField) {
+        console.log('Filling login credentials...');
+        
+        // Clear any existing text and fill username
+        await usernameField.click({ clickCount: 3 });
+        await usernameField.type(username, { delay: 100 });
+        
+        // Clear any existing text and fill password
+        await passwordField.click({ clickCount: 3 });
+        await passwordField.type(password, { delay: 100 });
 
-        // Wait for login form to appear
-        const usernameSelectors = [
-          'input[type="email"]',
-          'input[name*="username" i]',
-          'input[name*="email" i]',
-          'input[placeholder*="email" i]',
-          'lightning-input[data-label*="email" i] input',
-          '.slds-input[type="email"]'
+        // Find and click submit button
+        const submitSelectors = [
+          'button[type="submit"]',
+          'input[type="submit"]',
+          'lightning-button[type="submit"]',
+          '.slds-button[type="submit"]',
+          'button.slds-button--brand',
+          'button:contains("Log In")',
+          'button:contains("Login")',
+          'input[value*="Log"]'
         ];
 
-        const passwordSelectors = [
-          'input[type="password"]',
-          'input[name*="password" i]',
-          'lightning-input[data-label*="password" i] input',
-          '.slds-input[type="password"]'
-        ];
-
-        let usernameField = null;
-        let passwordField = null;
-
-        // Find username field
-        for (const selector of usernameSelectors) {
-          usernameField = await page.$(selector);
-          if (usernameField) {
-            console.log(`Found username field: ${selector}`);
+        let submitButton = null;
+        for (const selector of submitSelectors) {
+          submitButton = await page.$(selector.replace(':contains', ''));
+          if (submitButton) {
+            console.log(`Found submit button: ${selector}`);
             break;
           }
         }
 
-        // Find password field
-        for (const selector of passwordSelectors) {
-          passwordField = await page.$(selector);
-          if (passwordField) {
-            console.log(`Found password field: ${selector}`);
-            break;
-          }
-        }
-
-        if (usernameField && passwordField) {
-          console.log('Filling login credentials...');
-          await usernameField.click();
-          await usernameField.type(username, { delay: 100 });
-          
-          await passwordField.click();
-          await passwordField.type(password, { delay: 100 });
-
-          // Find and click submit button
-          const submitSelectors = [
-            'button[type="submit"]',
-            'input[type="submit"]',
-            'lightning-button[type="submit"]',
-            '.slds-button[type="submit"]',
-            'button.slds-button--brand'
-          ];
-
-          let submitButton = null;
-          for (const selector of submitSelectors) {
-            submitButton = await page.$(selector);
-            if (submitButton) {
-              console.log(`Found submit button: ${selector}`);
+        if (!submitButton) {
+          // Look for submit by text content
+          const buttons = await page.$$('button, input[type="submit"]');
+          for (const button of buttons) {
+            const text = await page.evaluate(el => el.textContent || el.value, button);
+            if (text && (text.toLowerCase().includes('login') || text.toLowerCase().includes('sign in') || text.toLowerCase().includes('log in'))) {
+              submitButton = button;
+              console.log('Found submit button by text content');
               break;
             }
           }
+        }
 
-          if (!submitButton) {
-            // Look for submit by text
-            const buttons = await page.$$('button, input[type="submit"]');
-            for (const button of buttons) {
-              const text = await page.evaluate(el => el.textContent || el.value, button);
-              if (text && (text.toLowerCase().includes('login') || text.toLowerCase().includes('sign in'))) {
-                submitButton = button;
-                console.log('Found submit button by text');
-                break;
-              }
-            }
-          }
-
-          if (submitButton) {
-            console.log('Submitting login form...');
-            await Promise.all([
-              page.waitForNavigation({ waitUntil: 'networkidle0', timeout: 15000 }).catch(() => {}),
-              submitButton.click()
-            ]);
-            
-            await new Promise(resolve => setTimeout(resolve, 3000));
-            console.log('Login form submitted');
-          } else {
-            console.log('Could not find submit button');
+        if (submitButton) {
+          console.log('Submitting login form...');
+          await Promise.all([
+            page.waitForNavigation({ waitUntil: 'networkidle0', timeout: 15000 }).catch(() => {}),
+            submitButton.click()
+          ]);
+          
+          await new Promise(resolve => setTimeout(resolve, 3000));
+          console.log('Login form submitted');
+          
+          // Check if login was successful by looking for authenticated page elements
+          const currentUrl = page.url();
+          console.log(`Post-login URL: ${currentUrl}`);
+          
+          if (currentUrl.includes('search-results') || !currentUrl.includes('login')) {
+            console.log('Login appears successful');
           }
         } else {
-          console.log('Could not find login form fields');
+          console.log('Could not find submit button');
         }
       } else {
-        console.log('No login element found, may already be authenticated or login not required');
+        console.log('Could not find login form fields');
+        console.log(`Username field found: ${!!usernameField}`);
+        console.log(`Password field found: ${!!passwordField}`);
       }
     } catch (error) {
       console.log('Authentication not required or failed, continuing as guest');
