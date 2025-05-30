@@ -1,6 +1,6 @@
 import { db } from './db';
 import { supplyNationBusinesses } from '@shared/schema';
-import { eq, and, gte } from 'drizzle-orm';
+import { eq, and, gte, sql } from 'drizzle-orm';
 import type { SupplyNationBusiness } from './supply-nation-scraper';
 
 export class SupplyNationCache {
@@ -175,10 +175,7 @@ export class SupplyNationCache {
       cacheExpiry.setHours(cacheExpiry.getHours() - SupplyNationCache.CACHE_DURATION_HOURS);
 
       await db.delete(supplyNationBusinesses)
-        .where(
-          // Clear data older than cache duration
-          // Note: Using string comparison for simplicity
-        );
+        .where(sql`${supplyNationBusinesses.createdAt} < ${cacheExpiry.toISOString()}`);
 
       console.log('Cleared old Supply Nation cache data');
     } catch (error) {
