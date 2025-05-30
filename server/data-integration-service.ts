@@ -71,10 +71,10 @@ class DataIntegrationService {
           console.log(`Using cached Supply Nation data: ${cachedResults.length} businesses`);
           supplyNationResults = cachedResults;
         } else {
-          console.log('Scraping fresh Supply Nation data...');
-          const snResults = await searchSupplyNationWithPuppeteer(query, location);
+          console.log('Searching Supply Nation data via HTTP...');
+          const snResults = await searchSupplyNationBusinesses(query, location);
           supplyNationResults = snResults.businesses;
-          console.log(`Scraped ${supplyNationResults.length} businesses from Supply Nation`);
+          console.log(`Found ${supplyNationResults.length} businesses from Supply Nation via HTTP`);
           
           // Store fresh data in database cache
           if (supplyNationResults.length > 0) {
