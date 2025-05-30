@@ -212,6 +212,21 @@ export default function BusinessSearch() {
                       </div>
                     )}
 
+                    {/* Supply Nation Verification Status */}
+                    {business.supplyNationVerified && (
+                      <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-3">
+                        <div className="flex items-center gap-2 mb-2">
+                          <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                          <span className="font-medium text-sm text-green-900">Supply Nation Verified Indigenous Business</span>
+                        </div>
+                        <p className="text-xs text-green-700">
+                          This business is certified as an Indigenous-owned enterprise through Supply Nation.
+                        </p>
+                      </div>
+                    )}
+
                     {/* Supply Nation Data */}
                     {business.supplyNationData && (
                       <div className="space-y-3 pt-2 border-t border-gray-100">
