@@ -228,20 +228,21 @@ class SupplyNationScraper {
           const dashboardElements = await page.$$('.slds-scope, [data-aura-class], .oneApp');
           const hasSupplierDashboard = await page.$('script[src*="SupplierDashboard"]') !== null;
           
-          if (currentUrl.includes('search-results') || 
-              !currentUrl.includes('login') ||
+          if (currentUrl.includes('/public/s/') && !currentUrl.includes('login') ||
+              currentUrl.includes('search-results') ||
               dashboardElements.length > 0 ||
               hasSupplierDashboard) {
             console.log('Login appears successful - authenticated page detected');
             
-            // Navigate to search results if not already there
-            if (!currentUrl.includes('search-results')) {
-              console.log('Navigating to search results page...');
+            // Check if we're on the post-login dashboard page
+            if (currentUrl.includes('/public/s/') && !currentUrl.includes('search-results')) {
+              console.log('On post-login dashboard, navigating to search results...');
               await page.goto('https://ibd.supplynation.org.au/public/s/search-results', {
                 waitUntil: 'networkidle0',
                 timeout: 15000
               });
               await new Promise(resolve => setTimeout(resolve, 3000));
+              console.log('Successfully navigated to authenticated search page');
             }
           } else {
             console.log('Login may have failed - still on login page');
