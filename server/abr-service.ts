@@ -302,7 +302,9 @@ export function filterIndigenousBusinesses(businesses: ABRBusinessDetails[]): AB
 
   const commonIndigenousNames = [
     'maali', 'jarjum', 'yurra', 'warru', 'ngurra', 'boorong', 'kirra', 'yarra',
-    'kambu', 'jindabyne', 'gurrumul', 'tjandrawati', 'kulka', 'birrong'
+    'kambu', 'jindabyne', 'gurrumul', 'tjandrawati', 'kulka', 'birrong',
+    'bundjalung', 'wiradjuri', 'dharawal', 'gumbaynggirr', 'wonnarua',
+    'awabakal', 'darkinjung', 'guringai', 'dharug', 'tharawal'
   ];
 
   const serviceTypes = [
@@ -335,8 +337,8 @@ export function filterIndigenousBusinesses(businesses: ABRBusinessDetails[]): AB
       searchText.includes(service.toLowerCase())
     );
     
-    // Require multiple indicators for medium confidence
-    return (culturalMatches >= 2) || (nameMatches >= 1 && culturalMatches >= 1) || serviceMatches;
+    // More inclusive criteria for Indigenous business detection
+    return (culturalMatches >= 1) || (nameMatches >= 1) || serviceMatches;
   });
 }
 

@@ -225,6 +225,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { filterIndigenousBusinesses } = await import('./abr-service');
       const indigenousBusinesses = filterIndigenousBusinesses(abrResults.businesses);
       
+      console.log(`Enhanced filtering found ${indigenousBusinesses.length} Indigenous businesses from ${abrResults.businesses.length} total results`);
+      
       // Add verification information to each business
       const enrichedBusinesses = indigenousBusinesses.map(business => ({
         ...business,
@@ -289,9 +291,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const indigenousBusinesses = filterIndigenousBusinesses(uniqueBusinesses);
       
       // Enrich with location data for map display
+      const { enrichBusinessWithLocation } = await import('./abr-service');
       const enrichedBusinesses = await Promise.all(
         indigenousBusinesses.slice(0, 50).map(async (business) => { // Limit to 50 for performance
-          const { enrichBusinessWithLocation } = await import('./abr-service');
           const enriched = await enrichBusinessWithLocation(business);
           return {
             ...enriched,
