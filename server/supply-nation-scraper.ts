@@ -71,7 +71,16 @@ class SupplyNationScraper {
           const { query, location } = data;
           console.log(`Scraping Supply Nation for: "${query}" in location: "${location || 'all'}"`);
 
-          // Navigate to Supply Nation search page
+          // First, try to authenticate with Supply Nation
+          await page.goto('https://ibd.supplynation.org.au/public/s/login', {
+            waitUntil: 'networkidle0',
+            timeout: 30000
+          });
+
+          // Handle authentication
+          await this.handleAuthentication(page);
+
+          // Navigate to search page after authentication
           await page.goto('https://ibd.supplynation.org.au/public/s/search-results', {
             waitUntil: 'networkidle0',
             timeout: 30000
@@ -79,9 +88,6 @@ class SupplyNationScraper {
 
           // Wait for the page to load completely
           await page.waitForSelector('body', { timeout: 10000 });
-
-          // Handle authentication if required
-          await this.handleAuthentication(page);
 
           // Wait for the search interface to load
           await this.waitForSearchInterface(page);
