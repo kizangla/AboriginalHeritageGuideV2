@@ -78,41 +78,42 @@ export class SupplyNationRobustScraper {
 
       // Navigate to login page
       await page.goto('https://ibd.supplynation.org.au/public/login', { 
-        waitUntil: 'networkidle0',
+        waitUntil: 'domcontentloaded',
         timeout: 30000
       });
 
-      // Wait for login form
-      await page.waitForSelector('input[name="username"], input[type="email"]', { timeout: 10000 });
+      // Wait for Salesforce login form to load
+      await page.waitForSelector('#username, input[name="username"]', { timeout: 15000 });
 
-      // Fill in credentials
-      const usernameField = await page.$('input[name="username"]') || await page.$('input[type="email"]');
-      const passwordField = await page.$('input[name="password"]') || await page.$('input[type="password"]');
+      // Fill in credentials using Salesforce form structure
+      await page.type('#username', username);
+      await page.type('#password', password);
 
-      if (usernameField && passwordField) {
-        await usernameField.type(username);
-        await passwordField.type(password);
+      // Submit the form
+      await page.click('#Login, input[type="submit"], button[type="submit"]');
 
-        // Submit form
-        const submitButton = await page.$('button[type="submit"]') || await page.$('input[type="submit"]');
-        if (submitButton) {
-          await submitButton.click();
-        } else {
-          await passwordField.press('Enter');
-        }
+      // Wait for navigation and handle potential redirects
+      try {
+        await page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 20000 });
+      } catch (navError) {
+        console.log('Navigation timeout, checking current URL...');
+      }
 
-        // Wait for navigation after login
-        await page.waitForNavigation({ waitUntil: 'networkidle0', timeout: 15000 });
+      // Allow time for any additional redirects
+      await new Promise(resolve => setTimeout(resolve, 3000));
         
         const currentUrl = page.url();
         const isAuthenticated = !currentUrl.includes('login') && 
-                              (currentUrl.includes('dashboard') || currentUrl.includes('home') || currentUrl.includes('search'));
+                              (currentUrl.includes('frontdoor') || 
+                               currentUrl.includes('communities') || 
+                               currentUrl.includes('home') || 
+                               currentUrl.includes('dashboard') ||
+                               currentUrl.includes('search'));
         
+        console.log(`Current URL after login: ${currentUrl}`);
         console.log(`Authentication ${isAuthenticated ? 'successful' : 'failed'}`);
         return isAuthenticated;
-      }
 
-      return false;
     } catch (error) {
       console.error('Authentication error:', error);
       return false;

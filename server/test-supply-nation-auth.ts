@@ -39,7 +39,7 @@ async function testSupplyNationAuth() {
     });
     
     // Wait a moment for page to load
-    await page.waitForTimeout(3000);
+    await new Promise(resolve => setTimeout(resolve, 3000));
     
     console.log('Current URL:', page.url());
     console.log('Page title:', await page.title());
@@ -113,7 +113,7 @@ async function testSupplyNationAuth() {
           await page.keyboard.press('Enter');
           
           // Wait for results
-          await page.waitForTimeout(5000);
+          await new Promise(resolve => setTimeout(resolve, 5000));
           
           console.log('Search results URL:', page.url());
           await page.screenshot({ path: 'search-results.png' });
