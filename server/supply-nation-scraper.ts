@@ -118,13 +118,13 @@ class SupplyNationScraper {
 
       console.log(`Attempting Supply Nation login with: ${username.substring(0, 10)}...`);
 
-      // First, try to navigate to a page that requires login to trigger authentication
-      await page.goto('https://ibd.supplynation.org.au/public/s/search-results', { 
+      // Navigate directly to the login page
+      await page.goto('https://ibd.supplynation.org.au/public/s/login/', { 
         waitUntil: 'networkidle0',
         timeout: 30000 
       });
 
-      await page.waitForTimeout(3000);
+      await new Promise(resolve => setTimeout(resolve, 3000));
 
       // Look for login elements in Salesforce Lightning interface
       const loginSelectors = [
@@ -167,7 +167,7 @@ class SupplyNationScraper {
       if (loginElement) {
         console.log('Clicking login element...');
         await loginElement.click();
-        await page.waitForTimeout(3000);
+        await new Promise(resolve => setTimeout(resolve, 3000));
 
         // Wait for login form to appear
         const usernameSelectors = [
@@ -253,7 +253,7 @@ class SupplyNationScraper {
               submitButton.click()
             ]);
             
-            await page.waitForTimeout(3000);
+            await new Promise(resolve => setTimeout(resolve, 3000));
             console.log('Login form submitted');
           } else {
             console.log('Could not find submit button');
