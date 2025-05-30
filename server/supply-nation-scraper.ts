@@ -267,7 +267,8 @@ class SupplyNationScraper {
         console.log(`Password field found: ${!!passwordField}`);
       }
     } catch (error) {
-      console.log('Authentication not required or failed, continuing as guest');
+      console.log('Authentication failed with error:', error.message);
+      console.log('Continuing as guest');
     }
   }
 
