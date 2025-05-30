@@ -211,20 +211,40 @@ class SupplyNationScraper {
 
         if (submitButton) {
           console.log('Submitting login form...');
-          await Promise.all([
-            page.waitForNavigation({ waitUntil: 'networkidle0', timeout: 15000 }).catch(() => {}),
-            submitButton.click()
-          ]);
           
-          await new Promise(resolve => setTimeout(resolve, 3000));
-          console.log('Login form submitted');
+          // Click the submit button and wait for Salesforce Lightning to process
+          await submitButton.click();
+          
+          // Wait longer for Salesforce Lightning components to load
+          await new Promise(resolve => setTimeout(resolve, 8000));
+          
+          console.log('Login form submitted, waiting for page transition...');
           
           // Check if login was successful by looking for authenticated page elements
           const currentUrl = page.url();
           console.log(`Post-login URL: ${currentUrl}`);
           
-          if (currentUrl.includes('search-results') || !currentUrl.includes('login')) {
-            console.log('Login appears successful');
+          // Look for dashboard or authenticated page indicators
+          const dashboardElements = await page.$$('.slds-scope, [data-aura-class], .oneApp');
+          const hasSupplierDashboard = await page.$('script[src*="SupplierDashboard"]') !== null;
+          
+          if (currentUrl.includes('search-results') || 
+              !currentUrl.includes('login') ||
+              dashboardElements.length > 0 ||
+              hasSupplierDashboard) {
+            console.log('Login appears successful - authenticated page detected');
+            
+            // Navigate to search results if not already there
+            if (!currentUrl.includes('search-results')) {
+              console.log('Navigating to search results page...');
+              await page.goto('https://ibd.supplynation.org.au/public/s/search-results', {
+                waitUntil: 'networkidle0',
+                timeout: 15000
+              });
+              await new Promise(resolve => setTimeout(resolve, 3000));
+            }
+          } else {
+            console.log('Login may have failed - still on login page');
           }
         } else {
           console.log('Could not find submit button');
