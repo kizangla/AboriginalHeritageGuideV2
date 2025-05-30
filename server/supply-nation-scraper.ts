@@ -335,7 +335,22 @@ class SupplyNationScraper {
           console.log('Total text lines found:', lines.length);
           
           // Log a sample of lines to understand the structure
-          console.log('Sample content lines:', lines.slice(0, 20));
+          console.log('Sample content lines:', lines.slice(0, 30));
+          
+          // Enhanced debugging: Look for specific Supply Nation patterns
+          console.log('Looking for Supply Nation business listings...');
+          const potentialBusinessLines = lines.filter(line => 
+            line.length > 5 && 
+            line.length < 150 &&
+            !line.toLowerCase().includes('search') &&
+            !line.toLowerCase().includes('filter') &&
+            !line.toLowerCase().includes('help') &&
+            !line.toLowerCase().includes('login') &&
+            !line.toLowerCase().includes('join') &&
+            line !== 'Clear' &&
+            line !== 'Certified'
+          );
+          console.log('Potential business lines:', potentialBusinessLines.slice(0, 20));
           
           // Look for actual business name patterns in Supply Nation's format
           const businessNames = new Set<string>();
