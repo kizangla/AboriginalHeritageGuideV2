@@ -129,26 +129,21 @@ class SupplyNationScraper {
       // Since we're already on the login page, look directly for login form fields
       console.log('On login page, looking for form fields...');
 
-      // Wait for login form to appear
+      // Wait for login form to appear with the exact selectors from Supply Nation
       const usernameSelectors = [
-        'input[type="email"]',
-        'input[name*="username" i]',
-        'input[name*="email" i]',
-        'input[placeholder*="email" i]',
-        'lightning-input[data-label*="email" i] input',
-        '.slds-input[type="email"]',
-        'input[name="username"]',
-        'input[id*="username"]',
-        'input[id*="email"]'
+        'input[placeholder="Username"]',
+        'input.inputBox.input[type="text"]',
+        'input[id^="609:"]',
+        'input[type="text"][required]',
+        'input[placeholder*="Username" i]'
       ];
 
       const passwordSelectors = [
-        'input[type="password"]',
-        'input[name*="password" i]',
-        'lightning-input[data-label*="password" i] input',
-        '.slds-input[type="password"]',
-        'input[name="password"]',
-        'input[id*="password"]'
+        'input[placeholder="Password"]',
+        'input.inputBox.input[type="password"]',
+        'input[id^="622:"]',
+        'input[type="password"][required]',
+        'input[placeholder*="Password" i]'
       ];
 
       let usernameField = null;
@@ -183,16 +178,13 @@ class SupplyNationScraper {
         await passwordField.click({ clickCount: 3 });
         await passwordField.type(password, { delay: 100 });
 
-        // Find and click submit button
+        // Find and click submit button using the exact Supply Nation structure
         const submitSelectors = [
-          'button[type="submit"]',
-          'input[type="submit"]',
-          'lightning-button[type="submit"]',
-          '.slds-button[type="submit"]',
+          'button.slds-button.slds-button--brand.loginButton',
+          'button.loginButton',
           'button.slds-button--brand',
-          'button:contains("Log In")',
-          'button:contains("Login")',
-          'input[value*="Log"]'
+          'button[class*="loginButton"]',
+          'button[data-aura-class*="uiButton"]'
         ];
 
         let submitButton = null;
