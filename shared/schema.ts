@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, jsonb, real, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, jsonb, real } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -57,7 +57,6 @@ export const businesses = pgTable("businesses", {
   verificationSource: text("verification_source"), // 'manual', 'abr_keywords', 'supply_nation'
   verificationConfidence: text("verification_confidence"), // 'high', 'medium', 'low'
   verificationNotes: text("verification_notes"),
-  verifiedAt: timestamp("verified_at"),
   verifiedBy: text("verified_by"),
 });
 
@@ -88,6 +87,9 @@ export const insertTerritorySchema = createInsertSchema(territories).omit({
 
 export const insertBusinessSchema = createInsertSchema(businesses).omit({
   id: true,
+}).extend({
+  verificationSource: z.enum(['manual', 'abr_keywords', 'supply_nation']).optional(),
+  verificationConfidence: z.enum(['high', 'medium', 'low']).optional()
 });
 
 export const insertCulturalSiteSchema = createInsertSchema(culturalSites).omit({

@@ -206,37 +206,116 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Search Indigenous businesses (Supply Nation verified)
+  // Enhanced Indigenous business search with better ABR filtering
   app.get("/api/indigenous-businesses/search", async (req, res) => {
     try {
-      const { name, location } = req.query;
+      const { name, location, confidence } = req.query;
       
       if (!name || typeof name !== 'string') {
         return res.status(400).json({ message: "Business name is required" });
       }
       
-      // For now, fall back to ABR search until Supply Nation is fully working
       console.log("Searching for Indigenous businesses:", name);
-      const abrResults = await searchBusinessesByName(name);
       
-      // Add some debug logging
+      // Search ABR for all businesses matching the name
+      const abrResults = await searchBusinessesByName(name);
       console.log(`Found ${abrResults.totalResults} ABR results for "${name}"`);
       
-      const results = await searchIndigenousBusinesses(
-        name,
-        location as string
-      );
+      // Apply enhanced Indigenous business filtering
+      const { filterIndigenousBusinesses } = await import('./abr-service');
+      const indigenousBusinesses = filterIndigenousBusinesses(abrResults.businesses);
       
-      console.log(`Indigenous search returned ${results.totalResults} verified businesses`);
+      // Add verification information to each business
+      const enrichedBusinesses = indigenousBusinesses.map(business => ({
+        ...business,
+        verificationSource: 'abr_keywords',
+        verificationConfidence: getVerificationConfidence(business),
+        isIndigenousVerified: true
+      }));
       
-      res.json(results);
+      console.log(`Filtered to ${enrichedBusinesses.length} likely Indigenous businesses`);
+      
+      res.json({
+        businesses: enrichedBusinesses,
+        totalResults: enrichedBusinesses.length,
+        searchQuery: name,
+        location: location || 'all',
+        filterApplied: 'indigenous_keywords'
+      });
+      
     } catch (error) {
-      console.error("Error searching Indigenous businesses:", error);
+      console.error("Indigenous business search error:", error);
       res.status(500).json({ message: "Failed to search Indigenous businesses" });
     }
   });
-  
-  // Search businesses by name (ABR integration)
+
+  // Helper function to determine verification confidence
+  function getVerificationConfidence(business: any): string {
+    const searchText = `${business.entityName} ${business.address.suburb || ''} ${business.address.stateCode || ''}`.toLowerCase();
+    
+    const strongIndicators = [
+      'aboriginal', 'indigenous', 'first nations', 'torres strait', 'native title',
+      'koori', 'murri', 'yolngu', 'anangu', 'palawa', 'nunga', 'noongar'
+    ];
+    
+    const hasStrongIndicator = strongIndicators.some(keyword => 
+      searchText.includes(keyword.toLowerCase())
+    );
+    
+    if (hasStrongIndicator) return 'high';
+    if (searchText.includes('cultural') || searchText.includes('traditional')) return 'medium';
+    return 'low';
+  }
+
+  // Get all ABR businesses with Indigenous filtering for map display
+  app.get("/api/indigenous-businesses/map", async (req, res) => {
+    try {
+      // Get a broader search to populate the map
+      const searchTerms = ['aboriginal', 'indigenous', 'cultural', 'traditional', 'community'];
+      let allBusinesses: any[] = [];
+      
+      for (const term of searchTerms) {
+        const results = await searchBusinessesByName(term);
+        allBusinesses = [...allBusinesses, ...results.businesses];
+      }
+      
+      // Remove duplicates based on ABN
+      const uniqueBusinesses = allBusinesses.filter((business, index, self) => 
+        index === self.findIndex(b => b.abn === business.abn)
+      );
+      
+      // Apply Indigenous filtering
+      const { filterIndigenousBusinesses } = await import('./abr-service');
+      const indigenousBusinesses = filterIndigenousBusinesses(uniqueBusinesses);
+      
+      // Enrich with location data for map display
+      const enrichedBusinesses = await Promise.all(
+        indigenousBusinesses.slice(0, 50).map(async (business) => { // Limit to 50 for performance
+          const { enrichBusinessWithLocation } = await import('./abr-service');
+          const enriched = await enrichBusinessWithLocation(business);
+          return {
+            ...enriched,
+            verificationSource: 'abr_keywords',
+            verificationConfidence: getVerificationConfidence(enriched),
+            isIndigenousVerified: true
+          };
+        })
+      );
+      
+      console.log(`Returning ${enrichedBusinesses.length} Indigenous businesses for map`);
+      
+      res.json({
+        businesses: enrichedBusinesses,
+        totalResults: enrichedBusinesses.length
+      });
+      
+    } catch (error) {
+      console.error("Error fetching Indigenous businesses for map:", error);
+      res.status(500).json({ message: "Failed to fetch Indigenous businesses" });
+    }
+  });
+
+  // Search businesses by name (ABR integration)  
   app.get("/api/abr/businesses/search", async (req, res) => {
     try {
       const { name, state, postcode } = req.query;
