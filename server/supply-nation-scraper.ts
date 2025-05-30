@@ -989,12 +989,21 @@ export async function searchSupplyNationWithPuppeteer(
           abn: undefined,
           acn: undefined,
           lastUpdated: new Date().toISOString()
+        };
         
         return result;
-          
-          // Extract trading name
-          const tradingText = findTextByPattern(/Trading as:/i);
-          const tradingName = tradingText?.replace(/Trading as:\s*/i, '').trim();
+      } catch (error) {
+        console.error('Error in profile extraction:', error);
+        return null;
+      }
+    });
+    
+    return result;
+  } catch (error) {
+    console.error(`Error extracting detailed profile from ${profileUrl}:`, error);
+    return null;
+  }
+}
           
           // Extract phone number - look for tel links and phone patterns
           let phone = extractText('a[href^="tel:"]')?.replace(/[^\d\s\(\)\-\+]/g, '');

@@ -184,7 +184,7 @@ class DataIntegrationService {
           if (matchedSupplyNationData.supplynationId && matchedSupplyNationData.supplynationId !== 'unknown') {
             try {
               const profileUrl = `https://ibd.supplynation.org.au/public/s/supplierprofile?accid=${matchedSupplyNationData.supplynationId}`;
-              const { getSupplyNationProfileDetails } = await import('./supply-nation-scraper-fixed');
+              const { getSupplyNationProfileDetails } = await import('./supply-nation-scraper-clean');
               const detailedProfile = await getSupplyNationProfileDetails(profileUrl);
               
               if (detailedProfile) {
