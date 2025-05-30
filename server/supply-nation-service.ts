@@ -191,13 +191,36 @@ class SupplyNationScraper {
 
     console.log('Parsing Supply Nation HTML, page length:', html.length);
     console.log('Sample HTML snippet:', html.substring(0, 500));
+    
+    // Debug: Log all unique class names to understand page structure
+    const allClasses = new Set<string>();
+    $('*[class]').each((_, element) => {
+      const classes = $(element).attr('class')?.split(' ') || [];
+      classes.forEach(cls => cls.trim() && allClasses.add(cls));
+    });
+    console.log('Found CSS classes (first 20):', Array.from(allClasses).slice(0, 20));
+    
+    // Debug: Check for specific Supply Nation patterns
+    const salesforceComponents = $('[data-aura-class], [data-ltng-class], .slds-, .forceRecordLayout, c-').length;
+    console.log('Salesforce/Lightning components found:', salesforceComponents);
 
     // Try multiple possible selectors for business listings
     const possibleSelectors = [
+      // Salesforce Lightning Component selectors
+      'c-supplier-search-result', 'c-business-card', 'c-search-result',
+      '[data-aura-class*="supplier"]', '[data-aura-class*="business"]',
+      '.slds-card', '.forceListViewManagerPrimaryDisplayManager',
+      '.forceRecordLayout', '.slds-grid_vertical',
+      
+      // Traditional selectors
       '.business-card', '.search-result-item', '.business-listing',
       '.result-item', '.supplier-card', '.business-profile',
       '.search-result', '.listing', '.business-entry',
-      '[data-business]', '.card', '.item'
+      '[data-business]', '.card', '.item',
+      
+      // More generic patterns
+      '[class*="supplier"]', '[class*="business"]', '[class*="result"]',
+      'article', '.row', '.col'
     ];
 
     let foundElements = 0;
