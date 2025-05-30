@@ -339,14 +339,27 @@ export default function UnifiedSearch({ map, onLocationSelect, onBusinessSelect 
                         )}
                       </div>
                       
-                      {/* Location */}
+                      {/* Location - Prioritize Supply Nation address */}
                       <div className="text-xs text-gray-500 flex items-center gap-1">
                         <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                         </svg>
-                        {business.displayAddress}
+                        {business.supplyNationData?.location || business.displayAddress}
                       </div>
+                      
+                      {/* Owner/Founder Information */}
+                      {business.supplyNationData?.companyName && 
+                       business.supplyNationData.companyName.includes(',') && 
+                       !business.supplyNationData.companyName.includes('PTY') && 
+                       !business.supplyNationData.companyName.includes('LTD') && (
+                        <div className="text-xs text-orange-700 mt-1 flex items-center gap-1 bg-orange-50 px-1.5 py-0.5 rounded">
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                          </svg>
+                          <span className="font-medium">Owner:</span> {business.supplyNationData.companyName}
+                        </div>
+                      )}
                       
                       {/* Supply Nation Categories */}
                       {business.supplyNationData?.categories && business.supplyNationData.categories.length > 0 && (

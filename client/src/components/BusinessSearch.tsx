@@ -166,15 +166,32 @@ export default function BusinessSearch() {
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-3">
-                    {/* Location Information */}
-                    {(business.address.suburb || business.address.stateCode || business.address.postcode) && (
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <MapPin className="w-4 h-4" />
-                        <span>
-                          {[business.address.suburb, business.address.stateCode, business.address.postcode]
-                            .filter(Boolean)
-                            .join(', ')}
-                        </span>
+                    {/* Location Information - Prioritize Supply Nation address */}
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <MapPin className="w-4 h-4" />
+                      <span>
+                        {business.supplyNationData?.location || 
+                         [business.address.suburb, business.address.stateCode, business.address.postcode]
+                           .filter(Boolean)
+                           .join(', ')}
+                      </span>
+                    </div>
+
+                    {/* Owner/Founder Information */}
+                    {business.supplyNationData?.companyName && 
+                     business.supplyNationData.companyName.includes(',') && 
+                     !business.supplyNationData.companyName.includes('PTY') && 
+                     !business.supplyNationData.companyName.includes('LTD') && (
+                      <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 mt-2">
+                        <h4 className="font-medium text-sm text-orange-900 mb-1 flex items-center gap-2">
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                          </svg>
+                          Indigenous Business Owner
+                        </h4>
+                        <p className="text-sm text-orange-800">
+                          {business.supplyNationData.companyName}
+                        </p>
                       </div>
                     )}
 
