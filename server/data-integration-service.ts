@@ -1,4 +1,4 @@
-import { searchSupplyNationBusinesses, SupplyNationBusiness } from './supply-nation-service';
+import { searchSupplyNationWithPuppeteer, SupplyNationBusiness } from './supply-nation-scraper';
 import { searchBusinessesByName, enrichBusinessWithLocation, ABRBusinessDetails } from './abr-service';
 import { supplyNationCache } from './supply-nation-cache';
 
@@ -71,33 +71,13 @@ class DataIntegrationService {
           console.log(`Using cached Supply Nation data: ${cachedResults.length} businesses`);
           supplyNationResults = cachedResults;
         } else {
-          console.log('Searching Supply Nation data via HTTP...');
+          console.log('Searching Supply Nation data via Puppeteer...');
           try {
-            const snResults = await searchSupplyNationBusinesses(query, location);
+            const snResults = await searchSupplyNationWithPuppeteer(query, location);
             supplyNationResults = snResults.businesses;
-            console.log(`Found ${supplyNationResults.length} businesses from Supply Nation via HTTP`);
-            
-            // If HTTP search returns no results, try fallback authentication approach
-            if (supplyNationResults.length === 0) {
-              console.log('HTTP search returned no results, trying enhanced authentication...');
-              const { httpExtractor } = await import('./supply-nation-http-extractor');
-              
-              // Try known Supply Nation profile IDs for businesses in our search
-              const knownProfiles = ['sn_1', 'sn_9']; // Known profile IDs from our system
-              for (const profileId of knownProfiles) {
-                try {
-                  const profile = await httpExtractor.extractProfile(profileId);
-                  if (profile && profile.companyName.toLowerCase().includes(query.toLowerCase())) {
-                    supplyNationResults.push(profile);
-                    console.log(`Found verified business via direct profile extraction: ${profile.companyName}`);
-                  }
-                } catch (extractError) {
-                  console.log(`Profile extraction failed for ${profileId}:`, extractError);
-                }
-              }
-            }
-          } catch (httpError) {
-            console.error('Supply Nation HTTP search failed:', httpError);
+            console.log(`Found ${supplyNationResults.length} businesses from Supply Nation via Puppeteer`);
+          } catch (puppeteerError) {
+            console.error('Supply Nation Puppeteer search failed:', puppeteerError);
           }
           
           // Store fresh data in database cache
