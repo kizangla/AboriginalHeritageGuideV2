@@ -55,7 +55,8 @@ export default function BusinessMapLayer({ map, onBusinessSelect }: BusinessMapL
           fullAddress: business.address?.fullAddress || ''
         },
         supplyNationVerified: business.supplyNationVerified,
-        verificationConfidence: business.verificationConfidence
+        verificationConfidence: business.verificationConfidence,
+        supplyNationData: business.supplyNationData // Include Supply Nation contact data
       })) || [];
       return { businesses, totalResults: data.totalResults || 0 };
     }
@@ -135,9 +136,79 @@ export default function BusinessMapLayer({ map, onBusinessSelect }: BusinessMapL
             </div>`;
           };
 
+          // Enhanced popup with Supply Nation contact information
+          const getContactInfo = () => {
+            if (!business.supplyNationData) return '';
+            
+            let contactHtml = '';
+            const contactInfo = business.supplyNationData.contactInfo || {};
+            const detailedAddress = business.supplyNationData.detailedAddress;
+            
+            // Trading name
+            if (business.supplyNationData.tradingName) {
+              contactHtml += `
+                <p style="margin: 0 0 6px 0; font-size: 12px; color: #666;">
+                  <strong>Trading as:</strong> ${business.supplyNationData.tradingName}
+                </p>`;
+            }
+            
+            // Contact person
+            if (contactInfo.contactPerson) {
+              contactHtml += `
+                <p style="margin: 0 0 6px 0; font-size: 12px; color: #666;">
+                  <strong>Contact:</strong> ${contactInfo.contactPerson}
+                </p>`;
+            }
+            
+            // Phone
+            if (contactInfo.phone) {
+              contactHtml += `
+                <p style="margin: 0 0 6px 0; font-size: 12px; color: #666;">
+                  <strong>Phone:</strong> <a href="tel:${contactInfo.phone}" style="color: #3498db; text-decoration: none;">${contactInfo.phone}</a>
+                </p>`;
+            }
+            
+            // Email
+            if (contactInfo.email) {
+              contactHtml += `
+                <p style="margin: 0 0 6px 0; font-size: 12px; color: #666;">
+                  <strong>Email:</strong> <a href="mailto:${contactInfo.email}" style="color: #3498db; text-decoration: none;">${contactInfo.email}</a>
+                </p>`;
+            }
+            
+            // Website
+            if (contactInfo.website) {
+              contactHtml += `
+                <p style="margin: 0 0 6px 0; font-size: 12px; color: #666;">
+                  <strong>Website:</strong> <a href="${contactInfo.website}" target="_blank" style="color: #3498db; text-decoration: none;">Visit Website</a>
+                </p>`;
+            }
+            
+            // Detailed address
+            if (detailedAddress && detailedAddress.streetAddress) {
+              contactHtml += `
+                <p style="margin: 0 0 6px 0; font-size: 12px; color: #666;">
+                  <strong>Address:</strong> ${detailedAddress.streetAddress}, ${detailedAddress.suburb} ${detailedAddress.state} ${detailedAddress.postcode}
+                </p>`;
+            }
+            
+            // Services
+            if (business.supplyNationData.categories && business.supplyNationData.categories.length > 0) {
+              contactHtml += `
+                <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #eee;">
+                  <p style="margin: 0 0 4px 0; font-size: 11px; font-weight: bold; color: #666;">SERVICES:</p>
+                  <p style="margin: 0; font-size: 11px; color: #666; line-height: 1.4;">
+                    ${business.supplyNationData.categories.slice(0, 3).join(' • ')}
+                  </p>
+                </div>`;
+            }
+            
+            return contactHtml;
+          };
+
           const marker = L.marker([business.lat, business.lng], { icon: businessIcon })
             .bindPopup(`
-              <div style="min-width: 220px; font-family: system-ui, -apple-system, sans-serif;">
+              <div style="min-width: 280px; font-family: system-ui, -apple-system, sans-serif;">
                 ${getVerificationBadge()}
                 <h3 style="margin: 0 0 8px 0; font-size: 16px; font-weight: bold; color: #2c3e50; line-height: 1.3;">
                   ${business.entityName}
@@ -146,14 +217,9 @@ export default function BusinessMapLayer({ map, onBusinessSelect }: BusinessMapL
                   <strong>ABN:</strong> ${business.abn}
                 </p>
                 <p style="margin: 0 0 4px 0; font-size: 12px; color: #666;">
-                  <strong>Type:</strong> ${business.entityType}
-                </p>
-                <p style="margin: 0 0 4px 0; font-size: 12px; color: #666;">
                   <strong>Status:</strong> ${business.status}
                 </p>
-                <p style="margin: 0; font-size: 12px; color: #666;">
-                  <strong>Address:</strong> ${business.displayAddress}
-                </p>
+                ${getContactInfo()}
               </div>
             `)
             .addTo(map);
