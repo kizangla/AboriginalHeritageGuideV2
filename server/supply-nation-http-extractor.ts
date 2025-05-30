@@ -231,59 +231,66 @@ export class SupplyNationHttpExtractor {
    * Extract detailed address information
    */
   private extractDetailedAddress($: cheerio.CheerioAPI): { location: string; detailed: any } {
-    // Try to extract address from the profile page
-    const addressSelectors = [
-      '.address-info',
-      '.contact-address',
-      '[class*="address"]',
-      '.profile-address',
-      '.location-info'
-    ];
-
+    // Look for address information in the Supply Nation profile
     let extractedAddress = '';
     
-    for (const selector of addressSelectors) {
-      const addressElement = $(selector);
-      if (addressElement.length > 0) {
-        const text = addressElement.text().trim();
-        if (text && text.length > 10) { // Valid address should be longer than 10 chars
-          extractedAddress = text;
-          break;
-        }
-      }
-    }
-
-    // Fallback: look for address patterns in any text
-    if (!extractedAddress) {
-      $('*').each((_, element) => {
-        const text = $(element).text().trim();
-        // Look for Australian address patterns
-        if (text.match(/\d+\s+[A-Z\s]+(RD|ROAD|ST|STREET|AVE|AVENUE|DR|DRIVE|PL|PLACE|CT|COURT),?\s+[A-Z\s]+\s+(VIC|NSW|QLD|WA|SA|TAS|NT|ACT)\s+\d{4}/i)) {
-          extractedAddress = text;
-          return false; // Break the loop
-        }
-      });
-    }
-
-    if (extractedAddress) {
-      // Parse the extracted address
-      const addressMatch = extractedAddress.match(/(.+?),?\s+([A-Z\s]+)\s+(VIC|NSW|QLD|WA|SA|TAS|NT|ACT)\s+(\d{4})/i);
-      if (addressMatch) {
-        return {
-          location: extractedAddress,
-          detailed: {
-            streetAddress: addressMatch[1].trim(),
-            suburb: addressMatch[2].trim(),
-            state: addressMatch[3].toUpperCase(),
-            postcode: addressMatch[4]
+    // Try to find address in various locations on the page
+    const addressText = $('body').text();
+    
+    // Look for Australian address patterns in the full page text
+    const addressPatterns = [
+      /(\d+(?:-\d+)?(?:\s+[A-Z]+)?\s+[A-Z\s]+(ROAD|RD|STREET|ST|AVENUE|AVE|DRIVE|DR|PLACE|PL|COURT|CT|LANE|LN|CRESCENT|CRES|CIRCUIT|CCT|BOULEVARD|BLVD|TERRACE|TCE|HIGHWAY|HWY|WAY))[,\s]+([A-Z\s]+)[,\s]+(VIC|NSW|QLD|WA|SA|TAS|NT|ACT)\s+(\d{4})/gi,
+      /(\d+(?:\s+[A-Z]+)?\s+[A-Z\s-]+(RD|ROAD|ST|STREET|AVE|AVENUE|DR|DRIVE|PL|PLACE|CT|COURT))[,\s]*([A-Z\s]+)[,\s]+(VIC|NSW|QLD|WA|SA|TAS|NT|ACT)\s+(\d{4})/gi
+    ];
+    
+    for (const pattern of addressPatterns) {
+      const matches = addressText.matchAll(pattern);
+      for (const match of matches) {
+        if (match[0] && match[0].length > 15) { // Valid address should be reasonably long
+          extractedAddress = match[0].trim();
+          
+          // Parse the components
+          const streetAddress = match[1]?.trim();
+          const suburb = match[3]?.trim();
+          const state = match[4]?.trim().toUpperCase();
+          const postcode = match[5]?.trim();
+          
+          if (streetAddress && suburb && state && postcode) {
+            return {
+              location: `${streetAddress}, ${suburb}, ${state}`,
+              detailed: {
+                streetAddress,
+                suburb,
+                state,
+                postcode
+              }
+            };
           }
-        };
+        }
       }
     }
 
-    // Default fallback
+    // If no full address found, try to extract just the location mentioned in the profile
+    const locationMatch = addressText.match(/([A-Z\s]+),?\s+(VIC|NSW|QLD|WA|SA|TAS|NT|ACT)(?:\s+(\d{4}))?/i);
+    if (locationMatch) {
+      const suburb = locationMatch[1].trim();
+      const state = locationMatch[2].toUpperCase();
+      const postcode = locationMatch[3] || '';
+      
+      return {
+        location: `${suburb}, ${state}`,
+        detailed: {
+          streetAddress: '',
+          suburb,
+          state,
+          postcode
+        }
+      };
+    }
+
+    // Default fallback - don't return hardcoded data
     return {
-      location: 'Address not available',
+      location: 'Location not specified',
       detailed: {
         streetAddress: '',
         suburb: '',
