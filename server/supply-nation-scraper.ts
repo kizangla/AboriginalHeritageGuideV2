@@ -374,12 +374,73 @@ class SupplyNationScraper {
 
         businessElements.forEach((element, index) => {
           try {
-            // Enhanced business name extraction
-            const companyName = 
-              element.querySelector('h1, h2, h3, .title, .name, .company-name, [data-company-name]')?.textContent?.trim() ||
-              element.querySelector('a[href*="business"], .business-title, .listing-title')?.textContent?.trim() ||
-              element.querySelector('strong, .bold, .heading')?.textContent?.trim() ||
-              `Business ${index + 1}`;
+            // Debug: Log element structure to understand what we're working with
+            if (index === 0) {
+              console.log(`Element ${index} HTML sample:`, element.outerHTML.substring(0, 500));
+              console.log(`Element ${index} text content:`, element.textContent?.substring(0, 200));
+            }
+            
+            // Enhanced business name extraction for Supply Nation's structure
+            let companyName = '';
+            
+            // Try multiple strategies to extract real business names
+            const nameSelectors = [
+              // Salesforce Lightning specific selectors
+              'lightning-formatted-text[data-output-element-id*="name"]',
+              'lightning-formatted-text[data-output-element-id*="title"]',
+              '.slds-text-heading_medium',
+              '.slds-text-heading_small', 
+              '.slds-text-title',
+              // Standard selectors
+              'h1, h2, h3, h4',
+              '.title, .name, .company-name',
+              '[data-company-name], [data-business-name]',
+              'a[href*="business"], .business-title, .listing-title',
+              'strong, .bold, .heading',
+              // Text content extraction
+              'div[class*="name"], span[class*="name"]',
+              '[class*="title"], [class*="heading"]'
+            ];
+            
+            for (const selector of nameSelectors) {
+              const nameElement = element.querySelector(selector);
+              if (nameElement && nameElement.textContent?.trim()) {
+                const text = nameElement.textContent.trim();
+                // Filter out generic text and navigation elements
+                if (text.length > 2 && 
+                    !text.toLowerCase().includes('search') &&
+                    !text.toLowerCase().includes('filter') &&
+                    !text.toLowerCase().includes('result') &&
+                    !text.toLowerCase().includes('page') &&
+                    text !== 'Login' && text !== 'Join now') {
+                  companyName = text;
+                  break;
+                }
+              }
+            }
+            
+            // If no name found, try extracting from full text content
+            if (!companyName) {
+              const fullText = element.textContent?.trim() || '';
+              const lines = fullText.split('\n').map(l => l.trim()).filter(l => l.length > 2);
+              
+              // Look for the first meaningful line that could be a business name
+              for (const line of lines.slice(0, 5)) {
+                if (line.length > 2 && line.length < 100 &&
+                    !line.toLowerCase().includes('search') &&
+                    !line.toLowerCase().includes('filter') &&
+                    !line.toLowerCase().includes('certified') &&
+                    !line.toLowerCase().includes('login')) {
+                  companyName = line;
+                  break;
+                }
+              }
+            }
+            
+            // Only use fallback if absolutely no name found
+            if (!companyName || companyName.length < 3) {
+              companyName = `Business ${index + 1}`;
+            }
 
             if (companyName && companyName.length > 2) {
               // Enhanced description extraction
