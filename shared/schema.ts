@@ -81,6 +81,24 @@ export const culturalSites = pgTable("cultural_sites", {
   respectGuidelines: text("respect_guidelines"),
 });
 
+export const supplyNationBusinesses = pgTable("supply_nation_businesses", {
+  id: serial("id").primaryKey(),
+  abn: text("abn"),
+  companyName: text("company_name").notNull(),
+  verified: integer("verified").default(1),
+  categories: text("categories").array(),
+  location: text("location"),
+  email: text("email"),
+  phone: text("phone"),
+  website: text("website"),
+  description: text("description"),
+  supplynationId: text("supplynation_id").notNull().unique(),
+  capabilities: text("capabilities").array(),
+  certifications: text("certifications").array(),
+  lastScraped: text("last_scraped"),
+  createdAt: text("created_at")
+});
+
 export const insertTerritorySchema = createInsertSchema(territories).omit({
   id: true,
 });
@@ -95,6 +113,16 @@ export const insertBusinessSchema = createInsertSchema(businesses).omit({
 export const insertCulturalSiteSchema = createInsertSchema(culturalSites).omit({
   id: true,
 });
+
+export const insertSupplyNationBusinessSchema = createInsertSchema(supplyNationBusinesses).omit({
+  id: true,
+  lastScraped: true,
+  createdAt: true,
+});
+
+// Type definitions
+export type SupplyNationBusiness = typeof supplyNationBusinesses.$inferSelect;
+export type InsertSupplyNationBusiness = z.infer<typeof insertSupplyNationBusinessSchema>;
 
 // Relations
 import { relations } from "drizzle-orm";
