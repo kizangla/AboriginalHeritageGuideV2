@@ -1,4 +1,4 @@
-import { searchSupplyNationWithPuppeteer, SupplyNationBusiness } from './supply-nation-scraper';
+import { supplyNationDirect, SupplyNationBusiness } from './supply-nation-direct';
 import { searchBusinessesByName, enrichBusinessWithLocation, ABRBusinessDetails } from './abr-service';
 import { supplyNationCache } from './supply-nation-cache';
 
@@ -71,13 +71,13 @@ class DataIntegrationService {
           console.log(`Using cached Supply Nation data: ${cachedResults.length} businesses`);
           supplyNationResults = cachedResults;
         } else {
-          console.log('Searching Supply Nation data via Puppeteer...');
+          console.log('Searching Supply Nation data via direct HTTP...');
           try {
-            const snResults = await searchSupplyNationWithPuppeteer(query, location);
+            const snResults = await supplyNationDirect.searchBusinesses(query, location);
             supplyNationResults = snResults.businesses;
-            console.log(`Found ${supplyNationResults.length} businesses from Supply Nation via Puppeteer`);
-          } catch (puppeteerError) {
-            console.error('Supply Nation Puppeteer search failed:', puppeteerError);
+            console.log(`Found ${supplyNationResults.length} businesses from Supply Nation via direct HTTP`);
+          } catch (httpError) {
+            console.error('Supply Nation direct HTTP search failed:', httpError);
           }
           
           // Store fresh data in database cache

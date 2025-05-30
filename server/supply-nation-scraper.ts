@@ -43,24 +43,20 @@ class SupplyNationScraper {
     if (this.isInitialized) return;
 
     try {
-      this.cluster = await Cluster.launch({
-        concurrency: Cluster.CONCURRENCY_CONTEXT,
-        maxConcurrency: 2,
-        puppeteerOptions: {
-          executablePath: '/nix/store/zi4f80l169xlmivz8vja8wlphq74qqk0-chromium-125.0.6422.141/bin/chromium',
-          headless: true,
-          args: [
-            '--no-sandbox',
-            '--disable-setuid-sandbox',
-            '--disable-dev-shm-usage',
-            '--disable-accelerated-2d-canvas',
-            '--no-first-run',
-            '--no-zygote',
-            '--single-process',
-            '--disable-gpu'
-          ]
-        },
-        timeout: 30000
+      // Use direct puppeteer instead of cluster for better compatibility
+      const puppeteer = require('puppeteer');
+      
+      this.browser = await puppeteer.launch({
+        executablePath: '/nix/store/zi4f80l169xlmivz8vja8wlphq74qqk0-chromium-125.0.6422.141/bin/chromium',
+        headless: true,
+        args: [
+          '--no-sandbox',
+          '--disable-setuid-sandbox',
+          '--disable-dev-shm-usage',
+          '--disable-gpu',
+          '--single-process',
+          '--no-zygote'
+        ]
       });
 
       this.isInitialized = true;
