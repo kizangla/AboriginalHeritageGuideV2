@@ -855,23 +855,35 @@ class SupplyNationScraper {
       console.log(`Extracting detailed profile from: ${profileUrl}`);
       
       const result = await this.cluster.execute(async ({ page }) => {
-        // Navigate to the profile page
-        await page.goto(profileUrl, { waitUntil: 'networkidle0', timeout: 30000 });
-        
-        // Handle authentication if needed
-        const currentUrl = page.url();
-        if (currentUrl.includes('login') || currentUrl.includes('frontdoor')) {
-          await this.handleAuthentication(page);
+        try {
+          // Navigate to the profile page
           await page.goto(profileUrl, { waitUntil: 'networkidle0', timeout: 30000 });
+          
+          // Handle authentication if needed
+          const currentUrl = page.url();
+          if (currentUrl.includes('login') || currentUrl.includes('frontdoor')) {
+            await this.handleAuthentication(page);
+            await page.goto(profileUrl, { waitUntil: 'networkidle0', timeout: 30000 });
+          }
+          
+          // Wait for content to load
+          await page.waitForSelector('body', { timeout: 10000 });
+          
+          // Use the profile extractor
+          const { extractSupplyNationProfile } = await import('./supply-nation-profile-extractor');
+          return await extractSupplyNationProfile(page, profileUrl);
+        } catch (error) {
+          console.error(`Error in profile extraction:`, error);
+          return null;
         }
-        
-        // Wait for content to load
-        await page.waitForSelector('body', { timeout: 10000 });
-        
-        // Extract detailed business information using DOM queries
-        const companyName = await page.$eval('h1', el => el.textContent?.trim()).catch(() => 
-          page.title().then(title => title.split(' | ')[0]).catch(() => 'Unknown Company')
-        );
+      });
+      
+      return result;
+    } catch (error) {
+      console.error(`Error extracting detailed profile from ${profileUrl}:`, error);
+      return null;
+    }
+  }
         
         // Extract phone number
         const phone = await page.$eval('a[href^="tel:"]', el => 
