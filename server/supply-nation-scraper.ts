@@ -78,7 +78,9 @@ class SupplyNationScraper {
           });
 
           // Handle authentication
+          console.log('Starting Supply Nation authentication...');
           await this.handleAuthentication(page);
+          console.log('Authentication process completed');
 
           // Navigate to search page after authentication
           await page.goto('https://ibd.supplynation.org.au/public/s/search-results', {
@@ -111,6 +113,10 @@ class SupplyNationScraper {
       const username = process.env.SUPPLY_NATION_USERNAME;
       const password = process.env.SUPPLY_NATION_PASSWORD;
 
+      console.log('=== SUPPLY NATION AUTHENTICATION DEBUG ===');
+      console.log(`Username available: ${!!username}`);
+      console.log(`Password available: ${!!password}`);
+
       if (!username || !password) {
         console.log('No Supply Nation credentials provided, proceeding as guest');
         return;
@@ -119,11 +125,13 @@ class SupplyNationScraper {
       console.log(`Attempting Supply Nation login with: ${username.substring(0, 10)}...`);
 
       // Navigate directly to the login page
+      console.log('Navigating to login page...');
       await page.goto('https://ibd.supplynation.org.au/public/s/login/', { 
         waitUntil: 'networkidle0',
         timeout: 30000 
       });
 
+      console.log(`Current URL after navigation: ${page.url()}`);
       await new Promise(resolve => setTimeout(resolve, 3000));
 
       // Since we're already on the login page, look directly for login form fields
@@ -168,15 +176,17 @@ class SupplyNationScraper {
       }
 
       if (usernameField && passwordField) {
-        console.log('Filling login credentials...');
+        console.log('Found login form fields, filling credentials...');
         
         // Clear any existing text and fill username
         await usernameField.click({ clickCount: 3 });
         await usernameField.type(username, { delay: 100 });
+        console.log('Username field filled');
         
         // Clear any existing text and fill password
         await passwordField.click({ clickCount: 3 });
         await passwordField.type(password, { delay: 100 });
+        console.log('Password field filled');
 
         // Find and click submit button using the exact Supply Nation structure
         const submitSelectors = [
@@ -210,15 +220,16 @@ class SupplyNationScraper {
         }
 
         if (submitButton) {
-          console.log('Submitting login form...');
+          console.log('Found submit button, attempting login...');
           
           // Click the submit button and wait for Salesforce Lightning to process
           await submitButton.click();
+          console.log('Submit button clicked');
           
           // Wait longer for Salesforce Lightning components to load
           await new Promise(resolve => setTimeout(resolve, 8000));
           
-          console.log('Login form submitted, waiting for page transition...');
+          console.log('Login form submitted, checking page transition...');
           
           // Check if login was successful by looking for authenticated page elements
           const currentUrl = page.url();
