@@ -47,6 +47,7 @@ class SupplyNationScraper {
         concurrency: Cluster.CONCURRENCY_CONTEXT,
         maxConcurrency: 2,
         puppeteerOptions: {
+          executablePath: '/nix/store/zi4f80l169xlmivz8vja8wlphq74qqk0-chromium-125.0.6422.141/bin/chromium',
           headless: true,
           args: [
             '--no-sandbox',
@@ -55,11 +56,15 @@ class SupplyNationScraper {
             '--disable-accelerated-2d-canvas',
             '--no-first-run',
             '--no-zygote',
-            '--single-process',
-            '--disable-gpu'
+            '--disable-gpu',
+            '--disable-background-timer-throttling',
+            '--disable-backgrounding-occluded-windows',
+            '--disable-renderer-backgrounding',
+            '--disable-features=TranslateUI',
+            '--disable-ipc-flooding-protection'
           ]
         },
-        timeout: 30000
+        timeout: 60000
       });
 
       this.isInitialized = true;
