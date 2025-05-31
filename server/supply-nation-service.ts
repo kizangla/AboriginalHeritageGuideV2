@@ -42,8 +42,11 @@ class SupplyNationScraper {
         return false;
       }
 
-      // First, get the login page to extract any CSRF tokens
-      const loginPageResponse = await fetch(this.loginUrl, {
+      console.log('Attempting Supply Nation authentication...');
+
+      // First, access the login page to get session cookies
+      const loginPageUrl = 'https://ibd.supplynation.org.au/public/s/login';
+      const loginPageResponse = await fetch(loginPageUrl, {
         method: 'GET',
         headers: {
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
