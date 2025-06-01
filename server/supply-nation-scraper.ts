@@ -126,19 +126,43 @@ class SupplyNationScraper {
             timeout: 30000 
           });
           
-          // Handle authentication if needed
-          if (page.url().includes('login') || page.url().includes('frontdoor')) {
-            console.log('Authentication required, handling login...');
+          // Handle the complete authentication flow with redirects
+          const currentUrl = page.url();
+          if (currentUrl.includes('login') || currentUrl.includes('frontdoor') || currentUrl.includes('auth')) {
+            console.log('Authentication required, handling login flow...');
             
             const username = process.env.SUPPLY_NATION_USERNAME;
             const password = process.env.SUPPLY_NATION_PASSWORD;
             
             if (username && password) {
+              // Navigate to login page first
+              await page.goto('https://ibd.supplynation.org.au/public/s/login', { waitUntil: 'networkidle0' });
+              
+              // Fill login form
               await page.waitForSelector('input[type="email"], input[name="username"]', { timeout: 10000 });
               await page.type('input[type="email"], input[name="username"]', username);
               await page.type('input[type="password"], input[name="password"]', password);
+              
+              // Submit and handle redirects
               await page.click('input[type="submit"], button[type="submit"]');
-              await page.waitForNavigation({ waitUntil: 'networkidle0', timeout: 30000 });
+              
+              // Wait for the redirect sequence: login → frontdoor.jsp → CommunitiesLanding → homepage
+              let redirectCount = 0;
+              while (redirectCount < 5) {
+                await page.waitForTimeout(2000);
+                const url = page.url();
+                console.log(`Redirect ${redirectCount + 1}: ${url}`);
+                
+                if (url.includes('frontdoor.jsp')) {
+                  await page.waitForNavigation({ waitUntil: 'networkidle0', timeout: 10000 });
+                } else if (url.includes('CommunitiesLanding')) {
+                  await page.waitForNavigation({ waitUntil: 'networkidle0', timeout: 10000 });
+                } else if (url.includes('homepage') || url.includes('search-results')) {
+                  console.log('Authentication flow completed');
+                  break;
+                }
+                redirectCount++;
+              }
             }
           }
           
