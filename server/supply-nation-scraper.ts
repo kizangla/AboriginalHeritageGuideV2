@@ -114,10 +114,95 @@ class SupplyNationScraper {
     try {
       console.log(`Searching Supply Nation for: "${query}" in location: ${location || 'all'}`);
       
-      // For now, return empty results to avoid errors
+      const businesses: SupplyNationBusiness[] = [];
+      
+      const result = await this.cluster.execute(async ({ page }: any, data: any) => {
+        const extractedBusinesses: SupplyNationBusiness[] = [];
+        
+        try {
+          // Navigate to Supply Nation search
+          await page.goto('https://ibd.supplynation.org.au/public/s/search-results', { 
+            waitUntil: 'networkidle0',
+            timeout: 30000 
+          });
+          
+          // Handle authentication if needed
+          if (page.url().includes('login') || page.url().includes('frontdoor')) {
+            console.log('Authentication required, handling login...');
+            
+            const username = process.env.SUPPLY_NATION_USERNAME;
+            const password = process.env.SUPPLY_NATION_PASSWORD;
+            
+            if (username && password) {
+              await page.waitForSelector('input[type="email"], input[name="username"]', { timeout: 10000 });
+              await page.type('input[type="email"], input[name="username"]', username);
+              await page.type('input[type="password"], input[name="password"]', password);
+              await page.click('input[type="submit"], button[type="submit"]');
+              await page.waitForNavigation({ waitUntil: 'networkidle0', timeout: 30000 });
+            }
+          }
+          
+          // Perform search
+          const searchInput = await page.waitForSelector('input[name="q"], input[type="search"]', { timeout: 10000 });
+          if (searchInput) {
+            await searchInput.clear();
+            await searchInput.type(data.query);
+            
+            // Submit search
+            await Promise.race([
+              page.keyboard.press('Enter'),
+              page.click('button[type="submit"], input[type="submit"]')
+            ]);
+            
+            // Wait for results
+            await page.waitForTimeout(3000);
+            await page.waitForSelector('.search-results, .business-list, .supplier-card', { timeout: 10000 });
+            
+            // Extract business data
+            const businessElements = await page.$$('.supplier-card, .business-item, .search-result');
+            
+            for (const element of businessElements) {
+              try {
+                const companyName = await element.$eval('.company-name, .business-name, h3, h2', (el: any) => el.textContent?.trim()).catch(() => '');
+                
+                if (companyName && companyName.length > 2) {
+                  const location = await element.$eval('.location, .address', (el: any) => el.textContent?.trim()).catch(() => '');
+                  const description = await element.$eval('.description, .services', (el: any) => el.textContent?.trim()).catch(() => '');
+                  
+                  // Extract profile link for Supply Nation ID
+                  const profileLink = await element.$eval('a', (el: any) => el.href).catch(() => '');
+                  const supplynationId = profileLink.includes('accid=') ? 
+                    profileLink.split('accid=')[1].split('&')[0] : 'unknown';
+                  
+                  extractedBusinesses.push({
+                    companyName,
+                    verified: true,
+                    categories: [],
+                    location: location || 'Australia',
+                    contactInfo: {},
+                    description: description || undefined,
+                    supplynationId,
+                    capabilities: [],
+                    certifications: ['Supply Nation Verified']
+                  });
+                }
+              } catch (extractError) {
+                console.error('Error extracting business data:', extractError);
+              }
+            }
+          }
+        } catch (searchError) {
+          console.error('Search execution error:', searchError);
+        }
+        
+        return extractedBusinesses;
+      }, { query });
+      
+      businesses.push(...(result || []));
+      
       return {
-        businesses: [],
-        totalResults: 0,
+        businesses,
+        totalResults: businesses.length,
         searchQuery: query,
         timestamp: new Date()
       };
