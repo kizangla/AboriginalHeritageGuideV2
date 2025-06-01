@@ -169,7 +169,7 @@ class SupplyNationScraper {
           // Perform search
           const searchInput = await page.waitForSelector('input[name="q"], input[type="search"]', { timeout: 10000 });
           if (searchInput) {
-            await searchInput.clear();
+            await page.evaluate((input) => input.value = '', searchInput);
             await searchInput.type(data.query);
             
             // Submit search
