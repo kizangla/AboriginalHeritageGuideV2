@@ -60,7 +60,7 @@ function getPostcodeCoordinates(postcode: string, stateCode: string): { lat: num
 }
 
 import { indigenousBusinessService } from "./indigenous-business-service";
-import { geocodingService } from "./geocoding-service";
+import { asyncGeocodingService } from "./async-geocoding-service";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Get all territories as GeoJSON
@@ -222,34 +222,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const abrResults = await searchBusinessesByName(query);
       console.log(`Found ${abrResults.totalResults} businesses in ABR for: "${query}"`);
       
-      // Transform all businesses with geocoding service for precise coordinates
-      const allBusinesses = await Promise.all(
-        abrResults.businesses.map(async (business: ABRBusinessDetails) => {
-          // Get coordinates using the geocoding service
-          const geoResult = await geocodingService.geocodeBusiness(business);
-          
-          console.log(`${business.entityName}: ${geoResult.lat}, ${geoResult.lng} (${geoResult.source})`);
+      // Transform all businesses with immediate coordinate mapping
+      const allBusinesses = abrResults.businesses.map((business: ABRBusinessDetails) => {
+        // Get immediate coordinates (non-blocking)
+        const geoResult = asyncGeocodingService.getImmediateCoordinates(business);
+        
+        console.log(`${business.entityName}: ${geoResult.lat}, ${geoResult.lng} (${geoResult.accuracy})`);
 
-          return {
-            id: `abr-${business.abn}`,
-            name: business.entityName,
-            entityName: business.entityName,
-            businessType: business.entityType,
-            entityType: business.entityType,
-            address: business.address.fullAddress || 
-                    `${business.address.suburb || ''} ${business.address.stateCode || ''} ${business.address.postcode || ''}`.trim(),
-            abn: business.abn,
-            status: business.status,
-            lat: geoResult.lat,
-            lng: geoResult.lng,
-            isVerified: business.supplyNationVerified || false,
-            verificationSource: business.supplyNationVerified ? 'supply_nation' : 'abr_data',
-            verificationConfidence: business.supplyNationVerified ? 'high' : 'medium',
-            supplyNationVerified: business.supplyNationVerified || false,
-            source: 'ABR'
-          };
-        })
-      );
+        return {
+          id: `abr-${business.abn}`,
+          name: business.entityName,
+          entityName: business.entityName,
+          businessType: business.entityType,
+          entityType: business.entityType,
+          address: business.address.fullAddress || 
+                  `${business.address.suburb || ''} ${business.address.stateCode || ''} ${business.address.postcode || ''}`.trim(),
+          abn: business.abn,
+          status: business.status,
+          lat: geoResult.lat,
+          lng: geoResult.lng,
+          isVerified: business.supplyNationVerified || false,
+          verificationSource: business.supplyNationVerified ? 'supply_nation' : 'abr_data',
+          verificationConfidence: business.supplyNationVerified ? 'high' : 'medium',
+          supplyNationVerified: business.supplyNationVerified || false,
+          source: 'ABR'
+        };
+      });
       
       console.log(`Returning ${allBusinesses.length} businesses from ABR`);
       res.json(allBusinesses);
