@@ -194,13 +194,27 @@ class SupplyNationScraper {
 
     console.log('Parsing Supply Nation HTML, page length:', html.length);
     console.log('Sample HTML snippet:', html.substring(0, 500));
+    
+    // Check if we're actually on a search results page
+    if (html.includes('login') || html.includes('authentication')) {
+      console.log('Detected login page - authentication may have failed');
+      return { businesses: [], totalResults: 0 };
+    }
 
-    // Try multiple possible selectors for business listings
+    // Look for actual content patterns in Supply Nation's current HTML structure
     const possibleSelectors = [
+      // Standard Supply Nation selectors
+      '.slds-card', '.supplier-tile', '.business-tile',
+      '.slds-grid_wrap', '.slds-box', '.slds-media',
+      // Lightning components (Salesforce-based)
+      'c-supplier-search-results', 'lightning-card', 'c-search-result',
+      // Generic business listing patterns
       '.business-card', '.search-result-item', '.business-listing',
       '.result-item', '.supplier-card', '.business-profile',
       '.search-result', '.listing', '.business-entry',
-      '[data-business]', '.card', '.item'
+      '[data-business]', '.card', '.item',
+      // Look for any links that might contain business names
+      'a[href*="supplier"]', 'a[href*="business"]', 'a[href*="profile"]'
     ];
 
     let foundElements = 0;
