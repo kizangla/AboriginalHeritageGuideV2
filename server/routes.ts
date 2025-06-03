@@ -485,7 +485,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // MGM Alliance specific endpoint
+  // MGM Alliance comprehensive business profile endpoint
   app.get('/api/businesses/mgm-alliance', async (req, res) => {
     try {
       // Get verified ABR data for MGM Alliance
@@ -501,7 +501,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      // Enhanced business profile with verified data
+      // Attempt Supply Nation enhancement
+      let supplyNationData = null;
+      try {
+        const { integratedDynamicSearch } = await import('./integrated-dynamic-search');
+        const enhancedResults = await integratedDynamicSearch.searchBusinessesDynamically('MGM Alliance', {
+          includeSupplyNation: true,
+          refreshSession: false,
+          limit: 3
+        });
+
+        const mgmSupplyNationMatch = enhancedResults.businesses.find(business => 
+          business.entityName.toLowerCase().includes('mgm alliance') && 
+          business.supplyNationVerified
+        );
+
+        if (mgmSupplyNationMatch) {
+          supplyNationData = {
+            verified: true,
+            profileUrl: mgmSupplyNationMatch.profileUrl,
+            categories: mgmSupplyNationMatch.categories,
+            description: mgmSupplyNationMatch.description,
+            verificationSource: mgmSupplyNationMatch.verificationSource
+          };
+        }
+      } catch (supplyNationError) {
+        console.log('Supply Nation enhancement not available:', supplyNationError.message);
+      }
+
+      // Comprehensive business profile
       const mgmAllianceProfile = {
         companyName: mgmAllianceABR.entityName,
         abn: mgmAllianceABR.abn,
@@ -520,15 +548,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         },
         verification: {
           abrVerified: true,
-          supplyNationVerified: false,
-          verificationSource: 'Australian Business Register',
+          supplyNationVerified: supplyNationData?.verified || false,
+          verificationSource: supplyNationData?.verified ? 
+            'Australian Business Register + Supply Nation' : 
+            'Australian Business Register',
           lastVerified: new Date()
         },
         coordinates: {
           lat: mgmAllianceABR.lat,
           lng: mgmAllianceABR.lng
         },
-        dataSource: 'Official Government Registry',
+        supplyNationProfile: supplyNationData || null,
+        dataSource: 'Integrated Official Sources',
         searchQuery: 'MGM Alliance'
       };
 
@@ -538,11 +569,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         dataIntegrity: {
           authenticData: true,
           governmentVerified: true,
-          realTimeData: true
+          realTimeData: true,
+          indigenousVerification: supplyNationData?.verified || false
         },
         sources: {
           abr: 'Verified',
-          supplyNation: 'Authentication required for enhanced profile'
+          supplyNation: supplyNationData?.verified ? 'Enhanced Profile Available' : 'Standard Verification'
         }
       });
 
