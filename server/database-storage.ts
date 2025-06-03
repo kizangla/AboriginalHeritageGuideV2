@@ -54,9 +54,9 @@ export class DatabaseStorage implements IStorage {
         return;
       }
 
-      // Load authentic Indigenous territories from the provided GeoJSON data
-      const geojsonPath = path.join(__dirname, 'data', 'aboriginalTerritories.geojson');
-      console.log('Loading Indigenous territories from:', geojsonPath);
+      // Load authentic Indigenous territories from the updated GeoJSON data
+      const geojsonPath = path.join(__dirname, '..', 'attached_assets', 'ABN_2.geojson');
+      console.log('Loading updated Indigenous territories from:', geojsonPath);
       
       const geojsonData = JSON.parse(fs.readFileSync(geojsonPath, 'utf8'));
       const territoryColors = ['#E74C3C', '#3498DB', '#F39C12', '#27AE60', '#9B59B6', '#E67E22', '#8E44AD', '#2ECC71', '#F1C40F', '#34495E'];
