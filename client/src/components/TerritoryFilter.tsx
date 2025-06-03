@@ -62,7 +62,7 @@ export default function TerritoryFilter({
   ];
 
   return (
-    <Card className="absolute top-4 left-4 z-[1000] w-80 bg-white/95 backdrop-blur-sm shadow-lg">
+    <Card className="absolute top-20 left-4 z-[1000] w-72 bg-white/95 backdrop-blur-sm shadow-lg max-h-[calc(100vh-200px)] overflow-y-auto">
       <Collapsible open={isOpen} onOpenChange={setIsOpen}>
         <CollapsibleTrigger asChild>
           <CardHeader className="pb-2 cursor-pointer hover:bg-gray-50 transition-colors">

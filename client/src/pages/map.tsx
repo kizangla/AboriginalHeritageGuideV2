@@ -141,7 +141,7 @@ export default function MapPage() {
         />
         
         {/* Minimalist Controls */}
-        <div className="absolute bottom-6 right-6 z-[1000] flex flex-col gap-2">
+        <div className="absolute bottom-6 left-6 z-[1000] flex flex-col gap-2">
           <Button
             onClick={handleResetView}
             size="sm"

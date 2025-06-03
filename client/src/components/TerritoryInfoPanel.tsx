@@ -24,7 +24,7 @@ export default function TerritoryInfoPanel({
   const traditionalLanguages = territory.traditionalLanguages;
 
   return (
-    <Card className="absolute bottom-6 left-6 z-[1000] w-96 bg-white/95 backdrop-blur-sm shadow-xl border-0 rounded-2xl overflow-hidden">
+    <Card className="absolute bottom-6 right-6 z-[1000] w-96 bg-white/95 backdrop-blur-sm shadow-xl border-0 rounded-2xl overflow-hidden">
       <CardHeader className="pb-3 bg-gradient-to-r from-orange-50 to-yellow-50">
         <div className="flex items-start justify-between">
           <div className="flex-1">
