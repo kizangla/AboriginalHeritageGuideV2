@@ -62,17 +62,71 @@ export class SupplyNationDynamicIntegration {
         return { success: false, businesses: [], error: 'Authentication cooldown active' };
       }
 
-      // Prioritize authenticated demo data for reliable verification
-      console.log('Using verified Supply Nation data for authentication...');
-      const demoBusinesses = this.searchAuthenticatedDemoData(query);
+      // First attempt advanced authentication and live crawling
+      console.log('Attempting advanced Supply Nation authentication...');
+      const advancedInitialized = await supplyNationAdvancedCrawler.initialize();
       
-      if (demoBusinesses.length > 0) {
-        console.log(`Found ${demoBusinesses.length} verified businesses in Supply Nation database`);
-        return { success: true, businesses: demoBusinesses };
+      if (advancedInitialized) {
+        const authenticated = await supplyNationAdvancedCrawler.authenticateAggressively();
+        
+        if (authenticated) {
+          console.log('Advanced authentication successful, searching live data...');
+          const liveBusinesses = await supplyNationAdvancedCrawler.searchBusinessesAdvanced(query);
+          
+          if (liveBusinesses.length > 0) {
+            console.log(`Found ${liveBusinesses.length} businesses through live Supply Nation connection`);
+            
+            // Convert to standard format
+            const convertedBusinesses: SupplyNationVerifiedBusiness[] = liveBusinesses.map(business => ({
+              companyName: business.companyName,
+              abn: business.abn,
+              location: business.location,
+              supplynationId: business.supplynationId,
+              profileUrl: business.profileUrl,
+              verified: business.verified,
+              categories: business.categories,
+              contactInfo: business.contactInfo
+            }));
+            
+            await supplyNationAdvancedCrawler.close();
+            return { success: true, businesses: convertedBusinesses };
+          }
+        }
+        
+        await supplyNationAdvancedCrawler.close();
       }
       
-      console.log('No verified Supply Nation businesses found for this query');
-      return { success: false, businesses: [], error: 'No verified businesses found' };
+      // Fallback to direct crawler for unauthenticated access
+      console.log('Attempting direct Supply Nation access...');
+      const directInitialized = await supplyNationDirectCrawler.initialize();
+      
+      if (directInitialized) {
+        const directBusinesses = await supplyNationDirectCrawler.searchLiveBusiness(query);
+        
+        if (directBusinesses.length > 0) {
+          console.log(`Found ${directBusinesses.length} businesses through direct Supply Nation access`);
+          
+          // Convert to standard format
+          const convertedBusinesses: SupplyNationVerifiedBusiness[] = directBusinesses.map(business => ({
+            companyName: business.companyName,
+            abn: business.abn,
+            location: business.location,
+            supplynationId: business.supplynationId,
+            profileUrl: business.profileUrl,
+            verified: business.verified,
+            categories: business.categories,
+            contactInfo: business.contactInfo
+          }));
+          
+          await supplyNationDirectCrawler.close();
+          return { success: true, businesses: convertedBusinesses };
+        }
+        
+        await supplyNationDirectCrawler.close();
+      }
+      
+      console.log('All Supply Nation access methods failed - authentication credentials required');
+      return { success: false, businesses: [], error: 'Supply Nation access requires valid authentication credentials' };
     } catch (error) {
       console.log(`Live crawling error: ${error}`);
       return { success: false, businesses: [], error: String(error) };

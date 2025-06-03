@@ -361,10 +361,130 @@ export class SupplyNationAdvancedCrawler {
   }
 
   private async extractBusinessData(query: string): Promise<SupplyNationBusinessProfile[]> {
-    // Implement aggressive data extraction techniques
-    // This would perform the actual business search and data extraction
-    console.log('Extracting business data...');
-    return []; // Placeholder for business extraction logic
+    try {
+      console.log(`Extracting business data for: ${query}`);
+      
+      // Navigate to search interface
+      await this.page?.goto('https://ibd.supplynation.org.au/s/search-results', {
+        waitUntil: 'networkidle0',
+        timeout: 15000
+      });
+
+      // Look for search input field
+      const searchSelectors = [
+        'input[type="search"]',
+        'input[name="search"]',
+        'input[placeholder*="search"]',
+        'input[placeholder*="Search"]',
+        '.search-input',
+        '#search',
+        '[data-search]'
+      ];
+
+      let searchInput = null;
+      for (const selector of searchSelectors) {
+        try {
+          await this.page?.waitForSelector(selector, { timeout: 2000 });
+          searchInput = selector;
+          console.log(`Found search input: ${selector}`);
+          break;
+        } catch (e) {
+          // Continue to next selector
+        }
+      }
+
+      if (searchInput) {
+        // Clear any existing search terms
+        await this.page?.click(searchInput, { clickCount: 3 });
+        
+        // Type search query
+        await this.page?.type(searchInput, query, { delay: 100 });
+        
+        // Submit search
+        await this.page?.keyboard.press('Enter');
+        
+        // Wait for results
+        await new Promise(resolve => setTimeout(resolve, 3000));
+        
+        // Extract business data from results
+        const businesses = await this.page?.evaluate(() => {
+          const results: any[] = [];
+          
+          // Look for business result cards/items
+          const resultSelectors = [
+            '.search-result',
+            '.business-card',
+            '.result-item',
+            '[data-business]',
+            '.supplier-card'
+          ];
+          
+          for (const selector of resultSelectors) {
+            const elements = document.querySelectorAll(selector);
+            if (elements.length > 0) {
+              elements.forEach((element, index) => {
+                if (index < 10) { // Limit to first 10 results
+                  const business = {
+                    companyName: '',
+                    abn: '',
+                    location: '',
+                    supplynationId: `sn_${Date.now()}_${index}`,
+                    profileUrl: '',
+                    verified: true,
+                    categories: [],
+                    contactInfo: {},
+                    description: '',
+                    tradingName: '',
+                    detailedAddress: ''
+                  };
+                  
+                  // Extract company name
+                  const nameElement = element.querySelector('h1, h2, h3, .company-name, .business-name, .name');
+                  if (nameElement) {
+                    business.companyName = nameElement.textContent?.trim() || '';
+                  }
+                  
+                  // Extract location
+                  const locationElement = element.querySelector('.location, .address, [data-location]');
+                  if (locationElement) {
+                    business.location = locationElement.textContent?.trim() || '';
+                  }
+                  
+                  // Extract description
+                  const descElement = element.querySelector('.description, .summary, p');
+                  if (descElement) {
+                    business.description = descElement.textContent?.trim() || '';
+                  }
+                  
+                  // Extract profile URL
+                  const linkElement = element.querySelector('a[href]');
+                  if (linkElement) {
+                    business.profileUrl = (linkElement as HTMLAnchorElement).href;
+                  }
+                  
+                  if (business.companyName) {
+                    results.push(business);
+                  }
+                }
+              });
+              break; // Found results, no need to check other selectors
+            }
+          }
+          
+          return results;
+        }) || [];
+
+        console.log(`Extracted ${businesses.length} businesses from Supply Nation`);
+        return businesses;
+      }
+
+      console.log('No search input found on Supply Nation');
+      return [];
+      
+    } catch (error) {
+      console.log(`Business data extraction failed: ${error.message}`);
+      return [];
+    }
   }
 
   async close(): Promise<void> {
