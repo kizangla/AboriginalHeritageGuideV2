@@ -142,14 +142,16 @@ export default function InteractiveMap({ onTerritorySelect, onMapReady }: Intera
           }
         });
 
-        // Bind popup
+        // Enhanced popup with new data structure
         layer.bindPopup(`
           <div class="p-4 min-w-[200px]">
-            <h3 class="font-serif font-bold text-earth-brown mb-2">${feature.properties.name}</h3>
+            <h3 class="font-serif font-bold text-earth-brown mb-2">${feature.properties.Name || feature.properties.name}</h3>
             <div class="space-y-1 text-sm">
-              <p><strong>Group:</strong> ${feature.properties.groupName}</p>
-              <p><strong>Language:</strong> ${feature.properties.languageFamily}</p>
-              <p><strong>Region:</strong> ${feature.properties.region}</p>
+              <p><strong>Region:</strong> ${feature.properties.Region || feature.properties.region || 'Unknown'}</p>
+              ${feature.properties.groupName ? `<p><strong>Group:</strong> ${feature.properties.groupName}</p>` : ''}
+              ${feature.properties.languageFamily ? `<p><strong>Language Family:</strong> ${feature.properties.languageFamily}</p>` : ''}
+              ${feature.properties.regionType ? `<p><strong>Type:</strong> ${feature.properties.regionType}</p>` : ''}
+              ${feature.properties.estimatedPopulation ? `<p><strong>Population:</strong> ${feature.properties.estimatedPopulation}</p>` : ''}
             </div>
           </div>
         `, {

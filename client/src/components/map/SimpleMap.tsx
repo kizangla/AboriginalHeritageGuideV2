@@ -13,7 +13,7 @@ export default function SimpleMap({ onMapReady, onTerritorySelect }: SimpleMapPr
   const mapInstanceRef = useRef<L.Map | null>(null);
   const territoryLayerRef = useRef<L.GeoJSON | null>(null);
 
-  const { data: territoriesGeoJSON, isLoading } = useQuery({
+  const { data: territoriesGeoJSON, isLoading } = useQuery<any>({
     queryKey: ['/api/territories'],
   });
 
@@ -68,6 +68,22 @@ export default function SimpleMap({ onMapReady, onTerritorySelect }: SimpleMapPr
         }),
         onEachFeature: (feature, layer) => {
           const territory = feature.properties;
+          
+          // Enhanced popup with new data structure
+          layer.bindPopup(`
+            <div class="p-3 min-w-[200px]">
+              <h3 class="font-bold text-lg text-earth-brown mb-2">${territory.Name || territory.name}</h3>
+              <div class="space-y-1 text-sm">
+                <p><strong>Region:</strong> ${territory.Region || territory.region || 'Unknown'}</p>
+                ${territory.groupName ? `<p><strong>Group:</strong> ${territory.groupName}</p>` : ''}
+                ${territory.languageFamily ? `<p><strong>Language Family:</strong> ${territory.languageFamily}</p>` : ''}
+                ${territory.regionType ? `<p><strong>Type:</strong> ${territory.regionType}</p>` : ''}
+              </div>
+            </div>
+          `, {
+            className: 'custom-popup'
+          });
+          
           layer.on('click', () => {
             if (onTerritorySelect) {
               onTerritorySelect(territory);
@@ -75,7 +91,7 @@ export default function SimpleMap({ onMapReady, onTerritorySelect }: SimpleMapPr
           });
 
           layer.on('mouseover', () => {
-            layer.setStyle({
+            (layer as any).setStyle({
               fillOpacity: 0.8,
               weight: 3,
             });
@@ -83,7 +99,7 @@ export default function SimpleMap({ onMapReady, onTerritorySelect }: SimpleMapPr
 
           layer.on('mouseout', () => {
             if (territoryLayerRef.current) {
-              territoryLayerRef.current.resetStyle(layer);
+              territoryLayerRef.current.resetStyle(layer as any);
             }
           });
         },
