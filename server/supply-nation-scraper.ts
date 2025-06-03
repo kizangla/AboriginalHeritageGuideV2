@@ -75,37 +75,6 @@ class SupplyNationScraper {
     }
   }
 
-  private async handleAuthentication(page: Page): Promise<void> {
-    try {
-      const currentUrl = page.url();
-      
-      if (currentUrl.includes('login') || currentUrl.includes('frontdoor')) {
-        console.log('Handling Supply Nation authentication...');
-        
-        await page.waitForSelector('input[type="email"], input[name="username"]', { timeout: 10000 });
-        
-        const username = process.env.SUPPLY_NATION_USERNAME;
-        const password = process.env.SUPPLY_NATION_PASSWORD;
-        
-        if (!username || !password) {
-          throw new Error('Supply Nation credentials not provided');
-        }
-        
-        await page.type('input[type="email"], input[name="username"]', username);
-        await page.type('input[type="password"], input[name="password"]', password);
-        
-        await page.click('input[type="submit"], button[type="submit"]');
-        
-        await page.waitForNavigation({ waitUntil: 'networkidle0', timeout: 30000 });
-        
-        console.log('Authentication completed');
-      }
-    } catch (authError) {
-      console.error('Authentication failed:', String(authError));
-      throw authError;
-    }
-  }
-
   async searchBusinesses(query: string, location?: string): Promise<ScrapingResult> {
     if (!this.cluster) {
       throw new Error('Scraper not initialized');
@@ -118,16 +87,18 @@ class SupplyNationScraper {
       
       const result = await this.cluster.execute(async ({ page }: any) => {
         const extractedBusinesses: SupplyNationBusiness[] = [];
-        const searchQuery = query; // Use the outer scope query variable
+        const searchQuery = query;
         
         try {
-          // Navigate to Supply Nation search
-          await page.goto('https://ibd.supplynation.org.au/public/s/search-results', { 
+          // Navigate to Supply Nation homepage first
+          await page.goto('https://ibd.supplynation.org.au/public/s/homepage', { 
             waitUntil: 'networkidle0',
             timeout: 30000 
           });
           
-          // Handle the complete authentication flow with redirects
+          console.log(`Starting page: ${page.url()}`);
+          
+          // Handle authentication if needed
           const currentUrl = page.url();
           if (currentUrl.includes('login') || currentUrl.includes('frontdoor') || currentUrl.includes('auth')) {
             console.log('Authentication required, handling login flow...');
@@ -136,7 +107,7 @@ class SupplyNationScraper {
             const password = process.env.SUPPLY_NATION_PASSWORD;
             
             if (username && password) {
-              // Navigate to login page first
+              // Navigate to login page
               await page.goto('https://ibd.supplynation.org.au/public/s/login', { waitUntil: 'networkidle0' });
               
               // Fill login form
@@ -147,13 +118,10 @@ class SupplyNationScraper {
               // Submit and handle redirects
               await page.click('input[type="submit"], button[type="submit"]');
               
-              // Wait for the complete redirect sequence with proper timing
               console.log('Waiting for authentication redirects...');
-              
-              // Wait a moment for the form submission to process
               await new Promise(resolve => setTimeout(resolve, 2000));
               
-              // Handle the redirect sequence manually
+              // Handle redirect sequence manually
               let currentPageUrl = page.url();
               let redirectAttempts = 0;
               const maxRedirects = 6;
@@ -176,80 +144,99 @@ class SupplyNationScraper {
                 
                 redirectAttempts++;
               }
-              
-              if (redirectAttempts >= maxRedirects) {
-                console.log('Maximum redirects reached, proceeding with current page');
-              }
             }
           }
           
-          // Perform search
-          const searchInput = await page.waitForSelector('input[name="q"], input[type="search"]', { timeout: 10000 });
-          if (searchInput) {
-            await page.evaluate((input) => input.value = '', searchInput);
-            await searchInput.type(searchQuery);
+          // Navigate to search page with query
+          const searchUrl = `https://ibd.supplynation.org.au/public/s/search-results?search=${encodeURIComponent(searchQuery)}&searchfield=all`;
+          console.log(`Navigating to search URL: ${searchUrl}`);
+          
+          await page.goto(searchUrl, { 
+            waitUntil: 'networkidle0',
+            timeout: 30000 
+          });
+          
+          console.log(`Search page loaded: ${page.url()}`);
+          
+          // Wait for content to load
+          await new Promise(resolve => setTimeout(resolve, 5000));
+          
+          // Get page content
+          const pageContent = await page.content();
+          console.log(`Search results page loaded, length: ${pageContent.length}`);
+          
+          // Extract business data using robust JavaScript evaluation
+          const businesses = await page.evaluate((searchTerm: string) => {
+            const foundBusinesses: any[] = [];
             
-            // Submit search
-            await Promise.race([
-              page.keyboard.press('Enter'),
-              page.click('button[type="submit"], input[type="submit"]')
-            ]);
+            // Look for business-like content patterns
+            const allElements = Array.from(document.querySelectorAll('*'));
+            const potentialBusinessElements: Element[] = [];
             
-            // Wait for results and check for content
-            await new Promise(resolve => setTimeout(resolve, 5000));
-            
-            // Check if we have any content on the page first
-            const pageContent = await page.content();
-            console.log(`Search results page loaded, length: ${pageContent.length}`);
-            
-            // Try to find business listings with multiple approaches
-            let businessElements = [];
-            
-            // First try standard selectors
-            try {
-              await page.waitForSelector('body', { timeout: 5000 });
-              businessElements = await page.$$('.supplier-card, .business-item, .search-result, .slds-card, .lightning-card');
-            } catch (selectorError) {
-              console.log('Standard selectors not found, trying alternative approach');
-            }
-            
-            // If no elements found, try broader search for any links or cards
-            if (businessElements.length === 0) {
-              businessElements = await page.$$('a[href*="supplier"], a[href*="business"], a[href*="profile"], .card, .tile, .item');
-            }
-            
-            console.log(`Found ${businessElements.length} potential business elements`);
-            
-            for (const element of businessElements) {
-              try {
-                const companyName = await element.$eval('.company-name, .business-name, h3, h2', (el: any) => el.textContent?.trim()).catch(() => '');
+            // Search for elements with business patterns
+            for (const element of allElements) {
+              const text = element.textContent?.toLowerCase() || '';
+              
+              if ((text.includes(searchTerm.toLowerCase()) || 
+                   text.includes('pty ltd') || 
+                   text.includes('group') ||
+                   text.includes('services') ||
+                   text.includes('consulting')) &&
+                  text.length > 5 && text.length < 200) {
                 
-                if (companyName && companyName.length > 2) {
-                  const location = await element.$eval('.location, .address', (el: any) => el.textContent?.trim()).catch(() => '');
-                  const description = await element.$eval('.description, .services', (el: any) => el.textContent?.trim()).catch(() => '');
+                if (!potentialBusinessElements.some(existing => 
+                    existing.textContent === element.textContent)) {
+                  potentialBusinessElements.push(element);
+                }
+              }
+            }
+            
+            console.log(`Found ${potentialBusinessElements.length} potential business elements`);
+            
+            // Extract business information
+            for (const element of potentialBusinessElements) {
+              try {
+                const text = element.textContent?.trim() || '';
+                
+                // Look for company name patterns
+                const companyNameMatch = text.match(/([A-Z][A-Z\s&]+(?:PTY\s+LTD|GROUP|SERVICES|CONSULTING|SOLUTIONS))/i);
+                if (companyNameMatch) {
+                  const companyName = companyNameMatch[1].trim();
                   
-                  // Extract profile link for Supply Nation ID
-                  const profileLink = await element.$eval('a', (el: any) => el.href).catch(() => '');
-                  const supplynationId = profileLink.includes('accid=') ? 
-                    profileLink.split('accid=')[1].split('&')[0] : 'unknown';
+                  // Find associated location
+                  const parentElement = element.closest('div, article, section, li');
+                  const parentText = parentElement?.textContent || '';
                   
-                  extractedBusinesses.push({
+                  const locationMatch = parentText.match(/(VIC|NSW|QLD|WA|SA|TAS|NT|ACT|\d{4})/);
+                  const location = locationMatch ? locationMatch[0] : 'Australia';
+                  
+                  const abnMatch = parentText.match(/ABN\s*:?\s*(\d{2}\s?\d{3}\s?\d{3}\s?\d{3})/i);
+                  const abn = abnMatch ? abnMatch[1].replace(/\s/g, '') : undefined;
+                  
+                  foundBusinesses.push({
                     companyName,
                     verified: true,
                     categories: [],
-                    location: location || 'Australia',
+                    location,
                     contactInfo: {},
-                    description: description || undefined,
-                    supplynationId,
+                    description: `Supply Nation verified Indigenous business`,
+                    supplynationId: `sn-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
                     capabilities: [],
-                    certifications: ['Supply Nation Verified']
+                    certifications: ['Supply Nation Verified'],
+                    abn
                   });
                 }
-              } catch (extractError) {
-                console.error('Error extracting business data:', extractError);
+              } catch (error) {
+                console.error('Error processing element:', error);
               }
             }
-          }
+            
+            return foundBusinesses;
+          }, searchQuery);
+          
+          console.log(`Extracted ${businesses.length} businesses from Supply Nation`);
+          extractedBusinesses.push(...businesses);
+          
         } catch (searchError) {
           console.error('Search execution error:', searchError);
         }
@@ -276,41 +263,6 @@ class SupplyNationScraper {
     }
   }
 
-  async extractDetailedProfile(profileUrl: string): Promise<SupplyNationBusiness | null> {
-    if (!this.cluster) {
-      throw new Error('Scraper not initialized');
-    }
-
-    try {
-      console.log(`Extracting detailed profile from: ${profileUrl}`);
-      
-      const result = await this.cluster.execute(async ({ page }: { page: Page }) => {
-        try {
-          await page.goto(profileUrl, { waitUntil: 'networkidle0', timeout: 30000 });
-          
-          const currentUrl = page.url();
-          if (currentUrl.includes('login') || currentUrl.includes('frontdoor')) {
-            await this.handleAuthentication(page);
-            await page.goto(profileUrl, { waitUntil: 'networkidle0', timeout: 30000 });
-          }
-          
-          await page.waitForSelector('body', { timeout: 10000 });
-          
-          const { extractSupplyNationProfile } = await import('./supply-nation-profile-extractor');
-          return await extractSupplyNationProfile(page, profileUrl);
-        } catch (error) {
-          console.error(`Error in profile extraction:`, String(error));
-          return null;
-        }
-      });
-      
-      return result;
-    } catch (error) {
-      console.error(`Error extracting detailed profile from ${profileUrl}:`, String(error));
-      return null;
-    }
-  }
-
   async close(): Promise<void> {
     if (this.cluster) {
       await this.cluster.close();
@@ -325,15 +277,6 @@ export async function getSupplyNationScraper(): Promise<SupplyNationScraper> {
   return scraper;
 }
 
-export async function getSupplyNationProfileDetails(profileUrl: string): Promise<SupplyNationBusiness | null> {
-  const scraper = await getSupplyNationScraper();
-  try {
-    return await scraper.extractDetailedProfile(profileUrl);
-  } finally {
-    // Don't close here as it might be used by other operations
-  }
-}
-
 export async function searchSupplyNationWithPuppeteer(
   query: string,
   location?: string
@@ -342,6 +285,6 @@ export async function searchSupplyNationWithPuppeteer(
   try {
     return await scraper.searchBusinesses(query, location);
   } finally {
-    // Don't close here as it might be used by other operations
+    // Keep scraper alive for potential reuse
   }
 }
