@@ -75,20 +75,27 @@ class NativeTitleService {
    */
   private async fetchNativeTitleData(lat: number, lng: number): Promise<any[]> {
     try {
-      // Query authentic Native Title data from our database using spatial intersection
-      const buffer = 0.5; // 0.5 degree search radius
+      // Get all Native Title claims from database for geographic matching
+      const allClaims = await db.select().from(nativeTitleClaims);
+      console.log(`Processing ${allClaims.length} Native Title claims for geographic matching`);
       
-      const results = await db.select().from(nativeTitleClaims).where(
-        sql`ST_Intersects(
-          ST_GeomFromGeoJSON(${nativeTitleClaims.geometry}),
-          ST_Buffer(ST_SetSRID(ST_MakePoint(${lng}, ${lat}), 4326), ${buffer})
-        )`
-      );
+      // Find claims that geographically intersect with the territory
+      const matchingClaims = allClaims.filter(claim => {
+        if (!claim.geometry) return false;
+        
+        try {
+          const geometry = typeof claim.geometry === 'string' ? JSON.parse(claim.geometry) : claim.geometry;
+          return this.isPointInGeometry(lat, lng, geometry);
+        } catch (error) {
+          console.warn(`Invalid geometry for claim ${claim.applicationId}:`, error);
+          return false;
+        }
+      });
       
-      console.log(`Found ${results.length} Native Title claims intersecting coordinates: ${lat}, ${lng}`);
+      console.log(`Found ${matchingClaims.length} Native Title claims intersecting coordinates: ${lat}, ${lng}`);
       
       // Convert database records to feature format for compatibility
-      return results.map(claim => ({
+      return matchingClaims.map(claim => ({
         type: 'Feature',
         properties: {
           Application_ID: claim.applicationId,
@@ -107,32 +114,107 @@ class NativeTitleService {
       
     } catch (error) {
       console.error('Database Native Title query error:', error);
-      // Fallback to simpler text-based search if spatial query fails
-      try {
-        const textResults = await db.select().from(nativeTitleClaims).limit(10);
-        console.log(`Fallback: Found ${textResults.length} Native Title claims in database`);
-        
-        return textResults.map(claim => ({
-          type: 'Feature',
-          properties: {
-            Application_ID: claim.applicationId,
-            Tribunal_Number: claim.tribunalNumber,
-            Applicant_Name: claim.applicantName,
-            Status: claim.status,
-            Determination_Date: claim.determinationDate,
-            State: claim.state,
-            Outcome: claim.outcome,
-            Area_sqkm: claim.area,
-            Federal_Court_Number: claim.federalCourtNumber,
-            Registration_Date: claim.registrationDate
-          },
-          geometry: claim.geometry
-        }));
-      } catch (fallbackError) {
-        console.error('Fallback Native Title query failed:', fallbackError);
-        return [];
+      return [];
+    }
+  }
+
+  /**
+   * Check if a point is within a GeoJSON geometry using basic polygon intersection
+   */
+  private isPointInGeometry(lat: number, lng: number, geometry: any): boolean {
+    if (!geometry || !geometry.type) return false;
+    
+    try {
+      if (geometry.type === 'Point') {
+        const [geoLng, geoLat] = geometry.coordinates;
+        const distance = Math.sqrt(Math.pow(lat - geoLat, 2) + Math.pow(lng - geoLng, 2));
+        return distance < 0.5; // Within 0.5 degrees
+      }
+      
+      if (geometry.type === 'Polygon') {
+        return this.isPointInPolygon(lat, lng, geometry.coordinates[0]);
+      }
+      
+      if (geometry.type === 'MultiPolygon') {
+        return geometry.coordinates.some((polygon: any) => 
+          this.isPointInPolygon(lat, lng, polygon[0])
+        );
+      }
+      
+      // For other geometry types, use bounding box check
+      if (geometry.coordinates) {
+        return this.isPointInBoundingBox(lat, lng, geometry.coordinates);
+      }
+      
+      return false;
+    } catch (error) {
+      console.warn('Geometry intersection error:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Point-in-polygon test using ray casting algorithm
+   */
+  private isPointInPolygon(lat: number, lng: number, polygon: number[][]): boolean {
+    let isInside = false;
+    const x = lng;
+    const y = lat;
+    
+    for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+      const xi = polygon[i][0];
+      const yi = polygon[i][1];
+      const xj = polygon[j][0];
+      const yj = polygon[j][1];
+      
+      if (((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi)) {
+        isInside = !isInside;
       }
     }
+    
+    return isInside;
+  }
+
+  /**
+   * Check if point is within bounding box of coordinates
+   */
+  private isPointInBoundingBox(lat: number, lng: number, coordinates: any): boolean {
+    try {
+      const flatCoords = this.flattenCoordinates(coordinates);
+      if (flatCoords.length === 0) return false;
+      
+      const lats = flatCoords.map(coord => coord[1]);
+      const lngs = flatCoords.map(coord => coord[0]);
+      
+      const minLat = Math.min(...lats);
+      const maxLat = Math.max(...lats);
+      const minLng = Math.min(...lngs);
+      const maxLng = Math.max(...lngs);
+      
+      return lat >= minLat && lat <= maxLat && lng >= minLng && lng <= maxLng;
+    } catch (error) {
+      return false;
+    }
+  }
+
+  /**
+   * Flatten nested coordinate arrays
+   */
+  private flattenCoordinates(coords: any): number[][] {
+    if (!Array.isArray(coords)) return [];
+    
+    const result: number[][] = [];
+    
+    function flatten(arr: any) {
+      if (Array.isArray(arr) && arr.length === 2 && typeof arr[0] === 'number' && typeof arr[1] === 'number') {
+        result.push(arr);
+      } else if (Array.isArray(arr)) {
+        arr.forEach(flatten);
+      }
+    }
+    
+    flatten(coords);
+    return result;
   }
 
   /**
