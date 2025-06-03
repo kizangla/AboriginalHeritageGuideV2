@@ -414,6 +414,111 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Dynamic integrated search endpoint (ABR + Supply Nation)
+  app.get("/api/dynamic-search/businesses", async (req, res) => {
+    try {
+      const { q: query, includeSupplyNation = 'true', limit = '20' } = req.query;
+
+      if (!query || typeof query !== 'string') {
+        return res.status(400).json({
+          error: 'Search query parameter "q" is required',
+          example: '/api/dynamic-search/businesses?q=kulbardi'
+        });
+      }
+
+      const { integratedDynamicSearch } = await import('./integrated-dynamic-search');
+      
+      const searchOptions = {
+        includeSupplyNation: includeSupplyNation === 'true',
+        limit: parseInt(limit as string, 10) || 20
+      };
+
+      const result = await integratedDynamicSearch.searchBusinessesDynamically(
+        query,
+        searchOptions
+      );
+
+      res.json({
+        success: true,
+        query: query,
+        results: result.businesses,
+        totalFound: result.totalResults,
+        executionTime: result.executionTime,
+        dataSources: result.dataSource,
+        timestamp: result.timestamp
+      });
+
+    } catch (error) {
+      console.error('Dynamic search error:', error);
+      res.status(500).json({
+        error: 'Dynamic search failed',
+        message: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
+  // Supply Nation session status endpoint
+  app.get("/api/dynamic-search/status", async (req, res) => {
+    try {
+      const { integratedDynamicSearch } = await import('./integrated-dynamic-search');
+      const sessionStatus = integratedDynamicSearch.getSessionStatus();
+      
+      res.json({
+        success: true,
+        session: {
+          active: sessionStatus.active,
+          lastActivity: sessionStatus.lastActivity,
+          uptime: sessionStatus.uptime
+        },
+        capabilities: {
+          abrIntegration: true,
+          supplyNationReady: process.env.SUPPLY_NATION_USERNAME && process.env.SUPPLY_NATION_PASSWORD ? true : false,
+          dynamicSearch: true
+        }
+      });
+
+    } catch (error) {
+      res.status(500).json({
+        error: 'Status check failed',
+        message: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
+  // Refresh Supply Nation session endpoint
+  app.post("/api/dynamic-search/refresh-session", async (req, res) => {
+    try {
+      if (!process.env.SUPPLY_NATION_USERNAME || !process.env.SUPPLY_NATION_PASSWORD) {
+        return res.status(400).json({
+          error: 'Supply Nation credentials not configured',
+          message: 'Please provide SUPPLY_NATION_USERNAME and SUPPLY_NATION_PASSWORD'
+        });
+      }
+
+      const { integratedDynamicSearch } = await import('./integrated-dynamic-search');
+      
+      // Test search with session refresh
+      const testResult = await integratedDynamicSearch.searchBusinessesDynamically('test', {
+        includeSupplyNation: true,
+        refreshSession: true,
+        limit: 1
+      });
+
+      res.json({
+        success: true,
+        sessionRefreshed: true,
+        sessionActive: testResult.dataSource.supplyNation.sessionActive,
+        message: 'Supply Nation session refresh attempted'
+      });
+
+    } catch (error) {
+      res.status(500).json({
+        error: 'Session refresh failed',
+        message: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
   // Get businesses with geocoded locations for map display
   app.get("/api/businesses/map", async (req, res) => {
     try {
