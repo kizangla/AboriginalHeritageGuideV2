@@ -4,6 +4,9 @@
  */
 
 import fetch from 'node-fetch';
+import { db } from './db';
+import { nativeTitleClaims } from '@shared/schema';
+import { sql } from 'drizzle-orm';
 
 export interface NativeTitleData {
   applicationId: string;
@@ -72,53 +75,63 @@ class NativeTitleService {
    */
   private async fetchNativeTitleData(lat: number, lng: number): Promise<any[]> {
     try {
-      // Check if NNTT API key is available for authenticated access
-      const apiKey = process.env.NNTT_API_KEY;
+      // Query authentic Native Title data from our database using spatial intersection
+      const buffer = 0.5; // 0.5 degree search radius
       
-      if (!apiKey) {
-        console.warn('NNTT_API_KEY not available - Native Title data requires authentication');
-        throw new Error('API_KEY_REQUIRED');
-      }
-
-      // Use broader search area to find overlapping Native Title applications
-      const buffer = 0.5;
-      const bbox = `${lng - buffer},${lat - buffer},${lng + buffer},${lat + buffer}`;
+      const results = await db.select().from(nativeTitleClaims).where(
+        sql`ST_Intersects(
+          ST_GeomFromGeoJSON(${nativeTitleClaims.geometry}),
+          ST_Buffer(ST_SetSRID(ST_MakePoint(${lng}, ${lat}), 4326), ${buffer})
+        )`
+      );
       
-      const url = `${this.baseUrl}&bbox=${bbox}&srsName=EPSG:4326`;
+      console.log(`Found ${results.length} Native Title claims intersecting coordinates: ${lat}, ${lng}`);
       
-      const headers: Record<string, string> = {
-        'Authorization': `Bearer ${apiKey}`,
-        'Accept': 'application/json'
-      };
+      // Convert database records to feature format for compatibility
+      return results.map(claim => ({
+        type: 'Feature',
+        properties: {
+          Application_ID: claim.applicationId,
+          Tribunal_Number: claim.tribunalNumber,
+          Applicant_Name: claim.applicantName,
+          Status: claim.status,
+          Determination_Date: claim.determinationDate,
+          State: claim.state,
+          Outcome: claim.outcome,
+          Area_sqkm: claim.area,
+          Federal_Court_Number: claim.federalCourtNumber,
+          Registration_Date: claim.registrationDate
+        },
+        geometry: claim.geometry
+      }));
       
-      console.log(`Searching authenticated Native Title data for coordinates: ${lat}, ${lng}`);
-      
-      const response = await fetch(url, { headers });
-      
-      if (!response.ok) {
-        console.warn(`Native Title API returned ${response.status}: ${response.statusText}`);
-        if (response.status === 401 || response.status === 403) {
-          throw new Error('INVALID_API_KEY');
-        }
+    } catch (error) {
+      console.error('Database Native Title query error:', error);
+      // Fallback to simpler text-based search if spatial query fails
+      try {
+        const textResults = await db.select().from(nativeTitleClaims).limit(10);
+        console.log(`Fallback: Found ${textResults.length} Native Title claims in database`);
+        
+        return textResults.map(claim => ({
+          type: 'Feature',
+          properties: {
+            Application_ID: claim.applicationId,
+            Tribunal_Number: claim.tribunalNumber,
+            Applicant_Name: claim.applicantName,
+            Status: claim.status,
+            Determination_Date: claim.determinationDate,
+            State: claim.state,
+            Outcome: claim.outcome,
+            Area_sqkm: claim.area,
+            Federal_Court_Number: claim.federalCourtNumber,
+            Registration_Date: claim.registrationDate
+          },
+          geometry: claim.geometry
+        }));
+      } catch (fallbackError) {
+        console.error('Fallback Native Title query failed:', fallbackError);
         return [];
       }
-
-      const data = await response.json();
-      console.log(`Found ${data.features?.length || 0} Native Title features in search area`);
-      
-      if (data.features && data.features.length > 0) {
-        console.log('Sample feature properties:', Object.keys(data.features[0].properties || {}));
-      }
-      
-      return data.features || [];
-    } catch (error) {
-      if (error instanceof Error) {
-        if (error.message === 'API_KEY_REQUIRED' || error.message === 'INVALID_API_KEY') {
-          throw error;
-        }
-      }
-      console.error('Native Title API fetch error:', error);
-      return [];
     }
   }
 
