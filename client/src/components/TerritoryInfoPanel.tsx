@@ -161,9 +161,9 @@ export default function TerritoryInfoPanel({
                 )}
               </div>
             ) : (
-              <div className="flex items-center gap-2 text-sm text-gray-600">
+              <div className="flex items-center gap-2 text-sm text-amber-700">
                 <AlertCircle className="w-4 h-4" />
-                No Native Title applications recorded for this area
+                Native Title data requires government API credentials
               </div>
             )}
             

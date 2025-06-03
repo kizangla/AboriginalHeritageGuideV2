@@ -72,19 +72,34 @@ class NativeTitleService {
    */
   private async fetchNativeTitleData(lat: number, lng: number): Promise<any[]> {
     try {
+      // Check if NNTT API key is available for authenticated access
+      const apiKey = process.env.NNTT_API_KEY;
+      
+      if (!apiKey) {
+        console.warn('NNTT_API_KEY not available - Native Title data requires authentication');
+        throw new Error('API_KEY_REQUIRED');
+      }
+
       // Use broader search area to find overlapping Native Title applications
-      const buffer = 0.5; // 0.5 degree buffer for better coverage
+      const buffer = 0.5;
       const bbox = `${lng - buffer},${lat - buffer},${lng + buffer},${lat + buffer}`;
       
       const url = `${this.baseUrl}&bbox=${bbox}&srsName=EPSG:4326`;
       
-      console.log(`Searching Native Title data for coordinates: ${lat}, ${lng}`);
-      console.log(`Using URL: ${url}`);
+      const headers: Record<string, string> = {
+        'Authorization': `Bearer ${apiKey}`,
+        'Accept': 'application/json'
+      };
       
-      const response = await fetch(url);
+      console.log(`Searching authenticated Native Title data for coordinates: ${lat}, ${lng}`);
+      
+      const response = await fetch(url, { headers });
       
       if (!response.ok) {
         console.warn(`Native Title API returned ${response.status}: ${response.statusText}`);
+        if (response.status === 401 || response.status === 403) {
+          throw new Error('INVALID_API_KEY');
+        }
         return [];
       }
 
@@ -97,6 +112,11 @@ class NativeTitleService {
       
       return data.features || [];
     } catch (error) {
+      if (error instanceof Error) {
+        if (error.message === 'API_KEY_REQUIRED' || error.message === 'INVALID_API_KEY') {
+          throw error;
+        }
+      }
       console.error('Native Title API fetch error:', error);
       return [];
     }
