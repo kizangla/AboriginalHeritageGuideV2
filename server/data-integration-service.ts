@@ -261,6 +261,69 @@ class DataIntegrationService {
         }
       }
 
+      // Add Supply Nation-only businesses that weren't matched with ABR
+      for (const snBusiness of supplyNationBusinesses) {
+        const abrMatch = abrResults.businesses.find(abr => 
+          abr.abn === snBusiness.abn || 
+          abr.entityName.toLowerCase().replace(/[^a-z0-9]/g, '') === snBusiness.companyName.toLowerCase().replace(/[^a-z0-9]/g, '')
+        );
+        
+        if (!abrMatch) {
+          console.log(`📋 Adding Supply Nation-only business: ${snBusiness.companyName}`);
+          
+          try {
+            // Create integrated business from Supply Nation data only
+            let lat: number | undefined = undefined;
+            let lng: number | undefined = undefined;
+            
+            // Geocode Supply Nation location if available
+            if (snBusiness.location && snBusiness.location.includes(',')) {
+              try {
+                console.log(`🗺️ Geocoding Supply Nation business: ${snBusiness.companyName} at ${snBusiness.location}`);
+                const geocodeUrl = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(snBusiness.location + ', Australia')}.json?access_token=${process.env.MAPBOX_ACCESS_TOKEN}&country=AU&limit=1`;
+                const response = await fetch(geocodeUrl);
+                
+                if (response.ok) {
+                  const data = await response.json();
+                  if (data.features && data.features.length > 0) {
+                    [lng, lat] = data.features[0].center;
+                    console.log(`✅ Geocoded ${snBusiness.companyName} to coordinates: [${lat}, ${lng}]`);
+                  }
+                }
+              } catch (geocodeError) {
+                console.log(`❌ Geocoding failed for ${snBusiness.location}:`, geocodeError);
+              }
+            }
+
+            const integratedBusiness: IntegratedBusiness = {
+              abn: snBusiness.abn || 'SN-' + snBusiness.supplynationId,
+              entityName: snBusiness.companyName,
+              entityType: 'Company',
+              status: 'Active',
+              address: {
+                fullAddress: snBusiness.location || '',
+                stateCode: snBusiness.location?.split(',').pop()?.trim().split(' ')[0] || undefined,
+                postcode: snBusiness.location?.match(/\b\d{4}\b/)?.[0] || undefined
+              },
+              gst: false,
+              dgr: false,
+              lat,
+              lng,
+              supplyNationVerified: true,
+              verificationSource: 'supply_nation',
+              verificationConfidence: 'high',
+              lastVerified: new Date()
+            };
+            
+            searchResults.push(integratedBusiness);
+            supplyNationProcessed++;
+            
+          } catch (error) {
+            console.error(`Error processing Supply Nation business ${snBusiness.companyName}:`, error);
+          }
+        }
+      }
+
       const endTime = Date.now();
       console.log(`Integrated search completed in ${endTime - startTime}ms`);
 
