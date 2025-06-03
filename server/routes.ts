@@ -56,6 +56,7 @@ function getPostcodeCoordinates(postcode: string, stateCode: string): { lat: num
   
   return postcodeMap[postcode] || null;
 }
+
 import { indigenousBusinessService } from "./indigenous-business-service";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -250,7 +251,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             supplyNationVerified: business.supplyNationVerified || false,
             source: 'ABR'
           };
-        });
+      });
       
       console.log(`Returning ${allBusinesses.length} businesses from ABR`);
       res.json(allBusinesses);
