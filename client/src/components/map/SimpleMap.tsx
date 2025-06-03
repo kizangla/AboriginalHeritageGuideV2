@@ -157,7 +157,7 @@ export default function SimpleMap({ onMapReady, onTerritorySelect, regionFilter,
 
     // Add filtered territory layer with styling
     if (filteredTerritories.length > 0) {
-      const territoryLayer = L.geoJSON(territoriesGeoJSON.features as any, {
+      const territoryLayer = L.geoJSON(filteredTerritories as any, {
         style: (feature) => ({
           color: '#654321', // Darker earth brown border
           weight: 2,
