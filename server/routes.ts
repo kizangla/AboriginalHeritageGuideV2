@@ -11,6 +11,7 @@ import {
   searchIndigenousBusinesses,
   type ABRBusinessDetails 
 } from "./abr-service";
+import { indigenousBusinessService } from "./indigenous-business-service";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Get all territories as GeoJSON
