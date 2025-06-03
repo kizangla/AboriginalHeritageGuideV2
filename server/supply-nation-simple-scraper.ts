@@ -170,8 +170,11 @@ export class SupplyNationSimpleScraper {
           currentCookies += '; ' + communitiesSetCookie;
         }
         
-        // Then navigate to the main portal page
+        // Then navigate to the main portal page with modal dismissal
         const finalUrl = 'https://ibd.supplynation.org.au/public/s/';
+        
+        // Add modal dismissal to cookies to bypass post-login popups
+        currentCookies += '; modalHasShownToday=yes';
         
         const finalResponse = await fetch(finalUrl, {
           method: 'GET',
@@ -240,12 +243,12 @@ export class SupplyNationSimpleScraper {
 
       console.log(`Searching Supply Nation for verified businesses: ${query}`);
 
-      // First navigate to the main page to access the search button
+      // First navigate to the main page to access the search button with modal dismissal
       const mainPageResponse = await fetch('https://ibd.supplynation.org.au/public/s/', {
         method: 'GET',
         headers: {
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-          'Cookie': this.sessionCookies
+          'Cookie': this.sessionCookies + '; modalHasShownToday=yes'
         }
       });
 
@@ -268,7 +271,7 @@ export class SupplyNationSimpleScraper {
         method: 'GET',
         headers: {
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-          'Cookie': this.sessionCookies,
+          'Cookie': this.sessionCookies + '; modalHasShownToday=yes',
           'Referer': 'https://ibd.supplynation.org.au/public/s/'
         }
       });
