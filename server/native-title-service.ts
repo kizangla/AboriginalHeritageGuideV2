@@ -445,25 +445,29 @@ class NativeTitleService {
     let sourceDataset = 'applications';
     
     // Check if this is from determinations dataset (has determination-specific fields)
-    if (props.DET_OUTCOME || props.DETERMINATION_OUTCOME || props.OUTCOME_TYPE || props.DET_STATUS) {
+    if (props.DETOUTCOME || props.DET_OUTCOME || props.DETERMINATION_OUTCOME || props.OUTCOME_TYPE || props.DET_STATUS) {
       sourceDataset = 'determinations';
       
-      // Map determination outcomes to status
-      const determinationOutcome = props.DET_OUTCOME || props.DETERMINATION_OUTCOME || props.OUTCOME_TYPE || '';
+      // Map determination outcomes to status using actual field name DETOUTCOME
+      const determinationOutcome = props.DETOUTCOME || props.DET_OUTCOME || props.DETERMINATION_OUTCOME || props.OUTCOME_TYPE || '';
       outcome = determinationOutcome;
       
-      if (determinationOutcome.toLowerCase().includes('native title exists')) {
+      if (determinationOutcome.toLowerCase().includes('native title exists in the entire')) {
+        status = 'Determined - Native title exists (entire area)';
+      } else if (determinationOutcome.toLowerCase().includes('native title exists in part')) {
+        status = 'Determined - Native title exists (part area)';
+      } else if (determinationOutcome.toLowerCase().includes('native title exists')) {
         status = 'Determined - Native title exists';
       } else if (determinationOutcome.toLowerCase().includes('native title does not exist')) {
         status = 'Determined - Native title does not exist';
-      } else if (determinationOutcome.toLowerCase().includes('native title exists in part')) {
-        status = 'Determined - Native title exists in part';
       } else if (determinationOutcome.toLowerCase().includes('discontinu')) {
         status = 'Determined - Discontinued';
       } else if (determinationOutcome.toLowerCase().includes('dismiss')) {
         status = 'Determined - Dismissed';
-      } else if (props.DET_STATUS || props.DETERMINATION_STATUS) {
-        status = `Determined - ${props.DET_STATUS || props.DETERMINATION_STATUS}`;
+      } else if (determinationOutcome.toLowerCase().includes('consent')) {
+        status = 'Determined - Consent determination';
+      } else if (props.DETTYPE || props.DET_STATUS) {
+        status = `Determined - ${props.DETTYPE || props.DET_STATUS}`;
       } else {
         status = 'Determined';
       }
