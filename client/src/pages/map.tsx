@@ -1,19 +1,55 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import SimpleMap from '@/components/map/SimpleMap';
 import TerritoryModal from '@/components/map/TerritoryModal';
+import TerritoryFilter from '@/components/TerritoryFilter';
+import TerritoryInfoPanel from '@/components/TerritoryInfoPanel';
 import UnifiedSearch from '@/components/map/UnifiedSearch';
 import { Button } from '@/components/ui/button';
 import { Building2 } from 'lucide-react';
 import { Link } from 'wouter';
+import { useQuery } from '@tanstack/react-query';
 import type { Territory } from '@shared/schema';
 
 export default function MapPage() {
   const [selectedTerritory, setSelectedTerritory] = useState<Territory | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [mapInstance, setMapInstance] = useState<any>(null);
+  const [selectedRegion, setSelectedRegion] = useState<string | null>(null);
+
+  const { data: territoriesGeoJSON } = useQuery<any>({
+    queryKey: ['/api/territories'],
+  });
+
+  // Calculate territory statistics by region
+  const territoryStats = useMemo(() => {
+    if (!territoriesGeoJSON?.features) {
+      return { total: 0, kimberley: 0, southeast: 0, riverine: 0 };
+    }
+
+    const stats = {
+      total: territoriesGeoJSON.features.length,
+      kimberley: 0,
+      southeast: 0,
+      riverine: 0
+    };
+
+    territoriesGeoJSON.features.forEach((feature: any) => {
+      const region = feature.properties?.Region || feature.properties?.region;
+      if (region === 'Kimberley') stats.kimberley++;
+      else if (region === 'Southeast') stats.southeast++;
+      else if (region === 'Riverine') stats.riverine++;
+    });
+
+    return stats;
+  }, [territoriesGeoJSON]);
 
   const handleTerritorySelect = (territory: Territory) => {
     setSelectedTerritory(territory);
+  };
+
+  const handleRegionFilter = (region: string | null) => {
+    setSelectedRegion(region);
+    // Filter will be applied by the map component
   };
 
   const handleShowModal = () => {
@@ -63,6 +99,13 @@ export default function MapPage() {
         <SimpleMap 
           onMapReady={setMapInstance}
           onTerritorySelect={handleTerritorySelect}
+        />
+        
+        {/* Territory Filter Component */}
+        <TerritoryFilter
+          onRegionFilter={handleRegionFilter}
+          selectedRegion={selectedRegion}
+          territoryStats={territoryStats}
         />
         
         <UnifiedSearch 
