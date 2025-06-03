@@ -2,6 +2,7 @@ import { searchBusinessesByName, enrichBusinessWithLocation, ABRBusinessDetails 
 import { indigenousBusinessMatcher } from './indigenous-business-matcher';
 import { enhancedIndigenousVerification } from './enhanced-indigenous-verification';
 import { SupplyNationDynamicIntegration } from './supply-nation-dynamic-integration';
+import { supplyNationRobustIntegration } from './supply-nation-robust-integration';
 
 export interface IntegratedBusiness {
   // ABR Data

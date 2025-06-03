@@ -79,18 +79,80 @@ export class SupplyNationPuppeteerCrawler {
         timeout: 30000
       });
 
-      // Wait for login form to load
+      // Wait for login form to load with multiple selector strategies
       console.log('Waiting for login form...');
-      await this.page.waitForSelector('input[name="username"], input[type="email"]', { timeout: 10000 });
-      await this.page.waitForSelector('input[name="password"], input[type="password"]', { timeout: 10000 });
+      
+      // Try multiple strategies to find form fields
+      const usernameSelectors = [
+        'input[name="username"]',
+        'input[type="email"]', 
+        'input[placeholder*="email"]',
+        'input[placeholder*="Email"]',
+        'input[placeholder*="username"]',
+        'input[placeholder*="Username"]',
+        'input[id*="email"]',
+        'input[id*="username"]',
+        'input[class*="email"]',
+        'input[class*="username"]'
+      ];
+      
+      const passwordSelectors = [
+        'input[name="password"]',
+        'input[type="password"]',
+        'input[placeholder*="password"]',
+        'input[placeholder*="Password"]',
+        'input[id*="password"]',
+        'input[class*="password"]'
+      ];
+
+      let usernameField = null;
+      let passwordField = null;
+
+      // Try to find username field
+      for (const selector of usernameSelectors) {
+        try {
+          await this.page.waitForSelector(selector, { timeout: 2000 });
+          usernameField = selector;
+          console.log(`Found username field: ${selector}`);
+          break;
+        } catch (e) {
+          // Continue to next selector
+        }
+      }
+
+      // Try to find password field
+      for (const selector of passwordSelectors) {
+        try {
+          await this.page.waitForSelector(selector, { timeout: 2000 });
+          passwordField = selector;
+          console.log(`Found password field: ${selector}`);
+          break;
+        } catch (e) {
+          // Continue to next selector
+        }
+      }
+
+      if (!usernameField || !passwordField) {
+        console.log('Could not locate login form fields');
+        // Log available form inputs for debugging
+        const inputs = await this.page.evaluate(() => {
+          const allInputs = Array.from(document.querySelectorAll('input'));
+          return allInputs.map(input => ({
+            type: input.type,
+            name: input.name,
+            id: input.id,
+            placeholder: input.placeholder,
+            className: input.className
+          }));
+        });
+        console.log('Available form inputs:', inputs);
+        return false;
+      }
 
       // Fill in credentials
       console.log('Filling login credentials...');
-      const usernameSelector = 'input[name="username"], input[type="email"]';
-      const passwordSelector = 'input[name="password"], input[type="password"]';
-      
-      await this.page.type(usernameSelector, username);
-      await this.page.type(passwordSelector, password);
+      await this.page.type(usernameField, username);
+      await this.page.type(passwordField, password);
 
       // Submit the form
       console.log('Submitting login form...');
