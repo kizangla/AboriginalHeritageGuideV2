@@ -45,7 +45,72 @@ export class IndigenousBusinessMatcher {
       /mob\s+enterprises/i,
       /cultural\s+tours/i,
       /art\s+centre/i,
-      /cultural\s+centre/i
+      /cultural\s+centre/i,
+      // Indigenous language words commonly used in business names
+      /maali/i,        // Noongar word meaning "people"
+      /myali/i,        // Variant of Maali
+      /miali/i,        // Variant of Maali
+      /jarrah/i,       // Native tree name commonly used
+      /karri/i,        // Native tree name
+      /wandjina/i,     // Sacred Aboriginal figures
+      /bunjil/i,       // Creator spirit
+      /yurrampi/i,     // Honey ant dreaming
+      /cooinda/i,      // Happy place
+      /jindabyne/i,    // Valley
+      /billabong/i,    // Water hole
+      /kookaburra/i,   // Native bird
+      /waratah/i,      // Native flower
+      /wombat/i,       // Native animal
+      /kangaroo/i,     // Native animal
+      /wallaby/i,      // Native animal
+      /echidna/i,      // Native animal
+      /platypus/i,     // Native animal
+      /bunyip/i,       // Mythical creature
+      /warrigal/i,     // Wild dog/dingo
+      /cooee/i,        // Traditional call
+      /yakka/i,        // Work (from Yagara language)
+      /tjandrawati/i,  // Water spirit
+      /yiriman/i,      // Traditional term
+      /ngurra/i,       // Country/home
+      /jilkminggan/i,  // Traditional name
+      /nguluway/i,     // Traditional term
+      /wirrapanda/i,   // Traditional name
+      /woolyungah/i,   // Traditional name
+      /koomurri/i,     // Traditional name
+      /jandakot/i,     // Place name with Indigenous origin
+      /mundaring/i,    // Place name with Indigenous origin
+      /kalamunda/i,    // Place name with Indigenous origin
+      /rockingham/i,   // Area with significant Indigenous presence
+      /armadale/i,     // Area with significant Indigenous presence
+      /fremantle/i,    // Area with significant Indigenous presence
+      /blacktown/i,    // Area with significant Indigenous presence
+      /redfern/i,      // Area with significant Indigenous presence
+      /campbelltown/i, // Area with significant Indigenous presence
+      /alice\s+springs/i, // Area with significant Indigenous presence
+      /katherine/i,    // Area with significant Indigenous presence
+      /broome/i,       // Area with significant Indigenous presence
+      /kununurra/i,    // Area with significant Indigenous presence
+      /tennant\s+creek/i, // Area with significant Indigenous presence
+      /nhulunbuy/i,    // Area with significant Indigenous presence
+      /wadeye/i,       // Indigenous community
+      /tiwi\s+islands/i, // Indigenous community
+      /groote\s+eylandt/i, // Indigenous community
+      /mornington\s+island/i, // Indigenous community
+      /palm\s+island/i,      // Indigenous community
+      /yarrabah/i,           // Indigenous community
+      /woorabinda/i,         // Indigenous community
+      /cherbourg/i,          // Indigenous community
+      /doomadgee/i,          // Indigenous community
+      /lockhart\s+river/i,   // Indigenous community
+      /napranum/i,           // Indigenous community
+      /pormpuraaw/i,         // Indigenous community
+      /kowanyama/i,          // Indigenous community
+      /aurukun/i,            // Indigenous community
+      /mapoon/i,             // Indigenous community
+      /injinoo/i,            // Indigenous community
+      /bamaga/i,             // Indigenous community
+      /seisia/i,             // Indigenous community
+      /umagico/i             // Indigenous community
     ];
 
     // Check for Indigenous name patterns

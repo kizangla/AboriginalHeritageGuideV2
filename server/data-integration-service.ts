@@ -62,6 +62,11 @@ class DataIntegrationService {
           
           // Analyze business for Indigenous ownership indicators
           const indigenousAnalysis = indigenousBusinessMatcher.analyzeBusinessForIndigenousOwnership(enrichedBusiness);
+          console.log(`Indigenous analysis for ${enrichedBusiness.entityName}:`, {
+            isLikelyIndigenous: indigenousAnalysis.isLikelyIndigenous,
+            confidence: indigenousAnalysis.confidence,
+            indicators: indigenousAnalysis.indicators
+          });
           
           let verificationSource: 'abr_only' | 'supply_nation' | 'both' | 'indigenous_analysis' = 'abr_only';
           let verificationConfidence: 'high' | 'medium' | 'low' = 'low';
@@ -72,6 +77,7 @@ class DataIntegrationService {
             verificationSource = 'indigenous_analysis';
             verificationConfidence = indigenousAnalysis.confidence;
             supplyNationVerified = indigenousAnalysis.confidence === 'high';
+            console.log(`Set verification for ${enrichedBusiness.entityName}: ${verificationSource} with ${verificationConfidence} confidence`);
           }
 
           const integratedBusiness: IntegratedBusiness = {
