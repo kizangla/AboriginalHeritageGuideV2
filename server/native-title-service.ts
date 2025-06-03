@@ -135,25 +135,49 @@ class NativeTitleService {
    * Check if territory coordinates match Native Title claim by region
    */
   private isRegionalMatch(lat: number, lng: number, claim: any, geometry: any): boolean {
+    const claimBounds = this.getGeometryBounds(geometry);
+    if (!claimBounds) return false;
+    
+    // Western Australia region check
+    if (claim.state === 'WA' && lat >= -35 && lat <= -13 && lng >= 113 && lng <= 129) {
+      const latDistance = Math.abs(lat - ((claimBounds.minLat + claimBounds.maxLat) / 2));
+      const lngDistance = Math.abs(lng - ((claimBounds.minLng + claimBounds.maxLng) / 2));
+      return latDistance < 10 && lngDistance < 10; // Within 10 degrees for large WA
+    }
+    
     // Northern Territory region check
     if (claim.state === 'NT' && lat >= -26 && lat <= -10 && lng >= 129 && lng <= 138) {
-      const claimBounds = this.getGeometryBounds(geometry);
-      if (claimBounds) {
-        // Check if territory is within reasonable distance of NT claim
-        const latDistance = Math.abs(lat - ((claimBounds.minLat + claimBounds.maxLat) / 2));
-        const lngDistance = Math.abs(lng - ((claimBounds.minLng + claimBounds.maxLng) / 2));
-        return latDistance < 5 && lngDistance < 5; // Within 5 degrees
-      }
+      const latDistance = Math.abs(lat - ((claimBounds.minLat + claimBounds.maxLat) / 2));
+      const lngDistance = Math.abs(lng - ((claimBounds.minLng + claimBounds.maxLng) / 2));
+      return latDistance < 8 && lngDistance < 8; // Within 8 degrees
     }
     
     // Queensland region check
     if (claim.state === 'QLD' && lat >= -29 && lat <= -9 && lng >= 138 && lng <= 154) {
-      const claimBounds = this.getGeometryBounds(geometry);
-      if (claimBounds) {
-        const latDistance = Math.abs(lat - ((claimBounds.minLat + claimBounds.maxLat) / 2));
-        const lngDistance = Math.abs(lng - ((claimBounds.minLng + claimBounds.maxLng) / 2));
-        return latDistance < 8 && lngDistance < 8; // Within 8 degrees for larger QLD
-      }
+      const latDistance = Math.abs(lat - ((claimBounds.minLat + claimBounds.maxLat) / 2));
+      const lngDistance = Math.abs(lng - ((claimBounds.minLng + claimBounds.maxLng) / 2));
+      return latDistance < 8 && lngDistance < 8; // Within 8 degrees
+    }
+    
+    // South Australia region check
+    if (claim.state === 'SA' && lat >= -38 && lat <= -26 && lng >= 129 && lng <= 141) {
+      const latDistance = Math.abs(lat - ((claimBounds.minLat + claimBounds.maxLat) / 2));
+      const lngDistance = Math.abs(lng - ((claimBounds.minLng + claimBounds.maxLng) / 2));
+      return latDistance < 6 && lngDistance < 6; // Within 6 degrees
+    }
+    
+    // New South Wales region check
+    if (claim.state === 'NSW' && lat >= -37 && lat <= -28 && lng >= 141 && lng <= 154) {
+      const latDistance = Math.abs(lat - ((claimBounds.minLat + claimBounds.maxLat) / 2));
+      const lngDistance = Math.abs(lng - ((claimBounds.minLng + claimBounds.maxLng) / 2));
+      return latDistance < 6 && lngDistance < 6; // Within 6 degrees
+    }
+    
+    // Victoria region check
+    if (claim.state === 'VIC' && lat >= -39 && lat <= -34 && lng >= 141 && lng <= 150) {
+      const latDistance = Math.abs(lat - ((claimBounds.minLat + claimBounds.maxLat) / 2));
+      const lngDistance = Math.abs(lng - ((claimBounds.minLng + claimBounds.maxLng) / 2));
+      return latDistance < 4 && lngDistance < 4; // Within 4 degrees for smaller VIC
     }
     
     return false;
