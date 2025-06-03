@@ -75,6 +75,61 @@ class DataIntegrationService {
             console.log(`✓ Indigenous business identified: ${enrichedBusiness.entityName} - ${verificationSource} (${verificationConfidence} confidence)`);
           }
 
+          // For businesses with strong Indigenous indicators, attempt Supply Nation profile verification
+          if (includeSupplyNation && verificationConfidence === 'medium' && verificationSource === 'indigenous_analysis') {
+            try {
+              console.log(`🔍 Searching Supply Nation for enhanced verification: ${enrichedBusiness.entityName}`);
+              const { supplyNationEnhancedScraper } = await import('./supply-nation-enhanced-scraper');
+              const enhancedProfiles = await supplyNationEnhancedScraper.searchAndExtractProfiles(enrichedBusiness.entityName);
+              
+              // Look for matching business by name or ABN
+              const matchingProfile = enhancedProfiles.find(profile => 
+                profile.companyName?.toLowerCase().includes(enrichedBusiness.entityName.toLowerCase().split(' ')[0]) ||
+                (profile.abn && profile.abn === enrichedBusiness.abn)
+              );
+
+              if (matchingProfile) {
+                console.log(`✅ Found Supply Nation profile for: ${enrichedBusiness.entityName}`);
+                verificationSource = 'both';
+                verificationConfidence = 'high';
+                supplyNationVerified = true;
+
+                // Use detailed address from Supply Nation profile if available
+                if (matchingProfile.detailedAddress && matchingProfile.detailedAddress.streetAddress) {
+                  const supplyNationAddress = `${matchingProfile.detailedAddress.streetAddress}, ${matchingProfile.detailedAddress.suburb}, ${matchingProfile.detailedAddress.state} ${matchingProfile.detailedAddress.postcode}, Australia`;
+                  console.log(`🗺️ Using Supply Nation address for geocoding: ${supplyNationAddress}`);
+                  
+                  try {
+                    const geocodeUrl = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(supplyNationAddress)}.json?access_token=${process.env.MAPBOX_ACCESS_TOKEN}&country=AU&limit=1`;
+                    const response = await fetch(geocodeUrl);
+                    
+                    if (response.ok) {
+                      const data = await response.json();
+                      if (data.features && data.features.length > 0) {
+                        const [lng, lat] = data.features[0].center;
+                        enrichedBusiness.lat = lat;
+                        enrichedBusiness.lng = lng;
+                        enrichedBusiness.address = {
+                          ...enrichedBusiness.address,
+                          streetAddress: matchingProfile.detailedAddress.streetAddress,
+                          suburb: matchingProfile.detailedAddress.suburb,
+                          stateCode: matchingProfile.detailedAddress.state,
+                          postcode: matchingProfile.detailedAddress.postcode,
+                          fullAddress: data.features[0].place_name
+                        };
+                        console.log(`🎯 Enhanced location using Supply Nation data: [${lat}, ${lng}]`);
+                      }
+                    }
+                  } catch (geocodeError) {
+                    console.log(`Supply Nation geocoding failed: ${geocodeError}`);
+                  }
+                }
+              }
+            } catch (error) {
+              console.log(`Supply Nation enhancement failed for ${enrichedBusiness.entityName}: ${error}`);
+            }
+          }
+
           // Enhanced geocoding for businesses with proper address data
           if (!enrichedBusiness.lat || enrichedBusiness.lat === 0) {
             if (enrichedBusiness.address?.postcode && enrichedBusiness.address?.stateCode) {
