@@ -47,9 +47,18 @@ class NativeTitleService {
    */
   async getNativeTitleInfo(lat: number, lng: number, territoryName: string): Promise<TerritoryNativeTitleInfo> {
     try {
-      const nativeTitleData = await this.fetchNativeTitleData(lat, lng);
+      // Fetch from multiple government sources
+      const [applicationsData, determinationsData] = await Promise.allSettled([
+        this.fetchNativeTitleData(lat, lng),
+        this.fetchDeterminationsData(lat, lng)
+      ]);
+
+      const applicationsResults = applicationsData.status === 'fulfilled' ? applicationsData.value : [];
+      const determinationsResults = determinationsData.status === 'fulfilled' ? determinationsData.value : [];
       
-      if (!nativeTitleData || nativeTitleData.length === 0) {
+      const allNativeTitleData = [...applicationsResults, ...determinationsResults];
+      
+      if (!allNativeTitleData || allNativeTitleData.length === 0) {
         return {
           hasNativeTitle: false,
           applications: [],
@@ -57,15 +66,15 @@ class NativeTitleService {
         };
       }
 
-      const applications = nativeTitleData.map(this.parseNativeTitleFeature);
-      const primaryApplication = applications[0];
+      const parsedApplications = allNativeTitleData.map(this.parseNativeTitleFeature);
+      const primaryApplication = parsedApplications[0];
 
       return {
         hasNativeTitle: true,
-        applications,
+        applications: parsedApplications,
         primaryApplicant: primaryApplication?.applicantName,
-        status: this.determineOverallStatus(applications),
-        culturalSignificance: this.generateCulturalSignificance(territoryName, applications)
+        status: this.determineOverallStatus(parsedApplications),
+        culturalSignificance: this.generateCulturalSignificance(territoryName, parsedApplications)
       };
     } catch (error) {
       console.error('Native Title data fetch error:', error);
@@ -78,7 +87,57 @@ class NativeTitleService {
   }
 
   /**
-   * Fetch Native Title data from government API
+   * Fetch Native Title determinations from government API
+   */
+  private async fetchDeterminationsData(lat: number, lng: number): Promise<any[]> {
+    try {
+      console.log('Fetching Native Title determinations from Australian Government...');
+      
+      const response = await fetch('https://data.gov.au/geoserver/native-title-determinations-national-native-title-register/wfs?request=GetFeature&typeName=ckan_ecdbbb6c_c374_4649_9cd3_0677f44182c9&outputFormat=json');
+      
+      if (!response.ok) {
+        console.log('Native Title determinations endpoint requires authentication or is not accessible');
+        return [];
+      }
+      
+      const data = await response.json() as any;
+      const features = data.features || [];
+      
+      console.log(`Found ${features.length} Native Title determinations from government source`);
+      
+      // Filter relevant determinations for the location
+      const relevantDeterminations = features.filter((feature: any) => {
+        const props = feature.properties;
+        const state = props.JURIS || props.State;
+        
+        // Basic state-based filtering
+        const stateRanges: Record<string, { latRange: [number, number], lngRange: [number, number] }> = {
+          'QLD': { latRange: [-29, -9], lngRange: [138, 154] },
+          'NSW': { latRange: [-37, -28], lngRange: [141, 154] },
+          'VIC': { latRange: [-39, -34], lngRange: [141, 150] },
+          'SA': { latRange: [-38, -26], lngRange: [129, 141] },
+          'WA': { latRange: [-35, -13], lngRange: [113, 129] },
+          'NT': { latRange: [-26, -11], lngRange: [129, 138] }
+        };
+        
+        const stateRange = stateRanges[state];
+        if (!stateRange) return true;
+        
+        return lat >= stateRange.latRange[0] && lat <= stateRange.latRange[1] &&
+               lng >= stateRange.lngRange[0] && lng <= stateRange.lngRange[1];
+      });
+      
+      console.log(`Found ${relevantDeterminations.length} relevant determinations for location`);
+      return relevantDeterminations;
+      
+    } catch (error) {
+      console.log('Unable to access determinations data - may require API credentials');
+      return [];
+    }
+  }
+
+  /**
+   * Fetch Native Title applications from local database
    */
   private async fetchNativeTitleData(lat: number, lng: number): Promise<any[]> {
     try {
