@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import NativeTitleFilter, { type NativeTitleStatusFilter } from '@/components/NativeTitleFilter';
 import { 
   Filter, 
   Search, 
@@ -9,7 +10,8 @@ import {
   RotateCcw, 
   ChevronDown,
   Layers,
-  Building2
+  Building2,
+  Scale
 } from 'lucide-react';
 
 interface FloatingMapControlsProps {
@@ -19,6 +21,8 @@ interface FloatingMapControlsProps {
   onResetView: () => void;
   onToggleSearch: () => void;
   showSearch: boolean;
+  onNativeTitleFilter: (filters: NativeTitleStatusFilter) => void;
+  nativeTitleFilters: NativeTitleStatusFilter;
 }
 
 export default function FloatingMapControls({
@@ -27,9 +31,12 @@ export default function FloatingMapControls({
   territoryStats,
   onResetView,
   onToggleSearch,
-  showSearch
+  showSearch,
+  onNativeTitleFilter,
+  nativeTitleFilters
 }: FloatingMapControlsProps) {
   const [showRegionFilter, setShowRegionFilter] = useState(false);
+  const [showNativeTitleFilter, setShowNativeTitleFilter] = useState(false);
 
   const quickRegions = [
     { name: 'Tasmania', key: 'Tasmania', count: territoryStats.tasmania || 0, color: '#10B981' },
@@ -166,6 +173,35 @@ export default function FloatingMapControls({
                   </p>
                 </div>
               </div>
+            </div>
+          )}
+        </div>
+
+        {/* Native Title Filter */}
+        <div className="relative">
+          <Button
+            size="sm"
+            variant={Object.values(nativeTitleFilters).some(Boolean) ? "default" : "ghost"}
+            className="h-8 px-3 rounded-full"
+            title="Filter by Native Title status"
+            onClick={() => setShowNativeTitleFilter(!showNativeTitleFilter)}
+          >
+            <Scale className="w-4 h-4 mr-1" />
+            Native Title
+            {Object.values(nativeTitleFilters).some(Boolean) && (
+              <Badge variant="secondary" className="ml-1 text-xs">
+                {Object.values(nativeTitleFilters).filter(Boolean).length}
+              </Badge>
+            )}
+            <ChevronDown className="w-3 h-3 ml-1" />
+          </Button>
+          
+          {showNativeTitleFilter && (
+            <div className="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 w-96 max-w-[90vw] bg-white shadow-xl border rounded-lg z-[1002]">
+              <NativeTitleFilter
+                onFilterChange={onNativeTitleFilter}
+                activeFilters={nativeTitleFilters}
+              />
             </div>
           )}
         </div>

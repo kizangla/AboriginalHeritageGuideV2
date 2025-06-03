@@ -9,6 +9,7 @@ import { Building2 } from 'lucide-react';
 import { Link } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
 import type { Territory } from '@shared/schema';
+import type { NativeTitleStatusFilter } from '@/components/NativeTitleFilter';
 
 export default function MapPage() {
   const [selectedTerritory, setSelectedTerritory] = useState<Territory | null>(null);
@@ -16,6 +17,16 @@ export default function MapPage() {
   const [mapInstance, setMapInstance] = useState<any>(null);
   const [selectedRegion, setSelectedRegion] = useState<string | null>(null);
   const [showSearch, setShowSearch] = useState(false);
+  const [nativeTitleFilters, setNativeTitleFilters] = useState<NativeTitleStatusFilter>({
+    determined: false,
+    pending: false,
+    exists: false,
+    doesNotExist: false,
+    partialArea: false,
+    entireArea: false,
+    discontinued: false,
+    dismissed: false
+  });
 
   const { data: territoriesGeoJSON } = useQuery<any>({
     queryKey: ['/api/territories'],
@@ -72,6 +83,11 @@ export default function MapPage() {
 
   const handleRegionFilter = (region: string | null) => {
     setSelectedRegion(region);
+    // Filter will be applied by the map component
+  };
+
+  const handleNativeTitleFilter = (filters: NativeTitleStatusFilter) => {
+    setNativeTitleFilters(filters);
     // Filter will be applied by the map component
   };
 
@@ -133,6 +149,8 @@ export default function MapPage() {
           onResetView={handleResetView}
           onToggleSearch={() => setShowSearch(!showSearch)}
           showSearch={showSearch}
+          onNativeTitleFilter={handleNativeTitleFilter}
+          nativeTitleFilters={nativeTitleFilters}
         />
         
         {/* Collapsible Search Panel */}
