@@ -124,7 +124,7 @@ class GeocodingService {
       '6160': { lat: -32.0569, lng: 115.7975 }, // Fremantle
       '6050': { lat: -31.9354, lng: 115.8072 }, // Mount Lawley
       '6100': { lat: -32.0569, lng: 115.7975 }, // Fremantle area
-      '6035': { lat: -31.8857, lng: 115.8042 }, // Osborne Park
+      '6035': { lat: -31.5503, lng: 115.6333 }, // Yanchep
       '6165': { lat: -32.1271, lng: 115.7819 }, // Hope Valley
       '6021': { lat: -31.8857, lng: 115.8042 }, // Balcatta
       
