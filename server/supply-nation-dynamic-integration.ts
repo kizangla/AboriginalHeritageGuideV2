@@ -125,8 +125,12 @@ export class SupplyNationDynamicIntegration {
         await supplyNationDirectCrawler.close();
       }
       
-      console.log('All Supply Nation access methods failed - authentication credentials required');
-      return { success: false, businesses: [], error: 'Supply Nation access requires valid authentication credentials' };
+      console.log('Supply Nation authentication failed - live data unavailable');
+      return { 
+        success: false, 
+        businesses: [], 
+        error: 'Supply Nation requires authenticated access - live verification currently unavailable' 
+      };
     } catch (error) {
       console.log(`Live crawling error: ${error}`);
       return { success: false, businesses: [], error: String(error) };
