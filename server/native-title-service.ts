@@ -30,7 +30,7 @@ export interface TerritoryNativeTitleInfo {
 }
 
 class NativeTitleService {
-  private readonly baseUrl = 'https://data.gov.au/geoserver/native-title-determination-applications-register/wfs';
+  private readonly baseUrl = 'https://data.gov.au/geoserver/native-title-determination-applications-register/wfs?request=GetFeature&typeName=ckan_00602301_ad90_4657_abd9_8025d9bf485a&outputFormat=json';
   
   /**
    * Get Native Title information for a specific territory location
@@ -71,23 +71,35 @@ class NativeTitleService {
    * Fetch Native Title data from government API
    */
   private async fetchNativeTitleData(lat: number, lng: number): Promise<any[]> {
-    const params = new URLSearchParams({
-      request: 'GetFeature',
-      typeName: 'ckan_00602301_ad90_4657_abd9_8025d9bf485a',
-      outputFormat: 'json',
-      CQL_FILTER: `INTERSECTS(the_geom, POINT(${lng} ${lat}))`
-    });
+    try {
+      // Use broader search area to find overlapping Native Title applications
+      const buffer = 0.5; // 0.5 degree buffer for better coverage
+      const bbox = `${lng - buffer},${lat - buffer},${lng + buffer},${lat + buffer}`;
+      
+      const url = `${this.baseUrl}&bbox=${bbox}&srsName=EPSG:4326`;
+      
+      console.log(`Searching Native Title data for coordinates: ${lat}, ${lng}`);
+      console.log(`Using URL: ${url}`);
+      
+      const response = await fetch(url);
+      
+      if (!response.ok) {
+        console.warn(`Native Title API returned ${response.status}: ${response.statusText}`);
+        return [];
+      }
 
-    const url = `${this.baseUrl}?${params.toString()}`;
-    
-    const response = await fetch(url);
-    
-    if (!response.ok) {
-      throw new Error(`Native Title API error: ${response.status}`);
+      const data = await response.json();
+      console.log(`Found ${data.features?.length || 0} Native Title features in search area`);
+      
+      if (data.features && data.features.length > 0) {
+        console.log('Sample feature properties:', Object.keys(data.features[0].properties || {}));
+      }
+      
+      return data.features || [];
+    } catch (error) {
+      console.error('Native Title API fetch error:', error);
+      return [];
     }
-
-    const data = await response.json();
-    return data.features || [];
   }
 
   /**

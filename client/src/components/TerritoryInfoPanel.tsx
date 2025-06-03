@@ -70,14 +70,8 @@ export default function TerritoryInfoPanel({
     enabled: !!(territoryName && coordinates?.lat && coordinates?.lng)
   });
 
-  // Debug logging
-  console.log('Territory panel data:', {
-    territoryName,
-    coordinates,
-    nativeTitleData,
-    nativeTitleLoading,
-    nativeTitleError
-  });
+  // Debug logging - remove in production
+  // console.log('Territory panel data:', { territoryName, coordinates, nativeTitleData });
 
   return (
     <Card className="absolute bottom-6 right-6 z-[1000] w-96 bg-white/95 backdrop-blur-sm shadow-xl border-0 rounded-2xl overflow-hidden">
