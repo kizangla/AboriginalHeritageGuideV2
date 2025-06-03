@@ -5,6 +5,7 @@
  */
 
 import { SupplyNationVerifiedBusiness, supplyNationSimpleScraper } from './supply-nation-simple-scraper';
+import { SupplyNationBusinessProfile, supplyNationPuppeteerCrawler } from './supply-nation-puppeteer-crawler';
 import { sampleSupplyNationBusinesses } from './supply-nation-demo-integration';
 
 export class SupplyNationDynamicIntegration {
@@ -60,12 +61,20 @@ export class SupplyNationDynamicIntegration {
         return { success: false, businesses: [], error: 'Authentication cooldown active' };
       }
 
-      // Attempt authentication and search
-      console.log('Attempting live Supply Nation crawling...');
+      // First try Puppeteer-based crawling
+      console.log('Attempting Puppeteer-based Supply Nation crawling...');
+      const puppeteerResult = await this.attemptPuppeteerCrawling(query);
+      
+      if (puppeteerResult.success) {
+        return puppeteerResult;
+      }
+
+      // Fallback to HTTP-based crawling
+      console.log('Puppeteer crawling failed, trying HTTP-based approach...');
       const authenticated = await supplyNationSimpleScraper.authenticate();
       
       if (authenticated) {
-        console.log('Supply Nation authentication successful - performing live search');
+        console.log('Supply Nation HTTP authentication successful - performing live search');
         const businesses = await supplyNationSimpleScraper.searchVerifiedBusinesses(query);
         return { success: true, businesses };
       } else {
@@ -74,11 +83,58 @@ export class SupplyNationDynamicIntegration {
         const attempts = this.authenticationAttempts.get(query) || 0;
         this.authenticationAttempts.set(query, attempts + 1);
         
-        console.log('Supply Nation authentication failed - using authenticated demo data');
-        return { success: false, businesses: [], error: 'Authentication failed' };
+        console.log('Both Puppeteer and HTTP authentication failed');
+        return { success: false, businesses: [], error: 'All authentication methods failed' };
       }
     } catch (error) {
       console.log(`Live crawling error: ${error}`);
+      return { success: false, businesses: [], error: String(error) };
+    }
+  }
+
+  private async attemptPuppeteerCrawling(query: string): Promise<{
+    success: boolean;
+    businesses: SupplyNationVerifiedBusiness[];
+    error?: string;
+  }> {
+    try {
+      // Initialize Puppeteer browser
+      const initialized = await supplyNationPuppeteerCrawler.initialize();
+      if (!initialized) {
+        return { success: false, businesses: [], error: 'Failed to initialize browser' };
+      }
+
+      // Authenticate with Supply Nation
+      const authenticated = await supplyNationPuppeteerCrawler.authenticate();
+      if (!authenticated) {
+        await supplyNationPuppeteerCrawler.close();
+        return { success: false, businesses: [], error: 'Puppeteer authentication failed' };
+      }
+
+      // Search for businesses
+      const businesses = await supplyNationPuppeteerCrawler.searchBusinesses(query);
+      await supplyNationPuppeteerCrawler.close();
+
+      // Convert Puppeteer results to standard format
+      const convertedBusinesses: SupplyNationVerifiedBusiness[] = businesses.map(business => ({
+        companyName: business.companyName,
+        abn: business.abn,
+        location: business.location,
+        supplynationId: business.supplynationId,
+        profileUrl: business.profileUrl,
+        verified: business.verified,
+        categories: business.categories,
+        contactInfo: business.contactInfo,
+        description: business.description,
+        tradingName: business.tradingName,
+        detailedAddress: business.detailedAddress
+      }));
+
+      return { success: true, businesses: convertedBusinesses };
+
+    } catch (error) {
+      console.log(`Puppeteer crawling error: ${error}`);
+      await supplyNationPuppeteerCrawler.close();
       return { success: false, businesses: [], error: String(error) };
     }
   }
