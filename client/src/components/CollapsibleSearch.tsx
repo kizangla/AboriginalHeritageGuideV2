@@ -47,12 +47,28 @@ export default function CollapsibleSearch({
   // Place search query
   const { data: placeResults, isLoading: isLoadingPlaces } = useQuery({
     queryKey: ['/api/geocode', searchQuery],
+    queryFn: async () => {
+      if (!searchQuery.trim()) return [];
+      const response = await fetch(`/api/geocode?q=${encodeURIComponent(searchQuery)}`);
+      if (!response.ok) {
+        throw new Error('Geocoding failed');
+      }
+      return response.json();
+    },
     enabled: shouldSearch && searchType === 'places' && searchQuery.length > 2,
   });
 
   // Business search query
   const { data: businessResults, isLoading: isLoadingBusinesses } = useQuery({
     queryKey: ['/api/businesses/search', searchQuery],
+    queryFn: async () => {
+      if (!searchQuery.trim()) return [];
+      const response = await fetch(`/api/businesses/search?q=${encodeURIComponent(searchQuery)}`);
+      if (!response.ok) {
+        throw new Error('Business search failed');
+      }
+      return response.json();
+    },
     enabled: shouldSearch && searchType === 'businesses' && searchQuery.length > 2,
   });
 
@@ -60,6 +76,7 @@ export default function CollapsibleSearch({
 
   const handleSearch = () => {
     if (searchQuery.trim()) {
+      console.log(`Searching for: "${searchQuery}" in ${searchType} mode`);
       setShouldSearch(true);
     }
   };
