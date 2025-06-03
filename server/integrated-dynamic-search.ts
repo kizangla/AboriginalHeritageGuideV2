@@ -182,91 +182,308 @@ export class IntegratedDynamicSearch {
       throw new Error('Supply Nation credentials not configured');
     }
 
-    try {
-      // Cleanup existing session
-      await this.cleanupSupplyNationSession();
+    // Cleanup existing session
+    await this.cleanupSupplyNationSession();
 
-      // Initialize new session
-      this.supplyNationSession = await puppeteer.launch({
+    let browser = null;
+    let page = null;
+
+    try {
+      // Initialize optimized browser session
+      browser = await puppeteer.launch({
         headless: true,
         executablePath: '/nix/store/zi4f80l169xlmivz8vja8wlphq74qqk0-chromium-125.0.6422.141/bin/chromium',
         args: [
           '--no-sandbox',
           '--disable-setuid-sandbox',
           '--disable-dev-shm-usage',
-          '--disable-web-security'
+          '--disable-web-security',
+          '--disable-features=VizDisplayCompositor',
+          '--disable-background-timer-throttling',
+          '--disable-backgrounding-occluded-windows',
+          '--disable-renderer-backgrounding'
         ]
       });
 
-      this.sessionPage = await this.supplyNationSession.newPage();
-      await this.sessionPage.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36');
+      page = await browser.newPage();
+      await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36');
+      await page.setViewport({ width: 1366, height: 768 });
 
-      // Login process with timeout
-      await this.sessionPage.goto('https://ibd.supplynation.org.au/s/login', {
-        waitUntil: 'domcontentloaded',
-        timeout: 25000
+      // Extended timeouts for session establishment
+      page.setDefaultTimeout(180000); // 3 minutes
+      page.setDefaultNavigationTimeout(180000);
+
+      // Navigate to login with extended waiting
+      await page.goto('https://ibd.supplynation.org.au/s/login', {
+        waitUntil: 'networkidle0',
+        timeout: 60000
       });
 
-      await new Promise(resolve => setTimeout(resolve, 3000));
+      // Progressive page stabilization
+      await this.performProgressiveStabilization(page);
 
-      // Enter credentials
-      const credentialsSet = await this.sessionPage.evaluate((usr, pwd) => {
-        const emailField = document.querySelector('input[type="email"], input[type="text"]') as HTMLInputElement;
-        const passwordField = document.querySelector('input[type="password"]') as HTMLInputElement;
-        
-        if (emailField && passwordField) {
-          emailField.value = usr;
-          passwordField.value = pwd;
-          emailField.dispatchEvent(new Event('input', { bubbles: true }));
-          passwordField.dispatchEvent(new Event('input', { bubbles: true }));
-          return true;
-        }
-        return false;
-      }, username, password);
-
+      // Enhanced credential input with multiple attempts
+      const credentialsSet = await this.setCredentialsWithRetry(page, username, password);
       if (!credentialsSet) {
-        throw new Error('Failed to set credentials');
+        throw new Error('Failed to set credentials after multiple attempts');
       }
 
-      // Submit form
-      await this.sessionPage.evaluate(() => {
-        const submitButton = document.querySelector('button[type="submit"]') as HTMLElement;
-        if (submitButton) submitButton.click();
-      });
-
-      // Wait for authentication with timeout
-      let authenticated = false;
-      for (let i = 0; i < 10; i++) {
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        
-        const currentUrl = await this.sessionPage.url();
-        if (!currentUrl.includes('login')) {
-          authenticated = true;
-          break;
-        }
+      // Submit form with enhanced monitoring
+      const formSubmitted = await this.submitFormWithMonitoring(page);
+      if (!formSubmitted) {
+        throw new Error('Failed to submit authentication form');
       }
 
-      if (authenticated) {
-        // Navigate to search page
-        try {
-          await this.sessionPage.goto('https://ibd.supplynation.org.au/public/s/search-results', {
-            waitUntil: 'domcontentloaded',
-            timeout: 20000
-          });
-          await new Promise(resolve => setTimeout(resolve, 2000));
-          
-          this.sessionActive = true;
-          this.lastSessionActivity = Date.now();
-        } catch (navError) {
-          throw new Error('Failed to navigate to search page');
-        }
-      } else {
-        throw new Error('Authentication timeout');
+      // Extended authentication monitoring
+      const authResult = await this.monitorAuthenticationWithExtendedTimeout(page);
+      if (!authResult.authenticated) {
+        throw new Error(`Authentication failed: ${authResult.message}`);
       }
+
+      // Validate and establish search session
+      const searchReady = await this.validateSearchSession(page);
+      if (!searchReady) {
+        throw new Error('Search functionality not accessible after authentication');
+      }
+
+      // Session successfully established
+      this.supplyNationSession = browser;
+      this.sessionPage = page;
+      this.sessionActive = true;
+      this.lastSessionActivity = Date.now();
 
     } catch (error) {
-      await this.cleanupSupplyNationSession();
+      if (page) await page.close();
+      if (browser) await browser.close();
       throw error;
+    }
+  }
+
+  private async performProgressiveStabilization(page: puppeteer.Page): Promise<void> {
+    const stabilizationPhases = [4000, 6000, 8000, 10000];
+    
+    for (const delay of stabilizationPhases) {
+      await new Promise(resolve => setTimeout(resolve, delay));
+      
+      const pageValidation = await page.evaluate(() => {
+        return {
+          documentReady: document.readyState === 'complete',
+          formPresent: document.querySelector('form') !== null,
+          emailField: document.querySelector('input[type="email"], input[type="text"]') !== null,
+          passwordField: document.querySelector('input[type="password"]') !== null,
+          submitButton: document.querySelector('button[type="submit"]') !== null,
+          pageLoaded: document.body.innerText.length > 1000
+        };
+      });
+
+      if (pageValidation.documentReady && 
+          pageValidation.formPresent && 
+          pageValidation.emailField && 
+          pageValidation.passwordField && 
+          pageValidation.submitButton &&
+          pageValidation.pageLoaded) {
+        
+        await new Promise(resolve => setTimeout(resolve, 2000)); // Final stabilization
+        return;
+      }
+    }
+  }
+
+  private async setCredentialsWithRetry(page: puppeteer.Page, username: string, password: string): Promise<boolean> {
+    const maxAttempts = 12;
+    
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      try {
+        const result = await page.evaluate((usr, pwd) => {
+          const emailField = document.querySelector('input[type="email"], input[type="text"]') as HTMLInputElement;
+          const passwordField = document.querySelector('input[type="password"]') as HTMLInputElement;
+          
+          if (!emailField || !passwordField) {
+            return { success: false, issue: 'Fields not found' };
+          }
+
+          if (emailField.offsetHeight === 0 || passwordField.offsetHeight === 0) {
+            return { success: false, issue: 'Fields not visible' };
+          }
+
+          // Clear and set values with enhanced interaction
+          emailField.value = '';
+          passwordField.value = '';
+
+          emailField.focus();
+          emailField.click();
+          emailField.value = usr;
+          emailField.dispatchEvent(new Event('input', { bubbles: true }));
+          emailField.dispatchEvent(new Event('change', { bubbles: true }));
+          emailField.blur();
+
+          setTimeout(() => {
+            passwordField.focus();
+            passwordField.click();
+            passwordField.value = pwd;
+            passwordField.dispatchEvent(new Event('input', { bubbles: true }));
+            passwordField.dispatchEvent(new Event('change', { bubbles: true }));
+            passwordField.blur();
+          }, 500);
+
+          return {
+            success: true,
+            emailSet: emailField.value === usr,
+            passwordSet: passwordField.value === pwd
+          };
+        }, username, password);
+
+        if (result.success && result.emailSet && result.passwordSet) {
+          await new Promise(resolve => setTimeout(resolve, 3000)); // Extended validation delay
+          return true;
+        }
+
+        await new Promise(resolve => setTimeout(resolve, 2500));
+      } catch (error) {
+        console.log(`Credential attempt ${attempt} error:`, error);
+      }
+    }
+
+    return false;
+  }
+
+  private async submitFormWithMonitoring(page: puppeteer.Page): Promise<boolean> {
+    const maxAttempts = 8;
+    
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      try {
+        const submitted = await page.evaluate(() => {
+          const submitButton = document.querySelector('button[type="submit"], input[type="submit"]') as HTMLElement;
+          
+          if (!submitButton) return { success: false, issue: 'Button not found' };
+          if (submitButton.offsetHeight === 0) return { success: false, issue: 'Button not visible' };
+          if (submitButton.hasAttribute('disabled')) return { success: false, issue: 'Button disabled' };
+
+          submitButton.focus();
+          submitButton.click();
+
+          // Enhanced form submission
+          const form = submitButton.closest('form');
+          if (form) {
+            form.dispatchEvent(new Event('submit', { bubbles: true }));
+          }
+
+          return { success: true };
+        });
+
+        if (submitted.success) {
+          await new Promise(resolve => setTimeout(resolve, 6000)); // Extended processing delay
+          return true;
+        }
+
+        await new Promise(resolve => setTimeout(resolve, 2000));
+      } catch (error) {
+        console.log(`Form submission attempt ${attempt} error:`, error);
+      }
+    }
+
+    return false;
+  }
+
+  private async monitorAuthenticationWithExtendedTimeout(page: puppeteer.Page): Promise<{
+    authenticated: boolean;
+    message: string;
+  }> {
+    const maxMonitoringTime = 120000; // 2 minutes
+    const checkInterval = 4000; // 4 seconds
+    const monitoringStart = Date.now();
+    
+    let previousUrl = await page.url();
+    let redirectCount = 0;
+
+    while ((Date.now() - monitoringStart) < maxMonitoringTime) {
+      await new Promise(resolve => setTimeout(resolve, checkInterval));
+      
+      const currentUrl = await page.url();
+      
+      if (currentUrl !== previousUrl) {
+        redirectCount++;
+        previousUrl = currentUrl;
+      }
+
+      const authCheck = await page.evaluate(() => {
+        const url = window.location.href;
+        const content = document.body.innerText.toLowerCase();
+        
+        const successIndicators = [
+          !url.includes('login'),
+          url.includes('Communities') || url.includes('communities'),
+          url.includes('search-results') || url.includes('search'),
+          content.includes('search'),
+          content.includes('directory'),
+          content.includes('logout'),
+          document.querySelector('a[href*="logout"]') !== null,
+          document.querySelector('.user-menu, .profile-menu') !== null
+        ];
+
+        const successCount = successIndicators.filter(Boolean).length;
+
+        return {
+          currentUrl: url,
+          successCount,
+          contentLength: content.length
+        };
+      });
+
+      // Enhanced success threshold
+      if (authCheck.successCount >= 5) {
+        return {
+          authenticated: true,
+          message: `Authentication successful after ${Date.now() - monitoringStart}ms with ${redirectCount} redirects`
+        };
+      }
+
+      // Progress logging every 30 seconds
+      if ((Date.now() - monitoringStart) % 30000 === 0) {
+        console.log(`Authentication monitoring: ${Math.floor((Date.now() - monitoringStart) / 1000)}s, ${authCheck.successCount} indicators, ${redirectCount} redirects`);
+      }
+    }
+
+    return {
+      authenticated: false,
+      message: `Authentication monitoring timeout after ${Date.now() - monitoringStart}ms with ${redirectCount} redirects`
+    };
+  }
+
+  private async validateSearchSession(page: puppeteer.Page): Promise<boolean> {
+    try {
+      // Navigate to search page if not already there
+      const currentUrl = await page.url();
+      if (!currentUrl.includes('search-results') && !currentUrl.includes('search')) {
+        await page.goto('https://ibd.supplynation.org.au/public/s/search-results', {
+          waitUntil: 'domcontentloaded',
+          timeout: 30000
+        });
+        await new Promise(resolve => setTimeout(resolve, 5000));
+      }
+
+      // Validate search functionality
+      const searchValidation = await page.evaluate(() => {
+        const searchInputs = document.querySelectorAll('input[type="search"], input[name*="search"]');
+        const forms = document.querySelectorAll('form');
+        const authElements = document.querySelectorAll('a[href*="logout"], .user-menu');
+        
+        return {
+          searchInputs: searchInputs.length,
+          accessibleInputs: Array.from(searchInputs).filter(input => (input as HTMLElement).offsetHeight > 0).length,
+          forms: forms.length,
+          authElements: authElements.length,
+          hasDirectory: document.body.innerText.toLowerCase().includes('directory')
+        };
+      });
+
+      return searchValidation.accessibleInputs > 0 && 
+             searchValidation.authElements > 0 && 
+             (searchValidation.hasDirectory || searchValidation.forms > 0);
+
+    } catch (error) {
+      console.log('Search session validation error:', error);
+      return false;
     }
   }
 
