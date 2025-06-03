@@ -24,23 +24,56 @@ export default function TerritoryInfoPanel({
   const estimatedPopulation = territory.estimatedPopulation;
   const traditionalLanguages = territory.traditionalLanguages;
 
+  // Extract coordinates from GeoJSON data for territories from the map
+  const getCoordinates = () => {
+    // Try database schema first
+    if (territory.centerLat && territory.centerLng) {
+      return { lat: territory.centerLat, lng: territory.centerLng };
+    }
+    
+    // Extract from GeoJSON properties if available
+    const props = (territory as any);
+    if (props.lat && props.lng) {
+      return { lat: props.lat, lng: props.lng };
+    }
+    
+    // Calculate centroid from geometry if available
+    if (props.geometry) {
+      try {
+        const coords = props.geometry.coordinates;
+        if (coords && coords.length > 0) {
+          // For polygon, take first coordinate pair
+          const firstCoord = Array.isArray(coords[0]) ? coords[0][0] : coords[0];
+          return { lat: firstCoord[1], lng: firstCoord[0] };
+        }
+      } catch (e) {
+        console.warn('Failed to extract coordinates from geometry:', e);
+      }
+    }
+    
+    return null;
+  };
+
+  const coordinates = getCoordinates();
+
   // Fetch authentic Native Title data from Australian Government
   const { data: nativeTitleData, isLoading: nativeTitleLoading, error: nativeTitleError } = useQuery({
-    queryKey: ['/api/territories', territoryName, 'native-title', territory.centerLat, territory.centerLng],
+    queryKey: ['/api/territories', territoryName, 'native-title', coordinates?.lat, coordinates?.lng],
     queryFn: async () => {
-      const response = await fetch(`/api/territories/${encodeURIComponent(territoryName)}/native-title?lat=${territory.centerLat}&lng=${territory.centerLng}`);
+      if (!coordinates) throw new Error('No coordinates available');
+      const response = await fetch(`/api/territories/${encodeURIComponent(territoryName)}/native-title?lat=${coordinates.lat}&lng=${coordinates.lng}`);
       if (!response.ok) throw new Error('Failed to fetch Native Title data');
       const data = await response.json();
       console.log('Native Title data received:', data);
       return data;
     },
-    enabled: !!(territoryName && territory.centerLat && territory.centerLng)
+    enabled: !!(territoryName && coordinates?.lat && coordinates?.lng)
   });
 
   // Debug logging
   console.log('Territory panel data:', {
     territoryName,
-    coordinates: { lat: territory.centerLat, lng: territory.centerLng },
+    coordinates,
     nativeTitleData,
     nativeTitleLoading,
     nativeTitleError

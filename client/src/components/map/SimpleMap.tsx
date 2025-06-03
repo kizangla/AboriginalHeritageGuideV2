@@ -89,7 +89,12 @@ export default function SimpleMap({ onMapReady, onTerritorySelect, regionFilter 
           
           layer.on('click', () => {
             if (onTerritorySelect) {
-              onTerritorySelect(territory);
+              // Pass complete feature with geometry for coordinate extraction
+              const completeTerritory = {
+                ...territory,
+                geometry: feature.geometry
+              };
+              onTerritorySelect(completeTerritory);
             }
           });
 
