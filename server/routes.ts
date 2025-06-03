@@ -485,6 +485,76 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // MGM Alliance specific endpoint
+  app.get('/api/businesses/mgm-alliance', async (req, res) => {
+    try {
+      // Get verified ABR data for MGM Alliance
+      const abrResults = await searchBusinessesByName('MGM Alliance', 5);
+      const mgmAllianceABR = abrResults.businesses.find(business => 
+        business.entityName.toLowerCase().includes('mgm alliance')
+      );
+
+      if (!mgmAllianceABR) {
+        return res.status(404).json({ 
+          error: 'MGM Alliance not found in business registers',
+          searchedSources: ['Australian Business Register']
+        });
+      }
+
+      // Enhanced business profile with verified data
+      const mgmAllianceProfile = {
+        companyName: mgmAllianceABR.entityName,
+        abn: mgmAllianceABR.abn,
+        status: mgmAllianceABR.status,
+        entityType: mgmAllianceABR.entityType,
+        location: {
+          state: mgmAllianceABR.address.stateCode,
+          postcode: mgmAllianceABR.address.postcode,
+          suburb: mgmAllianceABR.address.suburb,
+          fullAddress: mgmAllianceABR.address.fullAddress
+        },
+        businessDetails: {
+          gstRegistered: mgmAllianceABR.gst,
+          dgrStatus: mgmAllianceABR.dgr,
+          businessType: mgmAllianceABR.entityType
+        },
+        verification: {
+          abrVerified: true,
+          supplyNationVerified: false,
+          verificationSource: 'Australian Business Register',
+          lastVerified: new Date()
+        },
+        coordinates: {
+          lat: mgmAllianceABR.lat,
+          lng: mgmAllianceABR.lng
+        },
+        dataSource: 'Official Government Registry',
+        searchQuery: 'MGM Alliance'
+      };
+
+      res.json({
+        success: true,
+        business: mgmAllianceProfile,
+        dataIntegrity: {
+          authenticData: true,
+          governmentVerified: true,
+          realTimeData: true
+        },
+        sources: {
+          abr: 'Verified',
+          supplyNation: 'Authentication required for enhanced profile'
+        }
+      });
+
+    } catch (error) {
+      console.error('MGM Alliance retrieval error:', error);
+      res.status(500).json({ 
+        error: 'Failed to retrieve MGM Alliance data',
+        message: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
   // Refresh Supply Nation session endpoint
   app.post("/api/dynamic-search/refresh-session", async (req, res) => {
     try {
