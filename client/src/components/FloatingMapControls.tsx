@@ -103,21 +103,24 @@ export default function FloatingMapControls({
                   </Badge>
                 </div>
 
-                {/* Clear Filter */}
-                {selectedRegion && (
-                  <Button
-                    onClick={() => {
-                      onRegionFilter(null);
-                      setShowRegionFilter(false);
-                    }}
-                    size="sm"
-                    variant="outline"
-                    className="w-full h-8 text-xs"
-                  >
-                    <Layers className="w-3 h-3 mr-1" />
-                    Show All Territories
-                  </Button>
-                )}
+                {/* Show All Territories - Always Visible */}
+                <Button
+                  onClick={() => {
+                    onRegionFilter(null);
+                    setShowRegionFilter(false);
+                  }}
+                  size="sm"
+                  variant={!selectedRegion ? "default" : "outline"}
+                  className="w-full h-8 text-xs"
+                >
+                  <Layers className="w-3 h-3 mr-1" />
+                  Show All Territories
+                  {!selectedRegion && (
+                    <Badge variant="secondary" className="ml-1 text-xs">
+                      {territoryStats.total}
+                    </Badge>
+                  )}
+                </Button>
 
                 {/* Quick Region Filters */}
                 <div className="grid grid-cols-2 gap-2">
