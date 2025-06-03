@@ -106,7 +106,7 @@ export default function FloatingMapControls({
           </Button>
           
           {showRegionFilter && (
-            <div className="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 w-80 p-3 bg-white shadow-xl border rounded-lg z-[1002]">
+            <div className="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 w-96 max-w-[90vw] p-4 bg-white shadow-xl border rounded-lg z-[1002]">
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <h4 className="font-medium text-sm">Aboriginal Regions</h4>
@@ -135,7 +135,7 @@ export default function FloatingMapControls({
                 </Button>
 
                 {/* Quick Region Filters */}
-                <div className="grid grid-cols-3 gap-2 max-h-48 overflow-y-auto">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 max-h-60 overflow-y-auto">
                   {quickRegions.map((region) => (
                     <Button
                       key={region.key}
@@ -145,12 +145,12 @@ export default function FloatingMapControls({
                       }}
                       size="sm"
                       variant={selectedRegion === region.key ? "default" : "outline"}
-                      className="h-8 text-xs justify-between"
+                      className="h-9 text-xs justify-between min-w-0 px-2"
                     >
-                      <span className="truncate">{region.name}</span>
+                      <span className="text-left flex-1 overflow-hidden text-ellipsis whitespace-nowrap">{region.name}</span>
                       <Badge 
                         variant="secondary" 
-                        className="text-xs px-1"
+                        className="text-xs px-1 ml-1 flex-shrink-0"
                         style={{ backgroundColor: `${region.color}20`, color: region.color }}
                       >
                         {region.count}
