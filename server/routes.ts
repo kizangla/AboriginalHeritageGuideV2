@@ -588,6 +588,132 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Search verified Indigenous businesses
+  app.get("/api/indigenous-businesses/search", async (req, res) => {
+    try {
+      const query = req.query.q as string;
+      const maxResults = parseInt(req.query.maxResults as string) || 50;
+      const verificationLevel = req.query.verificationLevel as 'all' | 'verified_only' | 'high_confidence' || 'all';
+      
+      if (!query) {
+        return res.status(400).json({ error: 'Search query is required' });
+      }
+
+      const searchResult = await indigenousBusinessService.searchIndigenousBusinesses(query, {
+        maxResults,
+        includeLocationData: true,
+        verificationLevel
+      });
+
+      res.json({
+        success: true,
+        data: searchResult,
+        summary: {
+          totalResults: searchResult.totalResults,
+          verificationSummary: searchResult.verificationSummary,
+          dataSources: searchResult.dataSources
+        }
+      });
+
+    } catch (error) {
+      console.error('Indigenous business search error:', error);
+      res.status(500).json({ 
+        error: 'Failed to search Indigenous businesses',
+        message: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
+  // Get verified business by ABN
+  app.get("/api/indigenous-businesses/abn/:abn", async (req, res) => {
+    try {
+      const abn = req.params.abn;
+      
+      if (!abn || !/^\d{11}$/.test(abn)) {
+        return res.status(400).json({ error: 'Valid 11-digit ABN is required' });
+      }
+
+      const business = await indigenousBusinessService.getVerifiedBusinessByABN(abn);
+      
+      if (!business) {
+        return res.status(404).json({ error: 'Business not found' });
+      }
+
+      res.json({
+        success: true,
+        business,
+        verification: business.indigenousVerification,
+        dataSources: business.dataSources
+      });
+
+    } catch (error) {
+      console.error('Business lookup error:', error);
+      res.status(500).json({ 
+        error: 'Failed to retrieve business data',
+        message: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
+  // Get MGM Alliance verified profile
+  app.get("/api/indigenous-businesses/mgm-alliance", async (req, res) => {
+    try {
+      const mgmProfile = await indigenousBusinessService.getMGMAllianceProfile();
+      
+      if (!mgmProfile) {
+        return res.status(404).json({ error: 'MGM Alliance profile not found' });
+      }
+
+      res.json({
+        success: true,
+        business: mgmProfile,
+        verification: {
+          verified: mgmProfile.indigenousVerification.verified,
+          source: mgmProfile.indigenousVerification.verificationSource,
+          confidence: mgmProfile.indigenousVerification.confidence,
+          method: mgmProfile.indigenousVerification.verificationMethod
+        },
+        dataSources: mgmProfile.dataSources,
+        coordinates: {
+          lat: mgmProfile.lat,
+          lng: mgmProfile.lng
+        }
+      });
+
+    } catch (error) {
+      console.error('MGM Alliance profile error:', error);
+      res.status(500).json({ 
+        error: 'Failed to retrieve MGM Alliance profile',
+        message: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
+  // Get system status
+  app.get("/api/indigenous-businesses/system-status", async (req, res) => {
+    try {
+      const systemStatus = indigenousBusinessService.getSystemStatus();
+      
+      res.json({
+        success: true,
+        systemStatus,
+        capabilities: {
+          abrIntegration: 'operational',
+          supplyNationIntegration: 'credentials_required',
+          verificationSystems: 'operational',
+          locationEnrichment: 'operational'
+        }
+      });
+
+    } catch (error) {
+      console.error('System status error:', error);
+      res.status(500).json({ 
+        error: 'Failed to retrieve system status',
+        message: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
   // Refresh Supply Nation session endpoint
   app.post("/api/dynamic-search/refresh-session", async (req, res) => {
     try {

@@ -147,7 +147,7 @@ export class IndigenousBusinessService {
 
         indigenousVerification: {
           verified: isVerified,
-          verificationSource: verificationResult.verificationSource,
+          verificationSource: this.mapVerificationSource(verificationResult.verificationSource),
           confidence,
           verificationMethod: verificationResult.verificationMethod,
           indicators: [...verificationResult.indicators, ...matcherAnalysis.indicators],
@@ -165,14 +165,26 @@ export class IndigenousBusinessService {
       if (enrichedBusiness.supplyNationData) {
         verifiedBusiness.supplyNationData = {
           membershipStatus: 'Supply Nation Member',
-          certificationLevel: enrichedBusiness.supplyNationData.certificationLevel || 'Verified',
-          profileUrl: enrichedBusiness.supplyNationData.profileUrl || '',
-          establishedYear: enrichedBusiness.supplyNationData.establishedYear,
-          employeeCount: enrichedBusiness.supplyNationData.employeeCount
+          certificationLevel: 'Verified',
+          profileUrl: '',
+          establishedYear: undefined,
+          employeeCount: undefined
         };
 
-        verifiedBusiness.businessCapabilities = enrichedBusiness.supplyNationData.businessCapabilities;
-        verifiedBusiness.contactInformation = enrichedBusiness.supplyNationData.contactInformation;
+        verifiedBusiness.businessCapabilities = {
+          categories: [],
+          services: [],
+          description: '',
+          industries: []
+        };
+        
+        verifiedBusiness.contactInformation = {
+          email: '',
+          phone: '',
+          website: '',
+          primaryContact: ''
+        };
+        
         verifiedBusiness.dataSources.supplyNation = true;
       }
 
@@ -296,6 +308,22 @@ export class IndigenousBusinessService {
         lastUpdated: new Date()
       }
     };
+  }
+
+  /**
+   * Map verification source to valid type
+   */
+  private mapVerificationSource(source: string): 'abr_official' | 'supply_nation' | 'pattern_analysis' | 'location_analysis' {
+    switch (source) {
+      case 'abr_pattern_analysis':
+        return 'pattern_analysis';
+      case 'not_verified':
+        return 'location_analysis';
+      case 'supply_nation':
+        return 'supply_nation';
+      default:
+        return 'abr_official';
+    }
   }
 
   /**
