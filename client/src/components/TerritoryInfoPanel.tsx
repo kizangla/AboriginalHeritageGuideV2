@@ -150,8 +150,37 @@ export default function TerritoryInfoPanel({
                   </div>
                 )}
                 {nativeTitleData.nativeTitle.applications && nativeTitleData.nativeTitle.applications.length > 0 && (
-                  <div className="text-xs text-gray-600">
-                    {nativeTitleData.nativeTitle.applications.length} Native Title application(s) recorded
+                  <div className="space-y-2">
+                    <div className="text-xs text-gray-600">
+                      {nativeTitleData.nativeTitle.applications.length} Native Title application(s) recorded
+                    </div>
+                    
+                    {/* Individual Application Details */}
+                    <div className="space-y-1 max-h-32 overflow-y-auto">
+                      {nativeTitleData.nativeTitle.applications.slice(0, 3).map((app, index) => (
+                        <div key={index} className="p-2 bg-white rounded border border-orange-100">
+                          <div className="flex justify-between items-start text-xs">
+                            <div className="flex-1">
+                              <div className="font-medium text-gray-800">{app.applicantName}</div>
+                              {app.tribunalNumber && (
+                                <div className="text-gray-600">Tribunal: {app.tribunalNumber}</div>
+                              )}
+                              {app.area && (
+                                <div className="text-gray-600">{app.area.toLocaleString()} sq km</div>
+                              )}
+                            </div>
+                            <Badge variant="outline" className="text-xs ml-2">
+                              {app.status}
+                            </Badge>
+                          </div>
+                        </div>
+                      ))}
+                      {nativeTitleData.nativeTitle.applications.length > 3 && (
+                        <div className="text-xs text-gray-500 text-center py-1">
+                          +{nativeTitleData.nativeTitle.applications.length - 3} more applications
+                        </div>
+                      )}
+                    </div>
                   </div>
                 )}
                 {nativeTitleData.nativeTitle.culturalSignificance && (
@@ -167,8 +196,31 @@ export default function TerritoryInfoPanel({
               </div>
             )}
             
-            <div className="text-xs text-gray-500 pt-1 border-t border-orange-200">
-              Source: {nativeTitleData.dataSource}
+            <div className="text-xs text-gray-500 pt-2 border-t border-orange-200 space-y-1">
+              <div>
+                <strong>Source:</strong> {nativeTitleData.dataSource}
+              </div>
+              {nativeTitleData.nativeTitle.applications && nativeTitleData.nativeTitle.applications.length > 0 && nativeTitleData.nativeTitle.applications[0].references && (
+                <div className="space-y-1">
+                  <div>
+                    <strong>Data Provider:</strong> {nativeTitleData.nativeTitle.applications[0].references.dataProvider}
+                  </div>
+                  <div>
+                    <strong>License:</strong> {nativeTitleData.nativeTitle.applications[0].references.licenseType}
+                  </div>
+                  <div>
+                    <strong>Last Updated:</strong> {nativeTitleData.nativeTitle.applications[0].references.lastUpdated}
+                  </div>
+                  <details className="mt-2">
+                    <summary className="cursor-pointer text-blue-600 hover:text-blue-800 font-medium">
+                      View Citation
+                    </summary>
+                    <div className="mt-1 p-2 bg-gray-50 rounded text-xs font-mono leading-relaxed">
+                      {nativeTitleData.nativeTitle.applications[0].references.citation}
+                    </div>
+                  </details>
+                </div>
+              )}
             </div>
           </div>
         )}

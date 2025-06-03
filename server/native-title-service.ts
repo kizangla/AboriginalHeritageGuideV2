@@ -22,6 +22,13 @@ export interface NativeTitleData {
     lat: number;
     lng: number;
   };
+  references: {
+    sourceUrl: string;
+    lastUpdated: string;
+    dataProvider: string;
+    licenseType: string;
+    citation: string;
+  };
 }
 
 export interface TerritoryNativeTitleInfo {
@@ -347,17 +354,29 @@ class NativeTitleService {
     // Calculate centroid for polygon geometries
     const coords = this.calculateCentroid(geometry);
     
+    // Create proper citation for this specific claim
+    const tribunalNumber = props.Tribunal_Number || props.TRIBID || '';
+    const applicantName = props.Applicant_Name || props.NAME || 'Unknown';
+    const lastUpdated = props.DT_EXTRACT || props.DATECURR || new Date().toISOString().split('T')[0];
+    
     return {
-      applicationId: props.Application_ID || '',
-      tribunalNumber: props.Tribunal_Number || '',
-      applicantName: props.Applicant_Name || 'Unknown',
-      status: props.Status || 'Unknown',
-      determinationDate: props.Determination_Date,
-      area: props.Area_sqkm || 0,
-      state: props.State || '',
-      outcome: props.Outcome,
-      traditionalOwners: this.extractTraditionalOwners(props.Applicant_Name),
-      coordinates: coords
+      applicationId: props.Application_ID || tribunalNumber || '',
+      tribunalNumber: tribunalNumber,
+      applicantName: applicantName,
+      status: props.Status || props.STATUS || 'Unknown',
+      determinationDate: props.Determination_Date || props.DATELODGED,
+      area: props.Area_sqkm || props.AREASQKM || 0,
+      state: props.State || props.JURIS || '',
+      outcome: props.Outcome || props.RTSTATUS,
+      traditionalOwners: this.extractTraditionalOwners(applicantName),
+      coordinates: coords,
+      references: {
+        sourceUrl: 'https://data.gov.au/data/dataset/native-title-determination-applications-register',
+        lastUpdated: lastUpdated,
+        dataProvider: 'National Native Title Tribunal (NNTT)',
+        licenseType: 'Creative Commons Attribution 4.0 International (CC BY 4.0)',
+        citation: `National Native Title Tribunal. (${lastUpdated.split('-')[0]}). Native Title Determination Applications Register. ${tribunalNumber ? `Tribunal File: ${tribunalNumber}` : `Application: ${applicantName}`}. Retrieved from https://data.gov.au/data/dataset/native-title-determination-applications-register`
+      }
     };
   }
 
