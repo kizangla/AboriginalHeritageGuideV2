@@ -172,11 +172,11 @@ export class SupplyNationPuppeteerCrawler {
       await new Promise(resolve => setTimeout(resolve, 5000));
       
       // Check if we're still on the login page or have been redirected
-      const currentUrl = this.page.url();
-      console.log(`Current URL after submission: ${currentUrl}`);
+      const postSubmissionUrl = this.page.url();
+      console.log(`Current URL after submission: ${postSubmissionUrl}`);
       
       // If still on login page, wait for navigation
-      if (currentUrl.includes('login') || currentUrl.includes('signin')) {
+      if (postSubmissionUrl.includes('login') || postSubmissionUrl.includes('signin')) {
         console.log('Still on login page, waiting for navigation...');
         try {
           await this.page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 10000 });
@@ -189,8 +189,8 @@ export class SupplyNationPuppeteerCrawler {
       await this.handlePostLoginModals();
 
       // Check if we're successfully authenticated
-      const currentUrl = this.page.url();
-      console.log(`Post-login URL: ${currentUrl}`);
+      const finalUrl = this.page.url();
+      console.log(`Post-login URL: ${finalUrl}`);
 
       // Look for authenticated page indicators
       const isAuthenticated = await this.page.evaluate(() => {
