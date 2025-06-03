@@ -65,10 +65,17 @@ export class SupplyNationSimpleScraper {
         }
       });
 
-      // Prepare login data
+      // Check for actual form field names in the login page
+      const usernameField = $('input[name*="username"], input[name*="user"], input[name*="email"]').attr('name') || 'username';
+      const passwordField = $('input[name*="password"], input[name*="pass"]').attr('name') || 'password';
+      
+      console.log(`Login form fields detected: ${usernameField}, ${passwordField}`);
+      console.log(`Hidden fields found: ${Object.keys(hiddenFields).join(', ')}`);
+
+      // Prepare login data with detected field names
       const loginData = new URLSearchParams({
-        username: username,
-        password: password,
+        [usernameField]: username,
+        [passwordField]: password,
         ...hiddenFields
       });
 
