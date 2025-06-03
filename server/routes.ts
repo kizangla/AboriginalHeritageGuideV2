@@ -30,6 +30,7 @@ function getPostcodeCoordinates(postcode: string, stateCode: string): { lat: num
     '6160': { lat: -32.0569, lng: 115.7975 }, // Fremantle
     '6050': { lat: -31.9354, lng: 115.8072 }, // Mount Lawley
     '6100': { lat: -32.0569, lng: 115.7975 }, // Fremantle area
+    '6035': { lat: -31.8857, lng: 115.8042 }, // Osborne Park area
     
     // NSW postcodes
     '2150': { lat: -33.8096, lng: 151.0189 }, // Parramatta
@@ -59,6 +60,7 @@ function getPostcodeCoordinates(postcode: string, stateCode: string): { lat: num
 }
 
 import { indigenousBusinessService } from "./indigenous-business-service";
+import { geocodingService } from "./geocoding-service";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Get all territories as GeoJSON
@@ -220,21 +222,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const abrResults = await searchBusinessesByName(query);
       console.log(`Found ${abrResults.totalResults} businesses in ABR for: "${query}"`);
       
-      // Transform all businesses with coordinate mapping for frontend display
-      const allBusinesses = abrResults.businesses.map((business: ABRBusinessDetails) => {
-        let lat = business.lat || 0;
-        let lng = business.lng || 0;
-        
-        // Use postcode-based coordinates for Australian businesses
-        if (lat === 0 && lng === 0 && business.address.postcode && business.address.stateCode) {
-          const postcodeCoordinates = getPostcodeCoordinates(business.address.postcode, business.address.stateCode);
-          if (postcodeCoordinates) {
-            lat = postcodeCoordinates.lat;
-            lng = postcodeCoordinates.lng;
+      // Transform all businesses with async coordinate mapping for frontend display
+      const allBusinesses = await Promise.all(
+        abrResults.businesses.map(async (business: ABRBusinessDetails) => {
+          let lat = business.lat || 0;
+          let lng = business.lng || 0;
+          
+          // Geocode business address using Google Maps API for precise coordinates
+          if (lat === 0 && lng === 0) {
+            const addressQuery = `${business.address.suburb || ''} ${business.address.stateCode || ''} ${business.address.postcode || ''} Australia`.trim();
+            if (addressQuery !== 'Australia' && process.env.GOOGLE_MAPS_API_KEY) {
+              try {
+                const geocodeUrl = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(addressQuery)}&key=${process.env.GOOGLE_MAPS_API_KEY}`;
+                const geocodeResponse = await fetch(geocodeUrl);
+                
+                if (geocodeResponse.ok) {
+                  const geocodeData = await geocodeResponse.json();
+                  if (geocodeData.status === 'OK' && geocodeData.results.length > 0) {
+                    const location = geocodeData.results[0].geometry.location;
+                    lat = location.lat;
+                    lng = location.lng;
+                    console.log(`Geocoded ${business.entityName} to ${lat}, ${lng}`);
+                  }
+                }
+              } catch (geocodeError) {
+                console.log(`Google Maps geocoding failed for ${business.entityName}: ${geocodeError}`);
+                // Fallback to postcode lookup if Google Maps fails
+                if (business.address.postcode && business.address.stateCode) {
+                  const postcodeCoordinates = getPostcodeCoordinates(business.address.postcode, business.address.stateCode);
+                  if (postcodeCoordinates) {
+                    lat = postcodeCoordinates.lat;
+                    lng = postcodeCoordinates.lng;
+                    console.log(`Used postcode fallback for ${business.entityName}: ${lat}, ${lng}`);
+                  }
+                }
+              }
+            }
           }
-        }
 
-        return {
+          return {
             id: `abr-${business.abn}`,
             name: business.entityName,
             entityName: business.entityName,
@@ -252,7 +278,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             supplyNationVerified: business.supplyNationVerified || false,
             source: 'ABR'
           };
-      });
+        })
+      );
       
       console.log(`Returning ${allBusinesses.length} businesses from ABR`);
       res.json(allBusinesses);
