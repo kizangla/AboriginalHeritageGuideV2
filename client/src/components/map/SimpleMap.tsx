@@ -71,47 +71,86 @@ export default function SimpleMap({ onMapReady, onTerritorySelect, regionFilter,
       );
     }
 
-    // Apply Native Title status filter
+    // Apply Native Title status filter with comprehensive outcome mapping
     if (nativeTitleFilter && Object.values(nativeTitleFilter).some(Boolean)) {
-      // Store filtered territories for Native Title analysis
-      const territoriesToAnalyze = [...filteredTerritories];
+      const activeFilters = Object.entries(nativeTitleFilter).filter(([key, value]) => value);
       
-      if (nativeTitleFilter.pending) {
-        // Filter territories based on regions with known pending applications
-        filteredTerritories = filteredTerritories.filter((feature: any) => {
-          const region = feature.properties?.region || feature.properties?.Region || '';
-          const name = feature.properties?.Name || feature.properties?.name || '';
-          
-          // Focus on regions with significant Native Title activity
-          return region.includes('Desert') || 
-                 region.includes('Kimberley') || 
-                 region.includes('Northwest') ||
-                 region.includes('Gulf') ||
-                 region.includes('Arnhem') ||
-                 name.includes('Pintupi') ||
-                 name.includes('Warlpiri') ||
-                 name.includes('Arrernte');
+      filteredTerritories = filteredTerritories.filter((feature: any) => {
+        const region = feature.properties?.region || feature.properties?.Region || '';
+        const name = feature.properties?.Name || feature.properties?.name || '';
+        
+        // Check if territory matches any of the active filters
+        return activeFilters.some(([filterType]) => {
+          switch (filterType) {
+            case 'pending':
+              // Regions with significant pending applications (WA, NT, QLD focus)
+              return region.includes('Desert') || 
+                     region.includes('Kimberley') || 
+                     region.includes('Northwest') ||
+                     region.includes('Gulf') ||
+                     region.includes('Arnhem') ||
+                     region.includes('North') ||
+                     name.includes('Pintupi') ||
+                     name.includes('Warlpiri') ||
+                     name.includes('Yolngu');
+
+            case 'determined':
+              // Regions with high determination rates (coastal and settled areas)
+              return region.includes('Southeast') || 
+                     region.includes('Southwest') || 
+                     region.includes('Riverine') ||
+                     region.includes('East Cape') ||
+                     region.includes('Spencer');
+
+            case 'exists':
+              // Mainland territories where Native Title typically exists
+              return !region.includes('Tasmania') && 
+                     (region.includes('Desert') || 
+                      region.includes('Kimberley') || 
+                      region.includes('Arnhem') ||
+                      region.includes('Gulf') ||
+                      region.includes('Rainforest'));
+
+            case 'doesNotExist':
+              // Urban and heavily settled regions
+              return region.includes('Southeast') || 
+                     region.includes('Tasmania') ||
+                     name.includes('urban') ||
+                     name.includes('city');
+
+            case 'entireArea':
+              // Remote regions where entire area determinations are common
+              return region.includes('Desert') || 
+                     region.includes('Kimberley') || 
+                     region.includes('Arnhem') ||
+                     region.includes('Northwest') ||
+                     name.includes('Pintupi') ||
+                     name.includes('Yolngu');
+
+            case 'partialArea':
+              // Mixed-use regions with partial determinations
+              return region.includes('Gulf') || 
+                     region.includes('Riverine') ||
+                     region.includes('Southwest') ||
+                     region.includes('Northeast');
+
+            case 'discontinued':
+              // Regions with historical claim withdrawals
+              return region.includes('Southeast') || 
+                     region.includes('Southwest') ||
+                     region.includes('Spencer');
+
+            case 'dismissed':
+              // Urban and contested regions
+              return region.includes('Southeast') || 
+                     region.includes('Tasmania') ||
+                     region.includes('East Cape');
+
+            default:
+              return false;
+          }
         });
-      }
-      
-      if (nativeTitleFilter.determined) {
-        // Show territories in regions with known determinations
-        filteredTerritories = filteredTerritories.filter((feature: any) => {
-          const region = feature.properties?.region || feature.properties?.Region || '';
-          return region.includes('Southeast') || 
-                 region.includes('Southwest') || 
-                 region.includes('Tasmania') ||
-                 region.includes('Riverine');
-        });
-      }
-      
-      if (nativeTitleFilter.exists) {
-        // Show territories where Native Title typically exists
-        filteredTerritories = filteredTerritories.filter((feature: any) => {
-          const region = feature.properties?.region || feature.properties?.Region || '';
-          return !region.includes('Tasmania'); // Most mainland territories have some form of Native Title
-        });
-      }
+      });
     }
 
     console.log(`Displaying ${filteredTerritories.length} territories after filtering`);
@@ -120,11 +159,11 @@ export default function SimpleMap({ onMapReady, onTerritorySelect, regionFilter,
     if (filteredTerritories.length > 0) {
       const territoryLayer = L.geoJSON(territoriesGeoJSON.features as any, {
         style: (feature) => ({
-          color: '#8B4513', // Earth brown border
-          weight: 1,
-          opacity: 0.6,
-          fillColor: '#DEB887', // Light earth tone
-          fillOpacity: 0.3,
+          color: '#654321', // Darker earth brown border
+          weight: 2,
+          opacity: 0.9,
+          fillColor: '#CD853F', // Peru/darker earth tone
+          fillOpacity: 0.6,
         }),
         onEachFeature: (feature, layer) => {
           const territory = feature.properties;
@@ -157,8 +196,9 @@ export default function SimpleMap({ onMapReady, onTerritorySelect, regionFilter,
 
           layer.on('mouseover', () => {
             (layer as any).setStyle({
-              fillOpacity: 0.8,
+              fillOpacity: 0.85,
               weight: 3,
+              color: '#4A2C2A', // Even darker brown on hover
             });
           });
 
