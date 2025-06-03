@@ -161,7 +161,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Search businesses with Aboriginal verification
+  // Search businesses with comprehensive ABR data
   app.get("/api/businesses/search", async (req, res) => {
     try {
       const query = req.query.q as string;
@@ -169,13 +169,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Search query is required" });
       }
 
-      const { businessSearchService } = await import('./business-search-service');
-      const results = await businessSearchService.searchAboriginalBusinesses(query);
+      // Search Australian Business Register directly
+      const abrResults = await searchBusinessesByName(query);
+      console.log(`Found ${abrResults.totalResults} businesses in ABR for: "${query}"`);
       
-      res.json(results.businesses);
+      // Transform all businesses for frontend display
+      const allBusinesses = abrResults.businesses.map((business: ABRBusinessDetails) => ({
+        id: `abr-${business.abn}`,
+        name: business.entityName,
+        entityName: business.entityName,
+        businessType: business.entityType,
+        entityType: business.entityType,
+        address: business.address.fullAddress || 
+                `${business.address.suburb || ''} ${business.address.stateCode || ''} ${business.address.postcode || ''}`.trim(),
+        abn: business.abn,
+        status: business.status,
+        lat: business.lat || 0,
+        lng: business.lng || 0,
+        isVerified: business.supplyNationVerified || false,
+        verificationSource: business.supplyNationVerified ? 'supply_nation' : 'abr_data',
+        verificationConfidence: business.supplyNationVerified ? 'high' : 'medium',
+        supplyNationVerified: business.supplyNationVerified || false,
+        source: 'ABR'
+      }));
+      
+      console.log(`Returning ${allBusinesses.length} businesses from ABR`);
+      res.json(allBusinesses);
     } catch (error) {
-      console.error("Error searching Aboriginal businesses:", error);
-      res.status(500).json({ message: "Failed to search Aboriginal businesses" });
+      console.error("Error searching Australian businesses:", error);
+      res.status(500).json({ message: "Failed to search Australian businesses" });
     }
   });
 

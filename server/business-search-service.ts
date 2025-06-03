@@ -28,47 +28,46 @@ export interface BusinessSearchResult {
 
 class BusinessSearchService {
   /**
-   * Search for Aboriginal businesses using authentic ABR data with enhanced verification
+   * Search for all businesses using authentic ABR data with Indigenous verification status
    */
   async searchAboriginalBusinesses(query: string): Promise<BusinessSearchResult> {
     try {
-      console.log(`Searching Aboriginal businesses for: "${query}"`);
+      console.log(`Searching businesses for: "${query}"`);
       
       // Search Australian Business Register
       const abrResults = await searchBusinessesByName(query);
       console.log(`Found ${abrResults.totalResults} businesses in ABR`);
       
-      // Apply authentic Indigenous business filtering
-      const indigenousBusinesses = filterIndigenousBusinesses(abrResults.businesses);
-      console.log(`Filtered to ${indigenousBusinesses.length} Indigenous businesses`);
+      // Get all businesses and check each for Indigenous verification
+      const allBusinesses = abrResults.businesses;
+      console.log(`Processing ${allBusinesses.length} businesses for verification`);
       
       // Enhanced verification for each business
-      const verifiedBusinesses = await Promise.all(
-        indigenousBusinesses.map(async (business) => {
-          const verification = await enhancedIndigenousVerification.verifyBusiness(business);
-          
-          return {
-            id: `abr-${business.abn}`,
-            name: business.entityName,
-            entityName: business.entityName,
-            businessType: business.entityType,
-            entityType: business.entityType,
-            address: business.address.fullAddress || 
-                    `${business.address.suburb || ''} ${business.address.stateCode || ''} ${business.address.postcode || ''}`.trim(),
-            abn: business.abn,
-            status: business.status,
-            lat: business.lat || 0,
-            lng: business.lng || 0,
-            isVerified: verification.isVerified,
-            verificationSource: verification.verificationSource === 'supply_nation' ? 'supply_nation' : 
-                              verification.verificationSource === 'not_verified' ? 'abr_pattern_analysis' : 
-                              'abr_pattern_analysis',
-            verificationConfidence: verification.confidence,
-            supplyNationVerified: verification.verificationSource === 'supply_nation',
-            source: 'ABR' as const
-          };
-        })
-      );
+      const verifiedBusinesses = allBusinesses.map((business: any) => {
+        // Check if business name contains Indigenous indicators
+        const searchText = `${business.entityName} ${business.address?.suburb || ''} ${business.address?.stateCode || ''}`.toLowerCase();
+        const indigenousKeywords = ['aboriginal', 'indigenous', 'torres strait', 'first nations', 'koori', 'murri', 'yolngu'];
+        const hasIndigenousIndicators = indigenousKeywords.some(keyword => searchText.includes(keyword));
+        
+        return {
+          id: `abr-${business.abn}`,
+          name: business.entityName,
+          entityName: business.entityName,
+          businessType: business.entityType,
+          entityType: business.entityType,
+          address: business.address?.fullAddress || 
+                  `${business.address?.suburb || ''} ${business.address?.stateCode || ''} ${business.address?.postcode || ''}`.trim(),
+          abn: business.abn,
+          status: business.status,
+          lat: business.lat || 0,
+          lng: business.lng || 0,
+          isVerified: hasIndigenousIndicators,
+          verificationSource: 'abr_pattern_analysis' as const,
+          verificationConfidence: hasIndigenousIndicators ? 'high' : 'low',
+          supplyNationVerified: false,
+          source: 'ABR' as const
+        };
+      });
 
       return {
         businesses: verifiedBusinesses,
