@@ -127,14 +127,31 @@ export class SupplyNationSimpleScraper {
           }
         }
         
-        // Now navigate to the final destination
-        const finalUrl = currentLocation?.includes('/public/s/') ? currentLocation : 'https://ibd.supplynation.org.au/public/s/';
+        // Navigate to CommunitiesLanding page first
+        const communitiesUrl = 'https://ibd.supplynation.org.au/public/apex/CommunitiesLanding';
+        
+        const communitiesResponse = await fetch(communitiesUrl, {
+          method: 'GET',
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+            'Cookie': currentCookies
+          }
+        });
+
+        const communitiesSetCookie = communitiesResponse.headers.get('set-cookie');
+        if (communitiesSetCookie) {
+          currentCookies += '; ' + communitiesSetCookie;
+        }
+        
+        // Then navigate to the main portal page
+        const finalUrl = 'https://ibd.supplynation.org.au/public/s/';
         
         const finalResponse = await fetch(finalUrl, {
           method: 'GET',
           headers: {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-            'Cookie': currentCookies
+            'Cookie': currentCookies,
+            'Referer': communitiesUrl
           }
         });
 
@@ -150,7 +167,7 @@ export class SupplyNationSimpleScraper {
         this.isAuthenticated = finalText.includes('searchIBDButton') || 
                               finalText.includes('Search Indigenous Business') ||
                               finalText.includes('CommunitiesLanding') ||
-                              (finalResponse.status === 200 && !finalText.includes('login'));
+                              (finalResponse.status === 200 && !finalText.includes('login') && !finalText.includes('Please sign in'));
       } else {
         // Check if login was successful by looking at the response
         const loginResponseText = await loginResponse.text();
