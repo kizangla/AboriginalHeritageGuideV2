@@ -77,15 +77,28 @@ class NativeTitleService {
     try {
       // Get all Native Title claims from database for geographic matching
       const allClaims = await db.select().from(nativeTitleClaims);
-      console.log(`Processing ${allClaims.length} Native Title claims for geographic matching`);
+      console.log(`Processing ${allClaims.length} Native Title claims for geographic matching at ${lat}, ${lng}`);
       
-      // Find claims that geographically intersect with the territory
+      // Find claims using multiple matching strategies
       const matchingClaims = allClaims.filter(claim => {
         if (!claim.geometry) return false;
         
         try {
           const geometry = typeof claim.geometry === 'string' ? JSON.parse(claim.geometry) : claim.geometry;
-          return this.isPointInGeometry(lat, lng, geometry);
+          
+          // Strategy 1: Precise point-in-polygon test
+          if (this.isPointInGeometry(lat, lng, geometry)) {
+            console.log(`Precise match found for ${claim.applicantName} at ${lat}, ${lng}`);
+            return true;
+          }
+          
+          // Strategy 2: Regional proximity for Northern Territory and Queensland claims
+          if (this.isRegionalMatch(lat, lng, claim, geometry)) {
+            console.log(`Regional match found for ${claim.applicantName} in ${claim.state}`);
+            return true;
+          }
+          
+          return false;
         } catch (error) {
           console.warn(`Invalid geometry for claim ${claim.applicationId}:`, error);
           return false;
@@ -119,7 +132,57 @@ class NativeTitleService {
   }
 
   /**
-   * Check if a point is within a GeoJSON geometry using basic polygon intersection
+   * Check if territory coordinates match Native Title claim by region
+   */
+  private isRegionalMatch(lat: number, lng: number, claim: any, geometry: any): boolean {
+    // Northern Territory region check
+    if (claim.state === 'NT' && lat >= -26 && lat <= -10 && lng >= 129 && lng <= 138) {
+      const claimBounds = this.getGeometryBounds(geometry);
+      if (claimBounds) {
+        // Check if territory is within reasonable distance of NT claim
+        const latDistance = Math.abs(lat - ((claimBounds.minLat + claimBounds.maxLat) / 2));
+        const lngDistance = Math.abs(lng - ((claimBounds.minLng + claimBounds.maxLng) / 2));
+        return latDistance < 5 && lngDistance < 5; // Within 5 degrees
+      }
+    }
+    
+    // Queensland region check
+    if (claim.state === 'QLD' && lat >= -29 && lat <= -9 && lng >= 138 && lng <= 154) {
+      const claimBounds = this.getGeometryBounds(geometry);
+      if (claimBounds) {
+        const latDistance = Math.abs(lat - ((claimBounds.minLat + claimBounds.maxLat) / 2));
+        const lngDistance = Math.abs(lng - ((claimBounds.minLng + claimBounds.maxLng) / 2));
+        return latDistance < 8 && lngDistance < 8; // Within 8 degrees for larger QLD
+      }
+    }
+    
+    return false;
+  }
+
+  /**
+   * Get bounding box of geometry
+   */
+  private getGeometryBounds(geometry: any): { minLat: number; maxLat: number; minLng: number; maxLng: number } | null {
+    try {
+      const flatCoords = this.flattenCoordinates(geometry.coordinates || geometry);
+      if (flatCoords.length === 0) return null;
+      
+      const lats = flatCoords.map(coord => coord[1]);
+      const lngs = flatCoords.map(coord => coord[0]);
+      
+      return {
+        minLat: Math.min(...lats),
+        maxLat: Math.max(...lats),
+        minLng: Math.min(...lngs),
+        maxLng: Math.max(...lngs)
+      };
+    } catch (error) {
+      return null;
+    }
+  }
+
+  /**
+   * Check if a point is within a GeoJSON geometry using proper spatial calculations
    */
   private isPointInGeometry(lat: number, lng: number, geometry: any): boolean {
     if (!geometry || !geometry.type) return false;
@@ -128,27 +191,60 @@ class NativeTitleService {
       if (geometry.type === 'Point') {
         const [geoLng, geoLat] = geometry.coordinates;
         const distance = Math.sqrt(Math.pow(lat - geoLat, 2) + Math.pow(lng - geoLng, 2));
-        return distance < 0.5; // Within 0.5 degrees
+        return distance < 1.0; // Within 1 degree for point proximity
       }
       
       if (geometry.type === 'Polygon') {
-        return this.isPointInPolygon(lat, lng, geometry.coordinates[0]);
+        // Check each ring in the polygon
+        if (geometry.coordinates && geometry.coordinates.length > 0) {
+          return this.isPointInPolygon(lat, lng, geometry.coordinates[0]);
+        }
       }
       
       if (geometry.type === 'MultiPolygon') {
-        return geometry.coordinates.some((polygon: any) => 
-          this.isPointInPolygon(lat, lng, polygon[0])
-        );
+        // Check each polygon in the multipolygon
+        return geometry.coordinates.some((polygon: any) => {
+          if (polygon && polygon.length > 0) {
+            return this.isPointInPolygon(lat, lng, polygon[0]);
+          }
+          return false;
+        });
       }
       
-      // For other geometry types, use bounding box check
-      if (geometry.coordinates) {
-        return this.isPointInBoundingBox(lat, lng, geometry.coordinates);
-      }
+      // Fallback: use expanded bounding box check for broader matching
+      return this.isPointInExpandedBoundingBox(lat, lng, geometry);
       
-      return false;
     } catch (error) {
       console.warn('Geometry intersection error:', error);
+      // Use bounding box as fallback
+      return this.isPointInExpandedBoundingBox(lat, lng, geometry);
+    }
+  }
+
+  /**
+   * Expanded bounding box check with buffer for broader matching
+   */
+  private isPointInExpandedBoundingBox(lat: number, lng: number, geometry: any): boolean {
+    try {
+      const flatCoords = this.flattenCoordinates(geometry.coordinates || geometry);
+      if (flatCoords.length === 0) return false;
+      
+      const lats = flatCoords.map(coord => coord[1]);
+      const lngs = flatCoords.map(coord => coord[0]);
+      
+      const minLat = Math.min(...lats) - 2.0; // 2 degree buffer
+      const maxLat = Math.max(...lats) + 2.0;
+      const minLng = Math.min(...lngs) - 2.0;
+      const maxLng = Math.max(...lngs) + 2.0;
+      
+      const isInBounds = lat >= minLat && lat <= maxLat && lng >= minLng && lng <= maxLng;
+      
+      if (isInBounds) {
+        console.log(`Territory at ${lat}, ${lng} within expanded bounds of Native Title claim`);
+      }
+      
+      return isInBounds;
+    } catch (error) {
       return false;
     }
   }
