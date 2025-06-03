@@ -13,6 +13,7 @@ export default function SimpleMap({ onMapReady, onTerritorySelect, regionFilter 
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
   const territoryLayerRef = useRef<L.GeoJSON | null>(null);
+  const overlayLayerRef = useRef<L.GeoJSON | null>(null);
 
   const { data: territoriesGeoJSON, isLoading } = useQuery<any>({
     queryKey: ['/api/territories'],
@@ -46,7 +47,7 @@ export default function SimpleMap({ onMapReady, onTerritorySelect, regionFilter 
     };
   }, [onMapReady]);
 
-  // Add Aboriginal territories
+  // Add base Aboriginal territories layer (always visible)
   useEffect(() => {
     if (!mapInstanceRef.current || !territoriesGeoJSON || isLoading) return;
 
@@ -55,41 +56,19 @@ export default function SimpleMap({ onMapReady, onTerritorySelect, regionFilter 
       mapInstanceRef.current.removeLayer(territoryLayerRef.current);
     }
 
-    console.log('Adding Aboriginal territories to map...');
+    console.log('Adding Aboriginal territories base layer...');
     console.log('Territories data received:', territoriesGeoJSON?.features?.length || 0);
 
-    // Filter territories based on selected region
-    let filteredFeatures = territoriesGeoJSON?.features || [];
-    if (regionFilter) {
-      filteredFeatures = filteredFeatures.filter((feature: any) => {
-        const featureRegion = feature.properties?.Region || feature.properties?.region;
-        return featureRegion === regionFilter;
-      });
-    }
-
-    console.log(`Displaying ${filteredFeatures.length} territories ${regionFilter ? `for ${regionFilter} region` : 'total'}`);
-
-    // Add filtered territory layer
-    if (filteredFeatures.length > 0) {
-      const getRegionColor = (region: string) => {
-        switch (region) {
-          case 'Kimberley': return '#FF6B35'; // Orange for Kimberley
-          case 'Southeast': return '#4ECDC4'; // Teal for Southeast
-          case 'Riverine': return '#45B7D1'; // Blue for Riverine
-          default: return '#e74c3c'; // Default red
-        }
-      };
-
-      const territoryLayer = L.geoJSON(filteredFeatures as any, {
-        style: (feature) => {
-          const region = feature?.properties?.Region || feature?.properties?.region;
-          return {
-            color: getRegionColor(region),
-            weight: regionFilter ? 3 : 2,
-            opacity: regionFilter ? 1 : 0.8,
-            fillOpacity: regionFilter ? 0.8 : 0.6,
-          };
-        },
+    // Add base territory layer with original styling
+    if (territoriesGeoJSON?.features) {
+      const territoryLayer = L.geoJSON(territoriesGeoJSON.features as any, {
+        style: (feature) => ({
+          color: '#8B4513', // Earth brown border
+          weight: 1,
+          opacity: 0.6,
+          fillColor: '#DEB887', // Light earth tone
+          fillOpacity: 0.3,
+        }),
         onEachFeature: (feature, layer) => {
           const territory = feature.properties;
           
@@ -132,9 +111,99 @@ export default function SimpleMap({ onMapReady, onTerritorySelect, regionFilter 
       territoryLayerRef.current = territoryLayer;
       territoryLayer.addTo(mapInstanceRef.current);
       
-      console.log(`Added ${filteredFeatures.length} Aboriginal territories`);
+      console.log(`Added ${territoriesGeoJSON.features.length} Aboriginal territories base layer`);
     }
-  }, [territoriesGeoJSON, isLoading, onTerritorySelect, regionFilter]);
+  }, [territoriesGeoJSON, isLoading, onTerritorySelect]);
+
+  // Add dynamic overlay layer for region filtering
+  useEffect(() => {
+    if (!mapInstanceRef.current || !territoriesGeoJSON) return;
+
+    // Remove existing overlay layer
+    if (overlayLayerRef.current) {
+      mapInstanceRef.current.removeLayer(overlayLayerRef.current);
+      overlayLayerRef.current = null;
+    }
+
+    // Add overlay layer only when filtering is active
+    if (regionFilter) {
+      const filteredFeatures = territoriesGeoJSON.features.filter((feature: any) => {
+        const featureRegion = feature.properties?.Region || feature.properties?.region;
+        return featureRegion === regionFilter;
+      });
+
+      console.log(`Adding ${regionFilter} overlay with ${filteredFeatures.length} territories`);
+
+      const getRegionColor = (region: string) => {
+        switch (region) {
+          case 'Kimberley': return '#FF6B35'; // Orange for Kimberley
+          case 'Southeast': return '#2ECC71'; // Green for Southeast
+          case 'Riverine': return '#3498DB'; // Blue for Riverine
+          case 'Southwest': return '#9B59B6'; // Purple for Southwest
+          case 'Northwest': return '#F39C12'; // Yellow for Northwest
+          default: return '#E74C3C'; // Red default
+        }
+      };
+
+      if (filteredFeatures.length > 0) {
+        const overlayLayer = L.geoJSON(filteredFeatures as any, {
+          style: (feature) => {
+            const region = feature?.properties?.Region || feature?.properties?.region;
+            return {
+              color: getRegionColor(region),
+              weight: 3,
+              opacity: 1,
+              fillColor: getRegionColor(region),
+              fillOpacity: 0.7,
+              dashArray: '5,5', // Dashed border for overlay
+            };
+          },
+          onEachFeature: (feature, layer) => {
+            const territory = feature.properties;
+            
+            // Enhanced popup for overlay
+            layer.bindPopup(`
+              <div class="p-3 min-w-[200px] border-l-4" style="border-left-color: ${getRegionColor(regionFilter)}">
+                <h3 class="font-bold text-lg mb-2">${territory.Name || territory.name}</h3>
+                <div class="space-y-1 text-sm">
+                  <p><strong>Region:</strong> <span class="px-2 py-1 rounded text-xs" style="background-color: ${getRegionColor(regionFilter)}20; color: ${getRegionColor(regionFilter)}">${territory.Region || territory.region}</span></p>
+                  ${territory.groupName ? `<p><strong>Group:</strong> ${territory.groupName}</p>` : ''}
+                  ${territory.languageFamily ? `<p><strong>Language Family:</strong> ${territory.languageFamily}</p>` : ''}
+                </div>
+              </div>
+            `, {
+              className: 'custom-popup region-overlay-popup'
+            });
+            
+            layer.on('click', () => {
+              if (onTerritorySelect) {
+                onTerritorySelect(territory);
+              }
+            });
+
+            layer.on('mouseover', () => {
+              (layer as any).setStyle({
+                fillOpacity: 0.9,
+                weight: 4,
+              });
+            });
+
+            layer.on('mouseout', () => {
+              if (overlayLayerRef.current) {
+                overlayLayerRef.current.resetStyle(layer as any);
+              }
+            });
+          },
+        });
+
+        overlayLayerRef.current = overlayLayer;
+        overlayLayer.addTo(mapInstanceRef.current);
+        
+        // Bring overlay to front
+        overlayLayer.bringToFront();
+      }
+    }
+  }, [regionFilter, territoriesGeoJSON, onTerritorySelect]);
 
   return (
     <div className="relative w-full h-[calc(100vh-80px)]">
