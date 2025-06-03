@@ -77,6 +77,20 @@ export const sampleSupplyNationBusinesses: SupplyNationVerifiedBusiness[] = [
       email: "info@murdipaaki.org",
       website: "http://www.murdipaaki.org"
     }
+  },
+  {
+    companyName: "KOOYAR WONGI PTY LTD",
+    abn: "40627082900",
+    location: "6280, Western Australia",
+    supplynationId: "a1G7F000001RLdBUA5",
+    profileUrl: "https://ibd.supplynation.org.au/public/s/supplierprofile?accid=a1G7F000001RLdBUA5",
+    verified: true,
+    categories: ["Supply Nation Verified", "Indigenous cultural services", "Community development"],
+    contactInfo: {
+      phone: "(08) 9842 1234",
+      email: "info@kooyarwongi.com.au",
+      website: "http://www.kooyarwongi.com.au"
+    }
   }
 ];
 

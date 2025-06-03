@@ -48,6 +48,8 @@ export class IndigenousBusinessMatcher {
       /cultural\s+centre/i,
       // Indigenous language words commonly used in business names
       /maali/i,        // Noongar word meaning "people"
+      /kooyar/i,       // Indigenous term used in business names
+      /wongi/i,        // Indigenous term commonly appearing with Kooyar
       /myali/i,        // Variant of Maali
       /miali/i,        // Variant of Maali
       /jarrah/i,       // Native tree name commonly used
