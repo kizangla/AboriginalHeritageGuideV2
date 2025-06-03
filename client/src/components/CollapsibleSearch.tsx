@@ -71,7 +71,9 @@ export default function CollapsibleSearch({
   };
 
   const handlePlaceSelect = (result: SearchResult) => {
-    onLocationSelect(result.lat, result.lng);
+    const lat = parseFloat(result.lat);
+    const lng = parseFloat(result.lon);
+    onLocationSelect(lat, lng);
     setShouldSearch(false);
     setSearchQuery('');
     onClose();
@@ -156,9 +158,9 @@ export default function CollapsibleSearch({
             )}
 
             {/* Place Results */}
-            {searchType === 'places' && placeResults?.results && (
+            {searchType === 'places' && Array.isArray(placeResults) && (
               <>
-                {placeResults.results.map((result: SearchResult, index: number) => (
+                {placeResults.map((result: SearchResult, index: number) => (
                   <Button
                     key={index}
                     onClick={() => handlePlaceSelect(result)}
@@ -168,7 +170,7 @@ export default function CollapsibleSearch({
                     <MapPin className="w-4 h-4 mr-2 flex-shrink-0" />
                     <div>
                       <div className="font-medium text-sm">{result.display_name}</div>
-                      <div className="text-xs text-gray-500">{result.type}</div>
+                      <div className="text-xs text-gray-500">{result.type || result.class}</div>
                     </div>
                   </Button>
                 ))}
@@ -176,24 +178,24 @@ export default function CollapsibleSearch({
             )}
 
             {/* Business Results */}
-            {searchType === 'businesses' && businessResults?.businesses && (
+            {searchType === 'businesses' && Array.isArray(businessResults) && (
               <>
-                {businessResults.businesses.map((business: BusinessLocation, index: number) => (
+                {businessResults.map((business: any, index: number) => (
                   <Button
-                    key={business.abn || index}
+                    key={business.id || business.abn || index}
                     onClick={() => handleBusinessSelect(business)}
                     variant="ghost"
                     className="w-full justify-start h-auto p-3 text-left"
                   >
                     <Building2 className="w-4 h-4 mr-2 flex-shrink-0" />
                     <div className="flex-1">
-                      <div className="font-medium text-sm">{business.entityName}</div>
+                      <div className="font-medium text-sm">{business.name || business.entityName}</div>
                       <div className="text-xs text-gray-500">
-                        {business.entityType} • {business.displayAddress}
+                        {business.businessType || business.entityType} • {business.address || business.displayAddress}
                       </div>
-                      {business.supplyNationVerified && (
+                      {business.isVerified && (
                         <div className="text-xs text-green-600 font-medium mt-1">
-                          ✓ Supply Nation Verified
+                          ✓ Aboriginal Business Verified
                         </div>
                       )}
                     </div>
@@ -205,14 +207,14 @@ export default function CollapsibleSearch({
             {/* No Results */}
             {shouldSearch && !isLoading && (
               <>
-                {searchType === 'places' && (!placeResults?.results || placeResults.results.length === 0) && (
+                {searchType === 'places' && (!Array.isArray(placeResults) || placeResults.length === 0) && (
                   <div className="text-center py-4">
                     <p className="text-sm text-gray-500">No places found</p>
                   </div>
                 )}
-                {searchType === 'businesses' && (!businessResults?.businesses || businessResults.businesses.length === 0) && (
+                {searchType === 'businesses' && (!Array.isArray(businessResults) || businessResults.length === 0) && (
                   <div className="text-center py-4">
-                    <p className="text-sm text-gray-500">No businesses found</p>
+                    <p className="text-sm text-gray-500">No Aboriginal businesses found</p>
                   </div>
                 )}
               </>

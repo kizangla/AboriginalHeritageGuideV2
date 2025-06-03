@@ -221,6 +221,10 @@ export interface SearchResult {
   display_name: string;
   lat: string;
   lon: string;
+  lng?: string; // Alternative for longitude
   place_id: string;
   boundingbox: string[];
+  type?: string;
+  class?: string;
+  importance?: number;
 }
