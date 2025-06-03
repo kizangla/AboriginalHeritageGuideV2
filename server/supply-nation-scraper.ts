@@ -180,7 +180,7 @@ class SupplyNationScraper {
             ]);
             
             // Wait for results
-            await page.waitForTimeout(3000);
+            await new Promise(resolve => setTimeout(resolve, 3000));
             await page.waitForSelector('.search-results, .business-list, .supplier-card', { timeout: 10000 });
             
             // Extract business data

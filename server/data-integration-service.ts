@@ -71,7 +71,7 @@ class DataIntegrationService {
           console.log(`Using cached Supply Nation data: ${cachedResults.length} businesses`);
           supplyNationResults = cachedResults;
         } else {
-          console.log('Scraping fresh Supply Nation data...');
+          console.log('Scraping fresh Supply Nation data with browser automation...');
           const snResults = await searchSupplyNationWithPuppeteer(query, location);
           supplyNationResults = snResults.businesses;
           console.log(`Scraped ${supplyNationResults.length} businesses from Supply Nation`);

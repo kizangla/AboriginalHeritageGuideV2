@@ -97,10 +97,47 @@ class SupplyNationScraper {
         this.sessionCookies += '; ' + cookieString;
       }
 
-      // Check if login was successful (usually redirects or returns 200 with dashboard)
-      this.isAuthenticated = loginResponse.status === 302 || 
-                            (loginResponse.status === 200 && !loginResponse.url.includes('login'));
+      // Handle the redirect sequence: login → frontdoor.jsp → CommunitiesLanding → homepage
+      let currentUrl = loginResponse.headers.get('location');
+      let redirectCount = 0;
+      const maxRedirects = 5;
 
+      while (currentUrl && redirectCount < maxRedirects) {
+        console.log(`Following redirect ${redirectCount + 1}: ${currentUrl}`);
+        
+        const redirectResponse = await fetch(currentUrl, {
+          method: 'GET',
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+            'Cookie': this.sessionCookies,
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8'
+          },
+          redirect: 'manual'
+        });
+
+        // Update cookies from each redirect
+        const redirectCookies = redirectResponse.headers.get('set-cookie');
+        if (redirectCookies) {
+          const cookieString = Array.isArray(redirectCookies) ? redirectCookies.join('; ') : redirectCookies;
+          this.sessionCookies += '; ' + cookieString;
+        }
+
+        // Check if we've reached the final destination
+        if (redirectResponse.status === 200) {
+          const responseText = await redirectResponse.text();
+          if (responseText.includes('homepage') || responseText.includes('search') || !responseText.includes('login')) {
+            console.log('Successfully completed redirect sequence');
+            this.isAuthenticated = true;
+            return true;
+          }
+        }
+
+        currentUrl = redirectResponse.headers.get('location');
+        redirectCount++;
+      }
+
+      // Check if login was successful
+      this.isAuthenticated = redirectCount > 0 && redirectCount < maxRedirects;
       console.log(`Supply Nation login ${this.isAuthenticated ? 'successful' : 'failed'}`);
       return this.isAuthenticated;
 
