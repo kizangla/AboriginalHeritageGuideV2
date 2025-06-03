@@ -91,30 +91,66 @@ export class SupplyNationSimpleScraper {
         this.sessionCookies = loginSetCookie;
       }
 
-      // Follow redirect to check authentication success
+      // Follow redirect chain to complete authentication
       if (loginResponse.status === 302) {
-        const redirectLocation = loginResponse.headers.get('location');
-        if (redirectLocation) {
-          const redirectResponse = await fetch(redirectLocation, {
+        let currentLocation = loginResponse.headers.get('location');
+        let currentCookies = this.sessionCookies;
+        
+        // Update cookies from login response
+        const loginSetCookie = loginResponse.headers.get('set-cookie');
+        if (loginSetCookie) {
+          currentCookies += '; ' + loginSetCookie;
+        }
+        
+        // Follow the frontdoor.jsp redirect first
+        if (currentLocation && currentLocation.includes('frontdoor.jsp')) {
+          const frontdoorResponse = await fetch(currentLocation, {
             method: 'GET',
             headers: {
               'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-              'Cookie': this.sessionCookies
-            }
+              'Cookie': currentCookies
+            },
+            redirect: 'manual'
           });
-
-          const redirectSetCookie = redirectResponse.headers.get('set-cookie');
-          if (redirectSetCookie) {
-            this.sessionCookies += '; ' + redirectSetCookie;
-          }
-
-          const redirectText = await redirectResponse.text();
           
-          // Check for successful authentication indicators
-          this.isAuthenticated = redirectText.includes('searchIBDButton') || 
-                                redirectText.includes('Search Indigenous Business') ||
-                                !redirectText.includes('login');
+          const frontdoorSetCookie = frontdoorResponse.headers.get('set-cookie');
+          if (frontdoorSetCookie) {
+            currentCookies += '; ' + frontdoorSetCookie;
+          }
+          
+          // Check for next redirect to /public/s/
+          if (frontdoorResponse.status === 302) {
+            const nextLocation = frontdoorResponse.headers.get('location');
+            if (nextLocation) {
+              currentLocation = nextLocation;
+            }
+          }
         }
+        
+        // Now navigate to the final destination
+        const finalUrl = currentLocation?.includes('/public/s/') ? currentLocation : 'https://ibd.supplynation.org.au/public/s/';
+        
+        const finalResponse = await fetch(finalUrl, {
+          method: 'GET',
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+            'Cookie': currentCookies
+          }
+        });
+
+        const finalSetCookie = finalResponse.headers.get('set-cookie');
+        if (finalSetCookie) {
+          currentCookies += '; ' + finalSetCookie;
+        }
+        
+        this.sessionCookies = currentCookies;
+        const finalText = await finalResponse.text();
+        
+        // Check for successful authentication indicators
+        this.isAuthenticated = finalText.includes('searchIBDButton') || 
+                              finalText.includes('Search Indigenous Business') ||
+                              finalText.includes('CommunitiesLanding') ||
+                              (finalResponse.status === 200 && !finalText.includes('login'));
       } else {
         // Check if login was successful by looking at the response
         const loginResponseText = await loginResponse.text();
@@ -128,12 +164,16 @@ export class SupplyNationSimpleScraper {
       
       // Debug output for troubleshooting
       if (!this.isAuthenticated) {
-        console.log('Authentication debug info:');
+        console.log('Supply Nation authentication debug:');
         console.log('- Login response status:', loginResponse.status);
         console.log('- Cookies received:', this.sessionCookies ? 'Yes' : 'No');
         if (loginResponse.status === 302) {
-          console.log('- Redirect location:', loginResponse.headers.get('location'));
+          const redirectLoc = loginResponse.headers.get('location');
+          console.log('- Initial redirect:', redirectLoc);
+          console.log('- Contains frontdoor.jsp:', redirectLoc?.includes('frontdoor.jsp') ? 'Yes' : 'No');
         }
+      } else {
+        console.log('Supply Nation authentication successful - ready for searches');
       }
       
       return this.isAuthenticated;
