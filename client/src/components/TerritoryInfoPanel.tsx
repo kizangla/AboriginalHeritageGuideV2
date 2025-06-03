@@ -156,8 +156,8 @@ export default function TerritoryInfoPanel({
                     </div>
                     
                     {/* Individual Application Details */}
-                    <div className="space-y-1 max-h-24 sm:max-h-32 overflow-y-auto">
-                      {nativeTitleData.nativeTitle.applications.slice(0, 3).map((app: any, index: number) => (
+                    <div className="space-y-1 max-h-32 sm:max-h-48 md:max-h-64 overflow-y-auto">
+                      {nativeTitleData.nativeTitle.applications.map((app: any, index: number) => (
                         <div key={index} className="p-2 bg-white rounded border border-orange-100">
                           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-1 text-xs">
                             <div className="flex-1 min-w-0">
@@ -177,11 +177,6 @@ export default function TerritoryInfoPanel({
                           </div>
                         </div>
                       ))}
-                      {nativeTitleData.nativeTitle.applications.length > 3 && (
-                        <div className="text-xs text-gray-500 text-center py-1">
-                          +{nativeTitleData.nativeTitle.applications.length - 3} more applications
-                        </div>
-                      )}
                     </div>
                   </div>
                 )}
