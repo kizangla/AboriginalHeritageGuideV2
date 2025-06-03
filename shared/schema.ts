@@ -81,6 +81,24 @@ export const culturalSites = pgTable("cultural_sites", {
   respectGuidelines: text("respect_guidelines"),
 });
 
+export const nativeTitleClaims = pgTable("native_title_claims", {
+  id: serial("id").primaryKey(),
+  applicationId: text("application_id").notNull().unique(),
+  tribunalNumber: text("tribunal_number"),
+  applicantName: text("applicant_name").notNull(),
+  status: text("status").notNull(), // 'Determined', 'Registered', 'In Progress', etc.
+  determinationDate: text("determination_date"),
+  state: text("state").notNull(),
+  outcome: text("outcome"), // 'Native Title Exists', 'Native Title Does Not Exist', etc.
+  area: real("area"), // Area in square kilometers
+  geometry: jsonb("geometry").notNull(), // GeoJSON geometry
+  traditionalOwners: text("traditional_owners").array().default([]),
+  federalCourtNumber: text("federal_court_number"),
+  registrationDate: text("registration_date"),
+  lastUpdated: text("last_updated"),
+  dataSource: text("data_source").default("Australian Government Native Title Tribunal")
+});
+
 export const supplyNationBusinesses = pgTable("supply_nation_businesses", {
   id: serial("id").primaryKey(),
   abn: text("abn"),
@@ -100,6 +118,10 @@ export const supplyNationBusinesses = pgTable("supply_nation_businesses", {
 });
 
 export const insertTerritorySchema = createInsertSchema(territories).omit({
+  id: true,
+});
+
+export const insertNativeTitleClaimSchema = createInsertSchema(nativeTitleClaims).omit({
   id: true,
 });
 
