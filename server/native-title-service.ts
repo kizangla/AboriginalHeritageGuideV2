@@ -408,7 +408,7 @@ class NativeTitleService {
 
     for (const pattern of patterns) {
       const match = applicantName.match(pattern);
-      if (match) {
+      if (match && match[1]) {
         return [match[1].trim()];
       }
     }
