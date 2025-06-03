@@ -13,6 +13,8 @@ interface TerritoryFilterProps {
     kimberley: number;
     southeast: number;
     riverine: number;
+    southwest: number;
+    northwest: number;
   };
 }
 
@@ -44,6 +46,20 @@ export default function TerritoryFilter({
       count: territoryStats.riverine,
       color: 'bg-blue-100 text-blue-800 border-blue-200',
       description: 'River systems and waterway territories'
+    },
+    {
+      name: 'Southwest',
+      key: 'Southwest',
+      count: territoryStats.southwest || 0,
+      color: 'bg-purple-100 text-purple-800 border-purple-200',
+      description: 'Southwestern Australia territories'
+    },
+    {
+      name: 'Northwest',
+      key: 'Northwest',
+      count: territoryStats.northwest || 0,
+      color: 'bg-yellow-100 text-yellow-800 border-yellow-200',
+      description: 'Northwestern territories'
     }
   ];
 

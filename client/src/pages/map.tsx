@@ -23,21 +23,25 @@ export default function MapPage() {
   // Calculate territory statistics by region
   const territoryStats = useMemo(() => {
     if (!territoriesGeoJSON?.features) {
-      return { total: 0, kimberley: 0, southeast: 0, riverine: 0 };
+      return { total: 0, kimberley: 0, southeast: 0, riverine: 0, southwest: 0, northwest: 0 };
     }
 
     const stats = {
       total: territoriesGeoJSON.features.length,
       kimberley: 0,
       southeast: 0,
-      riverine: 0
+      riverine: 0,
+      southwest: 0,
+      northwest: 0
     };
 
     territoriesGeoJSON.features.forEach((feature: any) => {
-      const region = feature.properties?.Region || feature.properties?.region;
+      const region = feature.properties?.region || feature.properties?.Region;
       if (region === 'Kimberley') stats.kimberley++;
       else if (region === 'Southeast') stats.southeast++;
       else if (region === 'Riverine') stats.riverine++;
+      else if (region === 'Southwest') stats.southwest++;
+      else if (region === 'Northwest') stats.northwest++;
     });
 
     return stats;
