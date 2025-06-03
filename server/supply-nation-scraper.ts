@@ -147,22 +147,31 @@ class SupplyNationScraper {
               // Submit and handle redirects
               await page.click('input[type="submit"], button[type="submit"]');
               
-              // Wait for the redirect sequence: login → frontdoor.jsp → CommunitiesLanding → homepage
-              let redirectCount = 0;
-              while (redirectCount < 5) {
-                await page.waitForTimeout(2000);
-                const url = page.url();
-                console.log(`Redirect ${redirectCount + 1}: ${url}`);
+              // Wait for the complete redirect sequence: login → frontdoor.jsp → CommunitiesLanding → homepage
+              console.log('Waiting for authentication redirects...');
+              
+              try {
+                // Wait for navigation after login submission
+                await page.waitForNavigation({ waitUntil: 'networkidle0', timeout: 30000 });
+                console.log(`After login: ${page.url()}`);
                 
-                if (url.includes('frontdoor.jsp')) {
-                  await page.waitForNavigation({ waitUntil: 'networkidle0', timeout: 10000 });
-                } else if (url.includes('CommunitiesLanding')) {
-                  await page.waitForNavigation({ waitUntil: 'networkidle0', timeout: 10000 });
-                } else if (url.includes('homepage') || url.includes('search-results')) {
-                  console.log('Authentication flow completed');
-                  break;
+                // Handle frontdoor.jsp redirect
+                if (page.url().includes('frontdoor.jsp')) {
+                  console.log('Detected frontdoor.jsp, waiting for next redirect...');
+                  await page.waitForNavigation({ waitUntil: 'networkidle0', timeout: 30000 });
+                  console.log(`After frontdoor: ${page.url()}`);
                 }
-                redirectCount++;
+                
+                // Handle CommunitiesLanding redirect
+                if (page.url().includes('CommunitiesLanding')) {
+                  console.log('Detected CommunitiesLanding, waiting for final redirect...');
+                  await page.waitForNavigation({ waitUntil: 'networkidle0', timeout: 30000 });
+                  console.log(`After CommunitiesLanding: ${page.url()}`);
+                }
+                
+                console.log('Authentication flow completed');
+              } catch (navError) {
+                console.log('Navigation error during authentication:', navError);
               }
             }
           }
