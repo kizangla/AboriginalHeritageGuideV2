@@ -147,31 +147,38 @@ class SupplyNationScraper {
               // Submit and handle redirects
               await page.click('input[type="submit"], button[type="submit"]');
               
-              // Wait for the complete redirect sequence: login → frontdoor.jsp → CommunitiesLanding → homepage
+              // Wait for the complete redirect sequence with proper timing
               console.log('Waiting for authentication redirects...');
               
-              try {
-                // Wait for navigation after login submission
-                await page.waitForNavigation({ waitUntil: 'networkidle0', timeout: 30000 });
-                console.log(`After login: ${page.url()}`);
+              // Wait a moment for the form submission to process
+              await new Promise(resolve => setTimeout(resolve, 2000));
+              
+              // Handle the redirect sequence manually
+              let currentPageUrl = page.url();
+              let redirectAttempts = 0;
+              const maxRedirects = 6;
+              
+              while (redirectAttempts < maxRedirects) {
+                await new Promise(resolve => setTimeout(resolve, 3000));
+                currentPageUrl = page.url();
+                console.log(`Redirect attempt ${redirectAttempts + 1}: ${currentPageUrl}`);
                 
-                // Handle frontdoor.jsp redirect
-                if (page.url().includes('frontdoor.jsp')) {
-                  console.log('Detected frontdoor.jsp, waiting for next redirect...');
-                  await page.waitForNavigation({ waitUntil: 'networkidle0', timeout: 30000 });
-                  console.log(`After frontdoor: ${page.url()}`);
+                if (currentPageUrl.includes('frontdoor.jsp')) {
+                  console.log('Detected frontdoor.jsp, continuing...');
+                } else if (currentPageUrl.includes('CommunitiesLanding')) {
+                  console.log('Detected CommunitiesLanding, continuing...');
+                } else if (currentPageUrl.includes('homepage') || 
+                          currentPageUrl.includes('search-results') ||
+                          (!currentPageUrl.includes('login') && !currentPageUrl.includes('frontdoor'))) {
+                  console.log('Authentication flow completed successfully');
+                  break;
                 }
                 
-                // Handle CommunitiesLanding redirect
-                if (page.url().includes('CommunitiesLanding')) {
-                  console.log('Detected CommunitiesLanding, waiting for final redirect...');
-                  await page.waitForNavigation({ waitUntil: 'networkidle0', timeout: 30000 });
-                  console.log(`After CommunitiesLanding: ${page.url()}`);
-                }
-                
-                console.log('Authentication flow completed');
-              } catch (navError) {
-                console.log('Navigation error during authentication:', navError);
+                redirectAttempts++;
+              }
+              
+              if (redirectAttempts >= maxRedirects) {
+                console.log('Maximum redirects reached, proceeding with current page');
               }
             }
           }
@@ -188,12 +195,30 @@ class SupplyNationScraper {
               page.click('button[type="submit"], input[type="submit"]')
             ]);
             
-            // Wait for results
-            await new Promise(resolve => setTimeout(resolve, 3000));
-            await page.waitForSelector('.search-results, .business-list, .supplier-card', { timeout: 10000 });
+            // Wait for results and check for content
+            await new Promise(resolve => setTimeout(resolve, 5000));
             
-            // Extract business data
-            const businessElements = await page.$$('.supplier-card, .business-item, .search-result');
+            // Check if we have any content on the page first
+            const pageContent = await page.content();
+            console.log(`Search results page loaded, length: ${pageContent.length}`);
+            
+            // Try to find business listings with multiple approaches
+            let businessElements = [];
+            
+            // First try standard selectors
+            try {
+              await page.waitForSelector('body', { timeout: 5000 });
+              businessElements = await page.$$('.supplier-card, .business-item, .search-result, .slds-card, .lightning-card');
+            } catch (selectorError) {
+              console.log('Standard selectors not found, trying alternative approach');
+            }
+            
+            // If no elements found, try broader search for any links or cards
+            if (businessElements.length === 0) {
+              businessElements = await page.$$('a[href*="supplier"], a[href*="business"], a[href*="profile"], .card, .tile, .item');
+            }
+            
+            console.log(`Found ${businessElements.length} potential business elements`);
             
             for (const element of businessElements) {
               try {
