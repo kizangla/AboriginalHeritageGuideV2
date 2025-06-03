@@ -1,6 +1,7 @@
 import { searchBusinessesByName, enrichBusinessWithLocation, ABRBusinessDetails } from './abr-service';
 import { indigenousBusinessMatcher } from './indigenous-business-matcher';
 import { enhancedIndigenousVerification } from './enhanced-indigenous-verification';
+import { SupplyNationDynamicIntegration } from './supply-nation-dynamic-integration';
 
 export interface IntegratedBusiness {
   // ABR Data
@@ -39,6 +40,8 @@ export interface IntegratedSearchResult {
 }
 
 class DataIntegrationService {
+  private supplyNationDynamicIntegration = new SupplyNationDynamicIntegration();
+
   async searchIntegratedBusinesses(
     query: string,
     location?: string,
@@ -154,6 +157,38 @@ class DataIntegrationService {
               verificationConfidence = verificationResult.confidence;
               supplyNationVerified = verificationResult.verificationSource === 'supply_nation';
               console.log(`✓ Indigenous business verified: ${enrichedBusiness.entityName} - ${verificationResult.verificationMethod} (${verificationConfidence} confidence)`);
+              
+              // For medium confidence Indigenous businesses, attempt Supply Nation cross-reference
+              if (verificationConfidence === 'medium' && !supplyNationVerified) {
+                console.log(`🔍 Cross-referencing ${enrichedBusiness.entityName} with Supply Nation...`);
+                
+                try {
+                  const supplyNationCrossRef = await this.supplyNationDynamicIntegration.searchVerifiedBusinessesDynamic(enrichedBusiness.entityName);
+                  
+                  if (supplyNationCrossRef.businesses.length > 0) {
+                    // Check if any found business matches our ABR business by name or ABN
+                    const matchedBusiness = supplyNationCrossRef.businesses.find((snBusiness: any) => 
+                      snBusiness.abn === enrichedBusiness.abn || 
+                      snBusiness.companyName.toLowerCase().includes(enrichedBusiness.entityName.toLowerCase().split(' ')[0])
+                    );
+                    
+                    if (matchedBusiness) {
+                      console.log(`🎯 Found Supply Nation verification for: ${enrichedBusiness.entityName}`);
+                      verificationSource = 'both';
+                      verificationConfidence = 'high';
+                      supplyNationVerified = true;
+                      
+                      // Update with Supply Nation data if available
+                      if (matchedBusiness.location && !enrichedBusiness.lat) {
+                        enrichedBusiness.address.fullAddress = matchedBusiness.location;
+                      }
+                    }
+                  }
+                } catch (crossRefError) {
+                  console.log(`Supply Nation cross-reference failed: ${crossRefError}`);
+                  // Continue with existing verification
+                }
+              }
             } else {
               // Business shows no Indigenous indicators - include with ABR-only status
               verificationSource = 'abr_only';
