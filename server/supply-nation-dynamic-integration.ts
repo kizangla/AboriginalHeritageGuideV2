@@ -119,6 +119,9 @@ export class SupplyNationDynamicIntegration {
 
     if (matchingBusinesses.length > 0) {
       console.log(`Found ${matchingBusinesses.length} matching businesses in authenticated demo data`);
+    } else {
+      console.log(`No direct matches in authenticated demo data for "${query}"`);
+      console.log('Dynamic integration will rely on Indigenous pattern recognition through ABR data');
     }
 
     return matchingBusinesses;

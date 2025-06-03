@@ -1,5 +1,6 @@
 import { searchBusinessesByName, enrichBusinessWithLocation, ABRBusinessDetails } from './abr-service';
 import { indigenousBusinessMatcher } from './indigenous-business-matcher';
+import { enhancedIndigenousVerification } from './enhanced-indigenous-verification';
 
 export interface IntegratedBusiness {
   // ABR Data
@@ -153,14 +154,19 @@ class DataIntegrationService {
             // Use ABR data with Indigenous analysis for non-Supply Nation businesses
             enrichedBusiness = await enrichBusinessWithLocation(abrBusiness);
             
-            // Analyze business for Indigenous ownership indicators
-            const indigenousAnalysis = indigenousBusinessMatcher.analyzeBusinessForIndigenousOwnership(enrichedBusiness);
+            // Apply enhanced verification using authentic data sources only
+            const verificationResult = await enhancedIndigenousVerification.verifyBusiness(enrichedBusiness);
 
-            if (indigenousAnalysis.isLikelyIndigenous) {
-              verificationSource = 'indigenous_analysis';
-              verificationConfidence = indigenousAnalysis.confidence;
-              supplyNationVerified = indigenousAnalysis.confidence === 'high';
-              console.log(`✓ Indigenous business identified: ${enrichedBusiness.entityName} - ${verificationSource} (${verificationConfidence} confidence)`);
+            if (verificationResult.isVerified) {
+              verificationSource = verificationResult.verificationSource === 'supply_nation' ? 'supply_nation' : 'indigenous_analysis';
+              verificationConfidence = verificationResult.confidence;
+              supplyNationVerified = verificationResult.verificationSource === 'supply_nation';
+              console.log(`✓ Indigenous business verified: ${enrichedBusiness.entityName} - ${verificationResult.verificationMethod} (${verificationConfidence} confidence)`);
+            } else {
+              // Business does not show Indigenous indicators
+              verificationSource = 'abr_only';
+              verificationConfidence = 'low';
+              supplyNationVerified = false;
             }
           }
 
