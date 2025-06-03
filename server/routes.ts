@@ -29,6 +29,7 @@ function getPostcodeCoordinates(postcode: string, stateCode: string): { lat: num
     '6714': { lat: -20.7403, lng: 116.8469 }, // Karratha area
     '6160': { lat: -32.0569, lng: 115.7975 }, // Fremantle
     '6050': { lat: -31.9354, lng: 115.8072 }, // Mount Lawley
+    '6100': { lat: -32.0569, lng: 115.7975 }, // Fremantle area
     
     // NSW postcodes
     '2150': { lat: -33.8096, lng: 151.0189 }, // Parramatta
