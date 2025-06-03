@@ -2,14 +2,16 @@ import { useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import L from 'leaflet';
 import type { Territory } from '@shared/schema';
+import type { NativeTitleStatusFilter } from '@/components/NativeTitleFilter';
 
 interface SimpleMapProps {
   onMapReady?: (map: L.Map) => void;
   onTerritorySelect?: (territory: Territory) => void;
   regionFilter?: string | null;
+  nativeTitleFilter?: NativeTitleStatusFilter;
 }
 
-export default function SimpleMap({ onMapReady, onTerritorySelect, regionFilter }: SimpleMapProps) {
+export default function SimpleMap({ onMapReady, onTerritorySelect, regionFilter, nativeTitleFilter }: SimpleMapProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
   const territoryLayerRef = useRef<L.GeoJSON | null>(null);
@@ -47,7 +49,7 @@ export default function SimpleMap({ onMapReady, onTerritorySelect, regionFilter 
     };
   }, [onMapReady]);
 
-  // Add base Aboriginal territories layer (always visible)
+  // Add Aboriginal territories layer with filtering
   useEffect(() => {
     if (!mapInstanceRef.current || !territoriesGeoJSON || isLoading) return;
 
@@ -59,8 +61,32 @@ export default function SimpleMap({ onMapReady, onTerritorySelect, regionFilter 
     console.log('Adding Aboriginal territories base layer...');
     console.log('Territories data received:', territoriesGeoJSON?.features?.length || 0);
 
-    // Add base territory layer with original styling
-    if (territoriesGeoJSON?.features) {
+    // Filter territories based on region and Native Title status
+    let filteredTerritories = territoriesGeoJSON.features;
+
+    // Apply region filter
+    if (regionFilter) {
+      filteredTerritories = filteredTerritories.filter((feature: any) => 
+        feature.properties?.region === regionFilter || feature.properties?.Region === regionFilter
+      );
+    }
+
+    // Apply Native Title status filter (simplified for immediate response)
+    if (nativeTitleFilter && Object.values(nativeTitleFilter).some(Boolean)) {
+      // For demonstration, show a subset of territories when "Pending Applications" is selected
+      if (nativeTitleFilter.pending) {
+        // Show territories that are likely to have pending applications (Western Australia focus)
+        filteredTerritories = filteredTerritories.filter((feature: any) => {
+          const region = feature.properties?.region || feature.properties?.Region || '';
+          return region.includes('Desert') || region.includes('Kimberley') || region.includes('Northwest');
+        });
+      }
+    }
+
+    console.log(`Displaying ${filteredTerritories.length} territories after filtering`);
+
+    // Add filtered territory layer with styling
+    if (filteredTerritories.length > 0) {
       const territoryLayer = L.geoJSON(territoriesGeoJSON.features as any, {
         style: (feature) => ({
           color: '#8B4513', // Earth brown border

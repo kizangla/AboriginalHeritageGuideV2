@@ -139,6 +139,7 @@ export default function MapPage() {
           onMapReady={setMapInstance}
           onTerritorySelect={handleTerritorySelect}
           regionFilter={selectedRegion}
+          nativeTitleFilter={nativeTitleFilters}
         />
         
         {/* Floating Map Controls */}

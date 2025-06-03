@@ -12,6 +12,7 @@ import {
   type ABRBusinessDetails 
 } from "./abr-service";
 import { nativeTitleService } from "./native-title-service";
+import { nativeTitleTerritoryFilter, type NativeTitleStatusFilter } from "./native-title-territory-filter";
 
 // Australian postcode coordinate lookup for business positioning
 function getPostcodeCoordinates(postcode: string, stateCode: string): { lat: number; lng: number } | null {
