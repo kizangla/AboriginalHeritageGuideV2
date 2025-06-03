@@ -395,13 +395,24 @@ export async function enrichBusinessWithLocation(business: ABRBusinessDetails): 
         entityName: detailedBusiness.entityName || business.entityName,
         status: detailedBusiness.status || business.status,
         gst: detailedBusiness.gst,
-        dgr: detailedBusiness.dgr
+        dgr: detailedBusiness.dgr,
+        lat: detailedBusiness.lat || 0,
+        lng: detailedBusiness.lng || 0
       };
     }
-    return business;
+    // Ensure lat/lng fields are always present
+    return {
+      ...business,
+      lat: business.lat || 0,
+      lng: business.lng || 0
+    };
   } catch (error) {
     console.error('Error enriching business location:', error);
-    return business;
+    return {
+      ...business,
+      lat: business.lat || 0,
+      lng: business.lng || 0
+    };
   }
 }
 

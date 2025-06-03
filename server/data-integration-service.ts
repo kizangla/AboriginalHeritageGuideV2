@@ -75,6 +75,47 @@ class DataIntegrationService {
             console.log(`✓ Indigenous business identified: ${enrichedBusiness.entityName} - ${verificationSource} (${verificationConfidence} confidence)`);
           }
 
+          // Enhanced geocoding for businesses with proper address data
+          if (!enrichedBusiness.lat || enrichedBusiness.lat === 0) {
+            if (enrichedBusiness.address?.postcode && enrichedBusiness.address?.stateCode) {
+              const geocodeAddress = enrichedBusiness.address.suburb 
+                ? `${enrichedBusiness.address.suburb}, ${enrichedBusiness.address.postcode}, ${enrichedBusiness.address.stateCode}, Australia`
+                : `${enrichedBusiness.address.postcode}, ${enrichedBusiness.address.stateCode}, Australia`;
+              
+              console.log(`🗺️ Geocoding business: ${enrichedBusiness.entityName} at ${geocodeAddress}`);
+              
+              try {
+                const geocodeUrl = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(geocodeAddress)}.json?access_token=${process.env.MAPBOX_ACCESS_TOKEN}&country=AU&limit=1`;
+                
+                const response = await fetch(geocodeUrl);
+                console.log(`Geocoding response status: ${response.status}`);
+                
+                if (response.ok) {
+                  const data = await response.json();
+                  console.log(`Geocoding response features:`, data.features?.length || 0);
+                  
+                  if (data.features && data.features.length > 0) {
+                    const [lng, lat] = data.features[0].center;
+                    enrichedBusiness.lat = lat;
+                    enrichedBusiness.lng = lng;
+                    enrichedBusiness.address.fullAddress = data.features[0].place_name;
+                    console.log(`✅ Geocoded ${enrichedBusiness.entityName} to coordinates: [${lat}, ${lng}]`);
+                  } else {
+                    console.log(`❌ No geocoding results for ${geocodeAddress}`);
+                  }
+                } else {
+                  console.log(`❌ Geocoding API error: ${response.status} ${response.statusText}`);
+                }
+              } catch (geocodeError) {
+                console.log(`❌ Geocoding failed for ${geocodeAddress}:`, geocodeError);
+              }
+            } else {
+              console.log(`⚠️ No address data available for geocoding: ${enrichedBusiness.entityName}`);
+            }
+          } else {
+            console.log(`📍 Business already has coordinates: ${enrichedBusiness.entityName} [${enrichedBusiness.lat}, ${enrichedBusiness.lng}]`);
+          }
+
           const integratedBusiness: IntegratedBusiness = {
             abn: enrichedBusiness.abn,
             entityName: enrichedBusiness.entityName,

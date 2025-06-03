@@ -1,146 +1,217 @@
-import { Page } from 'puppeteer';
-import { SupplyNationBusiness } from './supply-nation-scraper';
+import puppeteer from 'puppeteer';
+import { SupplyNationBusiness } from './abr-service';
 
-export async function extractSupplyNationProfile(page: Page, profileUrl: string): Promise<SupplyNationBusiness | null> {
-  try {
-    // Navigate to the profile page
-    await page.goto(profileUrl, { waitUntil: 'networkidle0', timeout: 30000 });
-    
-    // Wait for content to load
-    await page.waitForSelector('body', { timeout: 10000 });
-    
-    // Extract company name from page title or main heading
-    const companyName = await page.evaluate(() => {
-      const h1 = document.querySelector('h1');
-      if (h1 && h1.textContent) {
-        return h1.textContent.trim();
-      }
+export interface DetailedSupplyNationProfile extends SupplyNationBusiness {
+  detailedAddress?: {
+    streetAddress: string;
+    suburb: string;
+    state: string;
+    postcode: string;
+    fullAddress: string;
+  };
+  phone?: string;
+  email?: string;
+  website?: string;
+  services?: string[];
+  certifications?: string[];
+  description?: string;
+  contactPerson?: string;
+  businessType?: string;
+  yearEstablished?: string;
+  employeeCount?: string;
+  annualTurnover?: string;
+}
+
+export class SupplyNationProfileExtractor {
+  private browser: puppeteer.Browser | null = null;
+
+  async initialize(): Promise<void> {
+    if (!this.browser) {
+      this.browser = await puppeteer.launch({
+        headless: true,
+        args: [
+          '--no-sandbox',
+          '--disable-setuid-sandbox',
+          '--disable-dev-shm-usage',
+          '--disable-accelerated-2d-canvas',
+          '--no-first-run',
+          '--no-zygote',
+          '--single-process',
+          '--disable-gpu'
+        ]
+      });
+    }
+  }
+
+  async extractDetailedProfile(supplierProfileUrl: string): Promise<DetailedSupplyNationProfile | null> {
+    try {
+      await this.initialize();
       
-      // Fallback to page title
-      const title = document.title;
-      if (title && title.includes(' | ')) {
-        return title.split(' | ')[0].trim();
+      if (!this.browser) {
+        throw new Error('Failed to initialize browser');
       }
+
+      const page = await this.browser.newPage();
       
-      return 'Unknown Company';
-    });
-    
-    // Extract phone number
-    const phone = await page.evaluate(() => {
-      // Look for tel: links first
-      const telLink = document.querySelector('a[href^="tel:"]');
-      if (telLink && telLink.textContent) {
-        return telLink.textContent.trim();
-      }
+      // Set user agent and viewport
+      await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36');
+      await page.setViewport({ width: 1920, height: 1080 });
+
+      console.log(`Extracting detailed profile from: ${supplierProfileUrl}`);
       
-      // Look for phone patterns in text
-      const bodyText = document.body.textContent || '';
-      const phoneMatch = bodyText.match(/\(\d{2}\)\s*\d{4}\s*\d{4}|\d{2}\s*\d{4}\s*\d{4}|\+61\s*[\d\s\(\)\-]+/);
-      return phoneMatch ? phoneMatch[0].trim() : null;
-    });
-    
-    // Extract email
-    const email = await page.evaluate(() => {
-      // Look for mailto: links first
-      const mailtoLink = document.querySelector('a[href^="mailto:"]');
-      if (mailtoLink) {
-        const href = mailtoLink.getAttribute('href');
-        if (href) {
-          return href.replace('mailto:', '').trim();
+      // Navigate to the supplier profile page
+      await page.goto(supplierProfileUrl, { 
+        waitUntil: 'networkidle2',
+        timeout: 30000 
+      });
+
+      // Wait for page content to load
+      await page.waitForTimeout(3000);
+
+      // Extract detailed business information
+      const profileData = await page.evaluate(() => {
+        const profile: any = {};
+
+        // Extract company name
+        const companyNameEl = document.querySelector('h1, .company-name, [data-testid="company-name"]');
+        if (companyNameEl) {
+          profile.companyName = companyNameEl.textContent?.trim();
         }
-      }
-      
-      // Look for email patterns in text
-      const bodyText = document.body.textContent || '';
-      const emailMatch = bodyText.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
-      return emailMatch ? emailMatch[0] : null;
-    });
-    
-    // Extract website
-    const website = await page.evaluate(() => {
-      const links = document.querySelectorAll('a[href^="http"]');
-      for (let i = 0; i < links.length; i++) {
-        const href = links[i].getAttribute('href');
-        if (href && 
-            !href.includes('supplynation.org.au') && 
-            !href.includes('salesforce.com') &&
-            (href.includes('www.') || href.includes('.com') || href.includes('.au'))) {
-          return href;
-        }
-      }
-      return null;
-    });
-    
-    // Extract description/services
-    const description = await page.evaluate(() => {
-      // Look for common description selectors
-      const descSelectors = [
-        '[class*="description"]',
-        '[class*="service"]',
-        '[class*="about"]',
-        'p',
-        'div'
-      ];
-      
-      for (const selector of descSelectors) {
-        const elements = document.querySelectorAll(selector);
-        for (let i = 0; i < elements.length; i++) {
-          const text = elements[i].textContent?.trim();
-          if (text && text.length > 100 && !text.includes('Supply Nation') && !text.includes('Login')) {
-            return text;
+
+        // Extract detailed address
+        const addressElements = document.querySelectorAll('div, p, span');
+        let fullAddress = '';
+        let streetAddress = '';
+        let suburb = '';
+        let state = '';
+        let postcode = '';
+
+        for (const el of addressElements) {
+          const text = el.textContent?.trim() || '';
+          
+          // Look for address patterns
+          if (text.match(/\d+.*?(Street|St|Road|Rd|Avenue|Ave|Drive|Dr|Lane|Ln|Court|Ct|Place|Pl|Way|Boulevard|Blvd)/i)) {
+            streetAddress = text;
+          }
+          
+          // Look for suburb, state, postcode pattern
+          const addressMatch = text.match(/([A-Za-z\s]+),?\s*([A-Z]{2,3})\s*(\d{4})/);
+          if (addressMatch) {
+            suburb = addressMatch[1].trim();
+            state = addressMatch[2].trim();
+            postcode = addressMatch[3].trim();
+            fullAddress = text;
           }
         }
-      }
-      return null;
-    });
-    
-    // Extract Supply Nation ID from URL
-    const supplynationId = profileUrl.split('accid=')[1] || 'unknown';
-    
-    // Extract location from page content
-    const location = await page.evaluate(() => {
-      const bodyText = document.body.textContent || '';
-      // Look for Australian state patterns
-      const stateMatch = bodyText.match(/(NSW|VIC|QLD|WA|SA|TAS|ACT|NT)/);
-      if (stateMatch) {
-        // Look for city before the state
-        const cityPattern = new RegExp(`([A-Z][a-zA-Z\\s]+),?\\s*${stateMatch[1]}`, 'i');
-        const cityMatch = bodyText.match(cityPattern);
-        if (cityMatch) {
-          return cityMatch[0].trim();
+
+        if (streetAddress || suburb || state || postcode) {
+          profile.detailedAddress = {
+            streetAddress: streetAddress || '',
+            suburb: suburb || '',
+            state: state || '',
+            postcode: postcode || '',
+            fullAddress: fullAddress || `${streetAddress}, ${suburb}, ${state} ${postcode}`.trim()
+          };
         }
-        return stateMatch[1];
+
+        // Extract contact information
+        const phonePattern = /(\+?61\s?)?(\(0[0-9]\)|0[0-9])\s?[0-9]{4}\s?[0-9]{4}/;
+        const emailPattern = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/;
+        const websitePattern = /(https?:\/\/)?(www\.)?[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/;
+
+        for (const el of document.querySelectorAll('a, span, div, p')) {
+          const text = el.textContent?.trim() || '';
+          const href = (el as HTMLAnchorElement).href;
+
+          if (phonePattern.test(text)) {
+            profile.phone = text;
+          }
+          
+          if (emailPattern.test(text)) {
+            profile.email = text;
+          }
+          
+          if (href && websitePattern.test(href) && !href.includes('supplynation.org.au')) {
+            profile.website = href;
+          }
+        }
+
+        // Extract business description
+        const descriptionElements = document.querySelectorAll('p, div[class*="description"], div[class*="about"]');
+        for (const el of descriptionElements) {
+          const text = el.textContent?.trim() || '';
+          if (text.length > 100 && !text.includes('©') && !text.includes('Privacy')) {
+            profile.description = text.substring(0, 500);
+            break;
+          }
+        }
+
+        // Extract services/capabilities
+        const services: string[] = [];
+        const serviceElements = document.querySelectorAll('li, span[class*="tag"], div[class*="service"]');
+        for (const el of serviceElements) {
+          const text = el.textContent?.trim() || '';
+          if (text.length > 3 && text.length < 50 && !text.includes('©')) {
+            services.push(text);
+          }
+        }
+        if (services.length > 0) {
+          profile.services = services.slice(0, 10); // Limit to 10 services
+        }
+
+        // Extract certifications
+        const certifications: string[] = [];
+        const certElements = document.querySelectorAll('div[class*="cert"], span[class*="certification"]');
+        for (const el of certElements) {
+          const text = el.textContent?.trim() || '';
+          if (text.length > 5 && text.length < 100) {
+            certifications.push(text);
+          }
+        }
+        if (certifications.length > 0) {
+          profile.certifications = certifications;
+        }
+
+        return profile;
+      });
+
+      await page.close();
+
+      console.log(`Extracted detailed profile data:`, profileData);
+
+      return profileData as DetailedSupplyNationProfile;
+
+    } catch (error) {
+      console.error(`Failed to extract detailed profile from ${supplierProfileUrl}:`, error);
+      return null;
+    }
+  }
+
+  async extractMultipleProfiles(urls: string[]): Promise<DetailedSupplyNationProfile[]> {
+    const profiles: DetailedSupplyNationProfile[] = [];
+    
+    for (const url of urls) {
+      try {
+        const profile = await this.extractDetailedProfile(url);
+        if (profile) {
+          profiles.push(profile);
+        }
+        // Add delay between requests to be respectful
+        await new Promise(resolve => setTimeout(resolve, 2000));
+      } catch (error) {
+        console.error(`Failed to extract profile from ${url}:`, error);
       }
-      return 'Australia';
-    });
-    
-    const result: SupplyNationBusiness = {
-      companyName: companyName,
-      verified: true,
-      categories: [],
-      location: location,
-      contactInfo: {
-        email: email || undefined,
-        phone: phone || undefined,
-        website: website || undefined,
-        contactPerson: undefined
-      },
-      description: description || undefined,
-      supplynationId: supplynationId,
-      capabilities: [],
-      certifications: ['Supply Nation Verified'],
-      tradingName: undefined,
-      detailedAddress: undefined,
-      abn: undefined,
-      acn: undefined,
-      lastUpdated: new Date().toISOString()
-    };
-    
-    console.log(`Successfully extracted profile for: ${companyName}`);
-    return result;
-    
-  } catch (error) {
-    console.error(`Error extracting profile from ${profileUrl}:`, error);
-    return null;
+    }
+
+    return profiles;
+  }
+
+  async close(): Promise<void> {
+    if (this.browser) {
+      await this.browser.close();
+      this.browser = null;
+    }
   }
 }
+
+export const supplyNationProfileExtractor = new SupplyNationProfileExtractor();
