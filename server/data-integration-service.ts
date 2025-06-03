@@ -47,86 +47,111 @@ class DataIntegrationService {
       console.log(`Starting integrated search for: "${query}"`);
       const startTime = Date.now();
 
+      let supplyNationBusinesses: any[] = [];
+      let supplyNationFound = 0;
+      
+      // First search Supply Nation if requested
+      if (includeSupplyNation) {
+        try {
+          console.log('Searching Supply Nation database...');
+          const { supplyNationApiService } = await import('./supply-nation-api-service');
+          supplyNationBusinesses = await supplyNationApiService.searchBusinesses(query);
+          supplyNationFound = supplyNationBusinesses.length;
+          console.log(`Supply Nation found ${supplyNationFound} verified businesses`);
+        } catch (error) {
+          console.log(`Supply Nation search failed: ${error}`);
+        }
+      }
+
       // Search ABR database
       console.log('Searching ABR database...');
       const abrResults = await searchBusinessesByName(query, location);
       console.log(`ABR found ${abrResults.businesses.length} businesses`);
 
-      const searchResults: IntegratedBusiness[] = [];
+      // Create Supply Nation lookup maps
+      const supplyNationMap = new Map<string, any>();
+      const supplyNationNameMap = new Map<string, any>();
+      
+      supplyNationBusinesses.forEach(snBusiness => {
+        if (snBusiness.abn) {
+          supplyNationMap.set(snBusiness.abn, snBusiness);
+        }
+        if (snBusiness.companyName) {
+          const normalizedName = snBusiness.companyName.toLowerCase().replace(/[^a-z0-9]/g, '');
+          supplyNationNameMap.set(normalizedName, snBusiness);
+        }
+      });
 
-      // Process ABR businesses with Indigenous analysis
+      const searchResults: IntegratedBusiness[] = [];
+      let supplyNationProcessed = 0;
+
+      // Process ABR businesses with Supply Nation prioritization
       for (const abrBusiness of abrResults.businesses) {
         try {
-          // Enrich with location data from ABR and geocode for map coordinates
-          const enrichedBusiness = await enrichBusinessWithLocation(abrBusiness);
-          
-          // Analyze business for Indigenous ownership indicators
-          const indigenousAnalysis = indigenousBusinessMatcher.analyzeBusinessForIndigenousOwnership(enrichedBusiness);
-          
+          // Check if this business exists in Supply Nation first
+          const supplyNationMatch = supplyNationMap.get(abrBusiness.abn) || 
+            supplyNationNameMap.get(abrBusiness.entityName.toLowerCase().replace(/[^a-z0-9]/g, ''));
+
+          let enrichedBusiness: any;
           let verificationSource: 'abr_only' | 'supply_nation' | 'both' | 'indigenous_analysis' = 'abr_only';
           let verificationConfidence: 'high' | 'medium' | 'low' = 'low';
           let supplyNationVerified = false;
 
-          // Determine verification based on Indigenous analysis
-          if (indigenousAnalysis.isLikelyIndigenous) {
-            verificationSource = 'indigenous_analysis';
-            verificationConfidence = indigenousAnalysis.confidence;
-            supplyNationVerified = indigenousAnalysis.confidence === 'high';
-            console.log(`✓ Indigenous business identified: ${enrichedBusiness.entityName} - ${verificationSource} (${verificationConfidence} confidence)`);
-          }
+          if (supplyNationMatch) {
+            // PRIORITIZE Supply Nation data when business found on both platforms
+            console.log(`🎯 Using Supply Nation data for: ${abrBusiness.entityName}`);
+            supplyNationProcessed++;
+            
+            // Get ABR location data for geocoding fallback
+            const abrEnriched = await enrichBusinessWithLocation(abrBusiness);
+            
+            // Create integrated business using Supply Nation data as primary source
+            enrichedBusiness = {
+              ...abrEnriched,
+              entityName: supplyNationMatch.companyName || abrEnriched.entityName,
+              supplyNationData: supplyNationMatch
+            };
 
-          // For businesses with strong Indigenous indicators, attempt Supply Nation profile verification
-          if (includeSupplyNation && verificationConfidence === 'medium' && verificationSource === 'indigenous_analysis') {
-            try {
-              console.log(`🔍 Searching Supply Nation for enhanced verification: ${enrichedBusiness.entityName}`);
-              const { supplyNationEnhancedScraper } = await import('./supply-nation-enhanced-scraper');
-              const enhancedProfiles = await supplyNationEnhancedScraper.searchAndExtractProfiles(enrichedBusiness.entityName);
-              
-              // Look for matching business by name or ABN
-              const matchingProfile = enhancedProfiles.find(profile => 
-                profile.companyName?.toLowerCase().includes(enrichedBusiness.entityName.toLowerCase().split(' ')[0]) ||
-                (profile.abn && profile.abn === enrichedBusiness.abn)
-              );
+            verificationSource = 'both';
+            verificationConfidence = 'high';
+            supplyNationVerified = true;
 
-              if (matchingProfile) {
-                console.log(`✅ Found Supply Nation profile for: ${enrichedBusiness.entityName}`);
-                verificationSource = 'both';
-                verificationConfidence = 'high';
-                supplyNationVerified = true;
-
-                // Use detailed address from Supply Nation profile if available
-                if (matchingProfile.detailedAddress && matchingProfile.detailedAddress.streetAddress) {
-                  const supplyNationAddress = `${matchingProfile.detailedAddress.streetAddress}, ${matchingProfile.detailedAddress.suburb}, ${matchingProfile.detailedAddress.state} ${matchingProfile.detailedAddress.postcode}, Australia`;
-                  console.log(`🗺️ Using Supply Nation address for geocoding: ${supplyNationAddress}`);
-                  
-                  try {
-                    const geocodeUrl = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(supplyNationAddress)}.json?access_token=${process.env.MAPBOX_ACCESS_TOKEN}&country=AU&limit=1`;
-                    const response = await fetch(geocodeUrl);
-                    
-                    if (response.ok) {
-                      const data = await response.json();
-                      if (data.features && data.features.length > 0) {
-                        const [lng, lat] = data.features[0].center;
-                        enrichedBusiness.lat = lat;
-                        enrichedBusiness.lng = lng;
-                        enrichedBusiness.address = {
-                          ...enrichedBusiness.address,
-                          streetAddress: matchingProfile.detailedAddress.streetAddress,
-                          suburb: matchingProfile.detailedAddress.suburb,
-                          stateCode: matchingProfile.detailedAddress.state,
-                          postcode: matchingProfile.detailedAddress.postcode,
-                          fullAddress: data.features[0].place_name
-                        };
-                        console.log(`🎯 Enhanced location using Supply Nation data: [${lat}, ${lng}]`);
-                      }
-                    }
-                  } catch (geocodeError) {
-                    console.log(`Supply Nation geocoding failed: ${geocodeError}`);
+            // Use Supply Nation location if available for enhanced geocoding
+            if (supplyNationMatch.location && supplyNationMatch.location.includes(',')) {
+              try {
+                console.log(`🗺️ Using Supply Nation address for geocoding: ${supplyNationMatch.location}`);
+                const geocodeUrl = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(supplyNationMatch.location + ', Australia')}.json?access_token=${process.env.MAPBOX_ACCESS_TOKEN}&country=AU&limit=1`;
+                const response = await fetch(geocodeUrl);
+                
+                if (response.ok) {
+                  const data = await response.json();
+                  if (data.features && data.features.length > 0) {
+                    const [lng, lat] = data.features[0].center;
+                    enrichedBusiness.lat = lat;
+                    enrichedBusiness.lng = lng;
+                    enrichedBusiness.address = {
+                      ...enrichedBusiness.address,
+                      fullAddress: data.features[0].place_name
+                    };
+                    console.log(`✅ Enhanced location using Supply Nation data: [${lat}, ${lng}]`);
                   }
                 }
+              } catch (geocodeError) {
+                console.log(`Supply Nation geocoding failed: ${geocodeError}`);
               }
-            } catch (error) {
-              console.log(`Supply Nation enhancement failed for ${enrichedBusiness.entityName}: ${error}`);
+            }
+          } else {
+            // Use ABR data with Indigenous analysis for non-Supply Nation businesses
+            enrichedBusiness = await enrichBusinessWithLocation(abrBusiness);
+            
+            // Analyze business for Indigenous ownership indicators
+            const indigenousAnalysis = indigenousBusinessMatcher.analyzeBusinessForIndigenousOwnership(enrichedBusiness);
+
+            if (indigenousAnalysis.isLikelyIndigenous) {
+              verificationSource = 'indigenous_analysis';
+              verificationConfidence = indigenousAnalysis.confidence;
+              supplyNationVerified = indigenousAnalysis.confidence === 'high';
+              console.log(`✓ Indigenous business identified: ${enrichedBusiness.entityName} - ${verificationSource} (${verificationConfidence} confidence)`);
             }
           }
 
@@ -203,7 +228,7 @@ class DataIntegrationService {
         searchQuery: query,
         dataSource: {
           abr: { found: abrResults.businesses.length, processed: searchResults.length },
-          supplyNation: { found: 0, processed: 0 }
+          supplyNation: { found: supplyNationFound, processed: supplyNationProcessed }
         },
         timestamp: new Date()
       };
