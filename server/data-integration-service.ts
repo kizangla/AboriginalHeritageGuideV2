@@ -63,11 +63,13 @@ class DataIntegrationService {
             supplyNationFound = supplyNationBusinesses.length;
             console.log(`Supply Nation found ${supplyNationFound} verified businesses`);
           } else {
-            console.log('Supply Nation authentication failed - this may require updated credentials or captcha handling');
+            console.log('Supply Nation authentication failed - web scraping requires manual intervention for CAPTCHAs or popup handling');
+            console.log('Using ABR data only for this search');
             // Continue with ABR-only search
           }
         } catch (error) {
           console.log(`Supply Nation search failed: ${error}`);
+          console.log('This may be due to authentication challenges, rate limiting, or site changes');
           // Continue with ABR-only search
         }
       }
