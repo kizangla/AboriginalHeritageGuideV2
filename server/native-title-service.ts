@@ -56,9 +56,21 @@ class NativeTitleService {
       const applicationsResults = applicationsData.status === 'fulfilled' ? applicationsData.value : [];
       const determinationsResults = determinationsData.status === 'fulfilled' ? determinationsData.value : [];
       
-      const allNativeTitleData = [...applicationsResults, ...determinationsResults];
+      console.log(`Merging ${applicationsResults.length} applications with ${determinationsResults.length} determinations`);
       
-      if (!allNativeTitleData || allNativeTitleData.length === 0) {
+      // Parse both datasets separately to maintain data integrity
+      const parsedApplications = applicationsResults.map(this.parseNativeTitleFeature);
+      const parsedDeterminations = determinationsResults.map(this.parseNativeTitleFeature);
+      
+      // Combine all Native Title data, prioritizing determinations over applications
+      const allParsedData = [...parsedDeterminations, ...parsedApplications];
+      
+      // Remove duplicates based on tribunal number, keeping determinations over applications
+      const uniqueData = this.removeDuplicatesByTribunal(allParsedData);
+      
+      console.log(`Final dataset contains ${uniqueData.length} unique Native Title records`);
+      
+      if (!uniqueData || uniqueData.length === 0) {
         return {
           hasNativeTitle: false,
           applications: [],
@@ -66,15 +78,14 @@ class NativeTitleService {
         };
       }
 
-      const parsedApplications = allNativeTitleData.map(this.parseNativeTitleFeature);
-      const primaryApplication = parsedApplications[0];
+      const primaryApplication = uniqueData[0];
 
       return {
         hasNativeTitle: true,
-        applications: parsedApplications,
+        applications: uniqueData,
         primaryApplicant: primaryApplication?.applicantName,
-        status: this.determineOverallStatus(parsedApplications),
-        culturalSignificance: this.generateCulturalSignificance(territoryName, parsedApplications)
+        status: this.determineOverallStatus(uniqueData),
+        culturalSignificance: this.generateCulturalSignificance(territoryName, uniqueData)
       };
     } catch (error) {
       console.error('Native Title data fetch error:', error);
@@ -528,6 +539,35 @@ class NativeTitleService {
     }
 
     return { lat: 0, lng: 0 };
+  }
+
+  /**
+   * Remove duplicates by tribunal number, prioritizing determinations over applications
+   */
+  private removeDuplicatesByTribunal(data: NativeTitleData[]): NativeTitleData[] {
+    const seen = new Map<string, NativeTitleData>();
+    
+    // First pass: add all determinations
+    data.forEach(item => {
+      if (item.status.startsWith('Determined')) {
+        const key = item.tribunalNumber || item.applicationId;
+        if (key && !seen.has(key)) {
+          seen.set(key, item);
+        }
+      }
+    });
+    
+    // Second pass: add applications only if no determination exists
+    data.forEach(item => {
+      if (!item.status.startsWith('Determined')) {
+        const key = item.tribunalNumber || item.applicationId;
+        if (key && !seen.has(key)) {
+          seen.set(key, item);
+        }
+      }
+    });
+    
+    return Array.from(seen.values());
   }
 
   /**
