@@ -105,6 +105,27 @@ class NativeTitleService {
       
       console.log(`Found ${features.length} Native Title determinations from government source`);
       
+      // Debug: Log actual property names from determinations dataset
+      if (features.length > 0) {
+        const sampleProps = features[0].properties;
+        console.log('DEBUG - Determinations properties:', Object.keys(sampleProps).sort());
+        
+        // Look for status/outcome fields
+        const statusFields = Object.keys(sampleProps).filter(key => 
+          key.toLowerCase().includes('status') ||
+          key.toLowerCase().includes('outcome') ||
+          key.toLowerCase().includes('result') ||
+          key.toLowerCase().includes('determination') ||
+          key.toLowerCase().includes('decision')
+        );
+        console.log('DEBUG - Potential status fields:', statusFields);
+        
+        // Show sample values
+        statusFields.forEach(field => {
+          console.log(`DEBUG - ${field}: ${sampleProps[field]}`);
+        });
+      }
+      
       // Filter relevant determinations for the location
       const relevantDeterminations = features.filter((feature: any) => {
         const props = feature.properties;
