@@ -8,14 +8,7 @@ import { ChevronDown, MapPin, Filter } from 'lucide-react';
 interface TerritoryFilterProps {
   onRegionFilter: (region: string | null) => void;
   selectedRegion: string | null;
-  territoryStats: {
-    total: number;
-    kimberley: number;
-    southeast: number;
-    riverine: number;
-    southwest: number;
-    northwest: number;
-  };
+  territoryStats: any;
 }
 
 export default function TerritoryFilter({ 
@@ -25,42 +18,47 @@ export default function TerritoryFilter({
 }: TerritoryFilterProps) {
   const [isOpen, setIsOpen] = useState(true);
 
-  const regions = [
+  // Group regions by significance and geography
+  const majorRegions = [
     {
-      name: 'Kimberley',
-      key: 'Kimberley',
-      count: territoryStats.kimberley,
-      color: 'bg-orange-100 text-orange-800 border-orange-200',
-      description: 'Northwestern Australia - ancient landscapes and cultural sites'
-    },
-    {
-      name: 'Southeast',
-      key: 'Southeast', 
-      count: territoryStats.southeast,
-      color: 'bg-green-100 text-green-800 border-green-200',
-      description: 'Southeastern regions with diverse Aboriginal groups'
-    },
-    {
-      name: 'Riverine',
-      key: 'Riverine',
-      count: territoryStats.riverine,
-      color: 'bg-blue-100 text-blue-800 border-blue-200',
-      description: 'River systems and waterway territories'
-    },
-    {
-      name: 'Southwest',
-      key: 'Southwest',
-      count: territoryStats.southwest || 0,
-      color: 'bg-purple-100 text-purple-800 border-purple-200',
-      description: 'Southwestern Australia territories'
+      name: 'Tasmania',
+      key: 'Tasmania',
+      count: territoryStats.tasmania || 0,
+      color: 'bg-emerald-100 text-emerald-800 border-emerald-200',
+      description: 'Island territories of Tasmania with unique cultural heritage'
     },
     {
       name: 'Northwest',
       key: 'Northwest',
       count: territoryStats.northwest || 0,
-      color: 'bg-yellow-100 text-yellow-800 border-yellow-200',
-      description: 'Northwestern territories'
+      color: 'bg-orange-100 text-orange-800 border-orange-200',
+      description: 'Northwestern Australia territories'
+    },
+    {
+      name: 'Gulf',
+      key: 'Gulf',
+      count: territoryStats.gulf || 0,
+      color: 'bg-blue-100 text-blue-800 border-blue-200',
+      description: 'Gulf region territories'
+    },
+    {
+      name: 'Riverine',
+      key: 'Riverine',
+      count: territoryStats.riverine || 0,
+      color: 'bg-cyan-100 text-cyan-800 border-cyan-200',
+      description: 'River systems and waterway territories'
     }
+  ];
+
+  const otherRegions = [
+    { name: 'Desert', key: 'Desert', count: territoryStats.desert || 0, color: 'bg-amber-100 text-amber-800 border-amber-200' },
+    { name: 'Kimberley', key: 'Kimberley', count: territoryStats.kimberley || 0, color: 'bg-red-100 text-red-800 border-red-200' },
+    { name: 'Southeast', key: 'Southeast', count: territoryStats.southeast || 0, color: 'bg-green-100 text-green-800 border-green-200' },
+    { name: 'Northeast', key: 'Northeast', count: territoryStats.northeast || 0, color: 'bg-indigo-100 text-indigo-800 border-indigo-200' },
+    { name: 'Eyre', key: 'Eyre', count: territoryStats.eyre || 0, color: 'bg-purple-100 text-purple-800 border-purple-200' },
+    { name: 'Fitzmaurice', key: 'Fitzmaurice', count: territoryStats.fitzmaurice || 0, color: 'bg-pink-100 text-pink-800 border-pink-200' },
+    { name: 'Arnhem', key: 'Arnhem', count: territoryStats.arnhem || 0, color: 'bg-teal-100 text-teal-800 border-teal-200' },
+    { name: 'Southwest', key: 'Southwest', count: territoryStats.southwest || 0, color: 'bg-violet-100 text-violet-800 border-violet-200' }
   ];
 
   return (
@@ -95,12 +93,12 @@ export default function TerritoryFilter({
             </Button>
 
             {/* Region Filters */}
-            <div className="space-y-2">
+            <div className="space-y-3">
               <div className="text-xs font-medium text-gray-500 uppercase tracking-wide">
-                Filter by Region
+                Major Regions
               </div>
               
-              {regions.map((region) => (
+              {majorRegions.map((region) => (
                 <div key={region.key} className="space-y-1">
                   <Button
                     variant={selectedRegion === region.key ? "default" : "outline"}
@@ -117,20 +115,41 @@ export default function TerritoryFilter({
                     </Badge>
                   </Button>
                   
-                  {selectedRegion === region.key && (
+                  {selectedRegion === region.key && region.description && (
                     <p className="text-xs text-gray-600 px-2 py-1 bg-gray-50 rounded">
                       {region.description}
                     </p>
                   )}
                 </div>
               ))}
+
+              <div className="text-xs font-medium text-gray-500 uppercase tracking-wide pt-2 border-t border-gray-200">
+                Other Regions
+              </div>
+              
+              <div className="grid grid-cols-2 gap-1">
+                {otherRegions.map((region) => (
+                  <Button
+                    key={region.key}
+                    variant={selectedRegion === region.key ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => onRegionFilter(region.key)}
+                    className="text-xs justify-between"
+                  >
+                    <span className="truncate">{region.name}</span>
+                    <Badge className={`${region.color} text-xs px-1`}>
+                      {region.count}
+                    </Badge>
+                  </Button>
+                ))}
+              </div>
             </div>
 
             {/* Selected Region Info */}
             {selectedRegion && (
               <div className="pt-2 border-t border-gray-200">
                 <div className="text-xs text-gray-500">
-                  Showing {regions.find(r => r.key === selectedRegion)?.count || 0} territories in {selectedRegion}
+                  Showing {territoryStats[selectedRegion.toLowerCase()] || 0} territories in {selectedRegion}
                 </div>
               </div>
             )}

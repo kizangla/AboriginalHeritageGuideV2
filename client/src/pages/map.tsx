@@ -23,25 +23,44 @@ export default function MapPage() {
   // Calculate territory statistics by region
   const territoryStats = useMemo(() => {
     if (!territoriesGeoJSON?.features) {
-      return { total: 0, kimberley: 0, southeast: 0, riverine: 0, southwest: 0, northwest: 0 };
+      return { 
+        total: 0, kimberley: 0, southeast: 0, riverine: 0, southwest: 0, northwest: 0,
+        tasmania: 0, gulf: 0, desert: 0, northeast: 0, eyre: 0, fitzmaurice: 0, 
+        arnhem: 0, westCape: 0, north: 0, eastCape: 0, spencer: 0, rainforest: 0, torresStrait: 0
+      };
     }
 
-    const stats = {
+    const stats: any = {
       total: territoriesGeoJSON.features.length,
-      kimberley: 0,
-      southeast: 0,
-      riverine: 0,
-      southwest: 0,
-      northwest: 0
+      kimberley: 0, southeast: 0, riverine: 0, southwest: 0, northwest: 0,
+      tasmania: 0, gulf: 0, desert: 0, northeast: 0, eyre: 0, fitzmaurice: 0,
+      arnhem: 0, westCape: 0, north: 0, eastCape: 0, spencer: 0, rainforest: 0, torresStrait: 0
     };
 
     territoriesGeoJSON.features.forEach((feature: any) => {
       const region = feature.properties?.region || feature.properties?.Region;
-      if (region === 'Kimberley') stats.kimberley++;
-      else if (region === 'Southeast') stats.southeast++;
-      else if (region === 'Riverine') stats.riverine++;
-      else if (region === 'Southwest') stats.southwest++;
-      else if (region === 'Northwest') stats.northwest++;
+      const regionKey = region?.toLowerCase().replace(/\s+/g, '');
+      
+      switch (region) {
+        case 'Kimberley': stats.kimberley++; break;
+        case 'Southeast': stats.southeast++; break;
+        case 'Riverine': stats.riverine++; break;
+        case 'Southwest': stats.southwest++; break;
+        case 'Northwest': stats.northwest++; break;
+        case 'Tasmania': stats.tasmania++; break;
+        case 'Gulf': stats.gulf++; break;
+        case 'Desert': stats.desert++; break;
+        case 'Northeast': stats.northeast++; break;
+        case 'Eyre': stats.eyre++; break;
+        case 'Fitzmaurice': stats.fitzmaurice++; break;
+        case 'Arnhem': stats.arnhem++; break;
+        case 'West Cape': stats.westCape++; break;
+        case 'North': stats.north++; break;
+        case 'East Cape': stats.eastCape++; break;
+        case 'Spencer': stats.spencer++; break;
+        case 'Rainforest': stats.rainforest++; break;
+        case 'Torres Strait': stats.torresStrait++; break;
+      }
     });
 
     return stats;
