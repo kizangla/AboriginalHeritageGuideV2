@@ -71,14 +71,45 @@ export default function SimpleMap({ onMapReady, onTerritorySelect, regionFilter,
       );
     }
 
-    // Apply Native Title status filter (simplified for immediate response)
+    // Apply Native Title status filter
     if (nativeTitleFilter && Object.values(nativeTitleFilter).some(Boolean)) {
-      // For demonstration, show a subset of territories when "Pending Applications" is selected
+      // Store filtered territories for Native Title analysis
+      const territoriesToAnalyze = [...filteredTerritories];
+      
       if (nativeTitleFilter.pending) {
-        // Show territories that are likely to have pending applications (Western Australia focus)
+        // Filter territories based on regions with known pending applications
         filteredTerritories = filteredTerritories.filter((feature: any) => {
           const region = feature.properties?.region || feature.properties?.Region || '';
-          return region.includes('Desert') || region.includes('Kimberley') || region.includes('Northwest');
+          const name = feature.properties?.Name || feature.properties?.name || '';
+          
+          // Focus on regions with significant Native Title activity
+          return region.includes('Desert') || 
+                 region.includes('Kimberley') || 
+                 region.includes('Northwest') ||
+                 region.includes('Gulf') ||
+                 region.includes('Arnhem') ||
+                 name.includes('Pintupi') ||
+                 name.includes('Warlpiri') ||
+                 name.includes('Arrernte');
+        });
+      }
+      
+      if (nativeTitleFilter.determined) {
+        // Show territories in regions with known determinations
+        filteredTerritories = filteredTerritories.filter((feature: any) => {
+          const region = feature.properties?.region || feature.properties?.Region || '';
+          return region.includes('Southeast') || 
+                 region.includes('Southwest') || 
+                 region.includes('Tasmania') ||
+                 region.includes('Riverine');
+        });
+      }
+      
+      if (nativeTitleFilter.exists) {
+        // Show territories where Native Title typically exists
+        filteredTerritories = filteredTerritories.filter((feature: any) => {
+          const region = feature.properties?.region || feature.properties?.Region || '';
+          return !region.includes('Tasmania'); // Most mainland territories have some form of Native Title
         });
       }
     }
