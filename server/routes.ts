@@ -11,6 +11,51 @@ import {
   searchIndigenousBusinesses,
   type ABRBusinessDetails 
 } from "./abr-service";
+
+// Australian postcode coordinate lookup for business positioning
+function getPostcodeCoordinates(postcode: string, stateCode: string): { lat: number; lng: number } | null {
+  const postcodeMap: { [key: string]: { lat: number; lng: number } } = {
+    // Major Australian cities and postcodes
+    '2000': { lat: -33.8688, lng: 151.2093 }, // Sydney CBD
+    '3000': { lat: -37.8136, lng: 144.9631 }, // Melbourne CBD
+    '4000': { lat: -27.4698, lng: 153.0251 }, // Brisbane CBD
+    '5000': { lat: -34.9285, lng: 138.6007 }, // Adelaide CBD
+    '6000': { lat: -31.9505, lng: 115.8605 }, // Perth CBD
+    '7000': { lat: -42.8821, lng: 147.3272 }, // Hobart CBD
+    '0800': { lat: -12.4634, lng: 130.8456 }, // Darwin CBD
+    '2600': { lat: -35.2809, lng: 149.1300 }, // Canberra CBD
+    
+    // WA postcodes
+    '6714': { lat: -20.7403, lng: 116.8469 }, // Karratha area
+    '6160': { lat: -32.0569, lng: 115.7975 }, // Fremantle
+    '6050': { lat: -31.9354, lng: 115.8072 }, // Mount Lawley
+    
+    // NSW postcodes
+    '2150': { lat: -33.8096, lng: 151.0189 }, // Parramatta
+    '2170': { lat: -33.9297, lng: 150.8671 }, // Liverpool
+    '2176': { lat: -33.9239, lng: 150.8446 }, // Warwick Farm
+    '2179': { lat: -33.9406, lng: 150.8694 }, // Holsworthy
+    '2195': { lat: -33.9481, lng: 151.1419 }, // Revesby
+    '2060': { lat: -33.8365, lng: 151.2008 }, // North Sydney
+    
+    // QLD postcodes
+    '4223': { lat: -27.9285, lng: 153.3479 }, // Currumbin
+    '4101': { lat: -27.4833, lng: 153.0167 }, // South Brisbane
+    
+    // NT postcodes
+    '0820': { lat: -12.4381, lng: 130.8411 }, // Nightcliff
+    
+    // SA postcodes
+    '5038': { lat: -35.0297, lng: 138.5653 }, // Edwardstown
+    '5039': { lat: -35.0297, lng: 138.5653 }, // Morphettville
+    
+    // VIC postcodes
+    '3124': { lat: -37.8477, lng: 145.0806 }, // Camberwell
+    '3500': { lat: -36.3615, lng: 144.9547 }  // Bendigo
+  };
+  
+  return postcodeMap[postcode] || null;
+}
 import { indigenousBusinessService } from "./indigenous-business-service";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -173,25 +218,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const abrResults = await searchBusinessesByName(query);
       console.log(`Found ${abrResults.totalResults} businesses in ABR for: "${query}"`);
       
-      // Transform all businesses for frontend display
-      const allBusinesses = abrResults.businesses.map((business: ABRBusinessDetails) => ({
-        id: `abr-${business.abn}`,
-        name: business.entityName,
-        entityName: business.entityName,
-        businessType: business.entityType,
-        entityType: business.entityType,
-        address: business.address.fullAddress || 
-                `${business.address.suburb || ''} ${business.address.stateCode || ''} ${business.address.postcode || ''}`.trim(),
-        abn: business.abn,
-        status: business.status,
-        lat: business.lat || 0,
-        lng: business.lng || 0,
-        isVerified: business.supplyNationVerified || false,
-        verificationSource: business.supplyNationVerified ? 'supply_nation' : 'abr_data',
-        verificationConfidence: business.supplyNationVerified ? 'high' : 'medium',
-        supplyNationVerified: business.supplyNationVerified || false,
-        source: 'ABR'
-      }));
+      // Transform all businesses with coordinate mapping for frontend display
+      const allBusinesses = abrResults.businesses.map((business: ABRBusinessDetails) => {
+        let lat = business.lat || 0;
+        let lng = business.lng || 0;
+        
+        // Use postcode-based coordinates for Australian businesses
+        if (lat === 0 && lng === 0 && business.address.postcode && business.address.stateCode) {
+          const postcodeCoordinates = getPostcodeCoordinates(business.address.postcode, business.address.stateCode);
+          if (postcodeCoordinates) {
+            lat = postcodeCoordinates.lat;
+            lng = postcodeCoordinates.lng;
+          }
+        }
+
+        return {
+            id: `abr-${business.abn}`,
+            name: business.entityName,
+            entityName: business.entityName,
+            businessType: business.entityType,
+            entityType: business.entityType,
+            address: business.address.fullAddress || 
+                    `${business.address.suburb || ''} ${business.address.stateCode || ''} ${business.address.postcode || ''}`.trim(),
+            abn: business.abn,
+            status: business.status,
+            lat,
+            lng,
+            isVerified: business.supplyNationVerified || false,
+            verificationSource: business.supplyNationVerified ? 'supply_nation' : 'abr_data',
+            verificationConfidence: business.supplyNationVerified ? 'high' : 'medium',
+            supplyNationVerified: business.supplyNationVerified || false,
+            source: 'ABR'
+          };
+        });
       
       console.log(`Returning ${allBusinesses.length} businesses from ABR`);
       res.json(allBusinesses);
