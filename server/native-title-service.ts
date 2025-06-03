@@ -404,7 +404,7 @@ class NativeTitleService {
   }
 
   /**
-   * Parse Native Title feature from government data
+   * Parse Native Title feature from government data (applications and determinations)
    */
   private parseNativeTitleFeature = (feature: any): NativeTitleData => {
     const props = feature.properties;
@@ -413,28 +413,64 @@ class NativeTitleService {
     // Calculate centroid for polygon geometries
     const coords = this.calculateCentroid(geometry);
     
-    // Create proper citation for this specific claim
-    const tribunalNumber = props.Tribunal_Number || props.TRIBID || '';
-    const applicantName = props.Applicant_Name || props.NAME || 'Unknown';
-    const lastUpdated = props.DT_EXTRACT || props.DATECURR || new Date().toISOString().split('T')[0];
+    // Enhanced property mapping for determinations dataset
+    const tribunalNumber = props.TRIBID || props.Tribunal_Number || props.NNTT_NO || props.FILE_NO || '';
+    const applicantName = props.NAME || props.Applicant_Name || props.DET_NAME || props.CLAIMANT_NAME || 'Unknown';
+    const lastUpdated = props.DT_EXTRACT || props.DATECURR || props.EXTRACT_DATE || new Date().toISOString().split('T')[0];
+    
+    // Enhanced status mapping for determinations
+    let status = 'Unknown';
+    let outcome = 'Unknown';
+    let sourceDataset = 'applications';
+    
+    // Check if this is from determinations dataset (has determination-specific fields)
+    if (props.DET_OUTCOME || props.DETERMINATION_OUTCOME || props.OUTCOME_TYPE || props.DET_STATUS) {
+      sourceDataset = 'determinations';
+      
+      // Map determination outcomes to status
+      const determinationOutcome = props.DET_OUTCOME || props.DETERMINATION_OUTCOME || props.OUTCOME_TYPE || '';
+      outcome = determinationOutcome;
+      
+      if (determinationOutcome.toLowerCase().includes('native title exists')) {
+        status = 'Determined - Native title exists';
+      } else if (determinationOutcome.toLowerCase().includes('native title does not exist')) {
+        status = 'Determined - Native title does not exist';
+      } else if (determinationOutcome.toLowerCase().includes('native title exists in part')) {
+        status = 'Determined - Native title exists in part';
+      } else if (determinationOutcome.toLowerCase().includes('discontinu')) {
+        status = 'Determined - Discontinued';
+      } else if (determinationOutcome.toLowerCase().includes('dismiss')) {
+        status = 'Determined - Dismissed';
+      } else if (props.DET_STATUS || props.DETERMINATION_STATUS) {
+        status = `Determined - ${props.DET_STATUS || props.DETERMINATION_STATUS}`;
+      } else {
+        status = 'Determined';
+      }
+    } else {
+      // Regular applications dataset
+      status = props.STATUS || props.Status || 'Active';
+      outcome = props.RTSTATUS || props.Outcome || 'Accepted for registration';
+    }
     
     return {
-      applicationId: props.Application_ID || tribunalNumber || '',
+      applicationId: props.Application_ID || props.APP_ID || tribunalNumber || '',
       tribunalNumber: tribunalNumber,
       applicantName: applicantName,
-      status: props.Status || props.STATUS || 'Unknown',
-      determinationDate: props.Determination_Date || props.DATELODGED,
-      area: props.Area_sqkm || props.AREASQKM || 0,
-      state: props.State || props.JURIS || '',
-      outcome: props.Outcome || props.RTSTATUS,
+      status: status,
+      determinationDate: props.DET_DATE || props.DETERMINATION_DATE || props.DATELODGED || props.Determination_Date,
+      area: props.AREASQKM || props.Area_sqkm || props.AREA_SQKM || 0,
+      state: props.JURIS || props.State || props.JURISDICTION || '',
+      outcome: outcome,
       traditionalOwners: this.extractTraditionalOwners(applicantName),
       coordinates: coords,
       references: {
-        sourceUrl: 'https://data.gov.au/data/dataset/native-title-determination-applications-register',
+        sourceUrl: sourceDataset === 'determinations' 
+          ? 'https://data.gov.au/data/dataset/native-title-determinations'
+          : 'https://data.gov.au/data/dataset/native-title-determination-applications-register',
         lastUpdated: lastUpdated,
         dataProvider: 'National Native Title Tribunal (NNTT)',
         licenseType: 'Creative Commons Attribution 4.0 International (CC BY 4.0)',
-        citation: `National Native Title Tribunal. (${lastUpdated.split('-')[0]}). Native Title Determination Applications Register. ${tribunalNumber ? `Tribunal File: ${tribunalNumber}` : `Application: ${applicantName}`}. Retrieved from https://data.gov.au/data/dataset/native-title-determination-applications-register`
+        citation: `National Native Title Tribunal. (${lastUpdated.split('-')[0]}). ${sourceDataset === 'determinations' ? 'Native Title Determinations' : 'Native Title Determination Applications'} Register. ${tribunalNumber ? `Tribunal File: ${tribunalNumber}` : `Application: ${applicantName}`}. Retrieved from https://data.gov.au/data/dataset/native-title-${sourceDataset === 'determinations' ? 'determinations' : 'determination-applications-register'}`
       }
     };
   }
