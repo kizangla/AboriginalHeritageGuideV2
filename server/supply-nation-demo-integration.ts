@@ -91,6 +91,48 @@ export const sampleSupplyNationBusinesses: SupplyNationVerifiedBusiness[] = [
       email: "info@kooyarwongi.com.au",
       website: "http://www.kooyarwongi.com.au"
     }
+  },
+  {
+    companyName: "NUIDAWN PTY LTD",
+    abn: "19655889375",
+    location: "2204, New South Wales",
+    supplynationId: "a1G7F000001RLdBUA6",
+    profileUrl: "https://ibd.supplynation.org.au/public/s/supplierprofile?accid=a1G7F000001RLdBUA6",
+    verified: true,
+    categories: ["Supply Nation Verified", "Technology services", "Digital solutions"],
+    contactInfo: {
+      phone: "(02) 9876 5432",
+      email: "contact@nuidawn.com.au",
+      website: "http://www.nuidawn.com.au"
+    }
+  },
+  {
+    companyName: "ABORIGINAL HOUSING COMPANY",
+    abn: "42513562148",
+    location: "2015, New South Wales",
+    supplynationId: "a1G7F000001RLdBUA7",
+    profileUrl: "https://ibd.supplynation.org.au/public/s/supplierprofile?accid=a1G7F000001RLdBUA7",
+    verified: true,
+    categories: ["Supply Nation Verified", "Housing services", "Community development", "Property management"],
+    contactInfo: {
+      phone: "(02) 9698 9833",
+      email: "info@ahc.org.au",
+      website: "http://www.ahc.org.au"
+    }
+  },
+  {
+    companyName: "YOTHU YINDI FOUNDATION",
+    abn: "85103230989",
+    location: "0810, Northern Territory",
+    supplynationId: "a1G7F000001RLdBUA8",
+    profileUrl: "https://ibd.supplynation.org.au/public/s/supplierprofile?accid=a1G7F000001RLdBUA8",
+    verified: true,
+    categories: ["Supply Nation Verified", "Education services", "Cultural programs", "Arts and entertainment"],
+    contactInfo: {
+      phone: "(08) 8945 4251",
+      email: "info@yothuyindi.com",
+      website: "http://www.yothuyindi.com"
+    }
   }
 ];
 

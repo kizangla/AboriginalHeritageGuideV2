@@ -86,6 +86,7 @@ export default function UnifiedSearch({ map, onLocationSelect, onBusinessSelect 
         },
         supplyNationVerified: business.supplyNationVerified,
         verificationConfidence: business.verificationConfidence,
+        verificationSource: business.verificationSource,
         supplyNationData: business.supplyNationData
       })) || [];
       

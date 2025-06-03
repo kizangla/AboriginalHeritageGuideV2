@@ -54,26 +54,18 @@ class DataIntegrationService {
       if (includeSupplyNation) {
         try {
           console.log('Searching Supply Nation database...');
-          const { supplyNationSimpleScraper } = await import('./supply-nation-simple-scraper');
-          const { demonstrateSupplyNationPrioritization } = await import('./supply-nation-demo-integration');
+          const { supplyNationDynamicIntegration } = await import('./supply-nation-dynamic-integration');
           
-          // Try authentic Supply Nation search first
-          const authenticated = await supplyNationSimpleScraper.authenticate();
-          if (authenticated) {
-            supplyNationBusinesses = await supplyNationSimpleScraper.searchVerifiedBusinesses(query);
-            supplyNationFound = supplyNationBusinesses.length;
-            console.log(`Supply Nation authenticated search found ${supplyNationFound} verified businesses`);
-          } else {
-            // Use verified sample data for known businesses when authentication challenges occur
-            const supplyNationResult = demonstrateSupplyNationPrioritization(query);
-            supplyNationBusinesses = supplyNationResult.supplyNationBusinesses;
-            supplyNationFound = supplyNationBusinesses.length;
-            
-            if (supplyNationFound > 0) {
-              console.log(`Supply Nation verified data found ${supplyNationFound} businesses from authenticated database`);
-            } else {
-              console.log('Supply Nation authentication required for verified business data access');
-            }
+          // Use dynamic integration for real-time Supply Nation crawling
+          const supplyNationResult = await supplyNationDynamicIntegration.searchVerifiedBusinessesDynamic(query);
+          supplyNationBusinesses = supplyNationResult.businesses;
+          supplyNationFound = supplyNationBusinesses.length;
+          
+          console.log(`Supply Nation dynamic search: ${supplyNationResult.message}`);
+          console.log(`Search method: ${supplyNationResult.searchMethod}`);
+          
+          if (supplyNationFound > 0) {
+            console.log(`Found ${supplyNationFound} verified businesses through Supply Nation`);
           }
         } catch (error) {
           console.log(`Supply Nation search error: ${error}`);
