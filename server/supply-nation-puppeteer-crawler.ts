@@ -165,9 +165,25 @@ export class SupplyNationPuppeteerCrawler {
         await this.page.keyboard.press('Enter');
       }
 
-      // Wait for navigation after login
-      console.log('Waiting for authentication to complete...');
-      await this.page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 15000 });
+      // Wait for form submission and navigation
+      console.log('Form submitted, waiting for response...');
+      
+      // Wait 5 seconds for any redirects or processing
+      await new Promise(resolve => setTimeout(resolve, 5000));
+      
+      // Check if we're still on the login page or have been redirected
+      const currentUrl = this.page.url();
+      console.log(`Current URL after submission: ${currentUrl}`);
+      
+      // If still on login page, wait for navigation
+      if (currentUrl.includes('login') || currentUrl.includes('signin')) {
+        console.log('Still on login page, waiting for navigation...');
+        try {
+          await this.page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 10000 });
+        } catch (navError) {
+          console.log('Navigation timeout, continuing with current page state');
+        }
+      }
 
       // Handle any modal popups that appear after login
       await this.handlePostLoginModals();
