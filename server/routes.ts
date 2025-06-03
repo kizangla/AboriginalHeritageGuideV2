@@ -11,6 +11,7 @@ import {
   searchIndigenousBusinesses,
   type ABRBusinessDetails 
 } from "./abr-service";
+import { nativeTitleService } from "./native-title-service";
 
 // Australian postcode coordinate lookup for business positioning
 function getPostcodeCoordinates(postcode: string, stateCode: string): { lat: number; lng: number } | null {
@@ -780,6 +781,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error('MGM Alliance profile error:', error);
       res.status(500).json({ 
         error: 'Failed to retrieve MGM Alliance profile',
+        message: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
+  // Get Native Title information for territory
+  app.get("/api/territories/:territoryName/native-title", async (req, res) => {
+    try {
+      const { territoryName } = req.params;
+      const { lat, lng } = req.query;
+      
+      if (!lat || !lng) {
+        return res.status(400).json({ 
+          error: 'Latitude and longitude required' 
+        });
+      }
+
+      const nativeTitleInfo = await nativeTitleService.getNativeTitleInfo(
+        parseFloat(lat as string), 
+        parseFloat(lng as string), 
+        territoryName
+      );
+
+      res.json({
+        success: true,
+        territoryName,
+        nativeTitle: nativeTitleInfo,
+        dataSource: 'Australian Government Native Title Tribunal',
+        lastUpdated: new Date().toISOString()
+      });
+
+    } catch (error) {
+      console.error('Native Title API error:', error);
+      res.status(500).json({ 
+        error: 'Failed to retrieve Native Title information',
         message: error instanceof Error ? error.message : 'Unknown error'
       });
     }
