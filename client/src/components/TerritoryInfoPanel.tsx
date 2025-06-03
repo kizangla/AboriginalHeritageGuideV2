@@ -74,20 +74,20 @@ export default function TerritoryInfoPanel({
   // console.log('Territory panel data:', { territoryName, coordinates, nativeTitleData });
 
   return (
-    <Card className="absolute bottom-6 right-6 z-[1000] w-96 bg-white/95 backdrop-blur-sm shadow-xl border-0 rounded-2xl overflow-hidden">
-      <CardHeader className="pb-3 bg-gradient-to-r from-orange-50 to-yellow-50">
-        <div className="flex items-start justify-between">
-          <div className="flex-1">
-            <CardTitle className="text-lg font-bold text-gray-900 mb-1">
+    <Card className="absolute bottom-4 right-4 sm:bottom-6 sm:right-6 z-[1000] w-[calc(100vw-2rem)] sm:w-96 max-w-md bg-white/95 backdrop-blur-sm shadow-xl border-0 rounded-2xl overflow-hidden">
+      <CardHeader className="pb-3 px-3 sm:px-6 bg-gradient-to-r from-orange-50 to-yellow-50">
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex-1 min-w-0">
+            <CardTitle className="text-base sm:text-lg font-bold text-gray-900 mb-1 truncate">
               {territoryName}
             </CardTitle>
-            <div className="flex items-center gap-2 flex-wrap">
-              <Badge variant="secondary" className="bg-orange-100 text-orange-800 border-orange-200">
+            <div className="flex items-center gap-1 sm:gap-2 flex-wrap">
+              <Badge variant="secondary" className="bg-orange-100 text-orange-800 border-orange-200 text-xs">
                 <MapPin className="w-3 h-3 mr-1" />
-                {region}
+                <span className="truncate max-w-16 sm:max-w-none">{region}</span>
               </Badge>
               {groupName && (
-                <Badge variant="outline" className="text-xs">
+                <Badge variant="outline" className="text-xs truncate max-w-20 sm:max-w-none">
                   {groupName}
                 </Badge>
               )}
@@ -97,16 +97,16 @@ export default function TerritoryInfoPanel({
             variant="ghost"
             size="sm"
             onClick={onClose}
-            className="h-8 w-8 p-0 hover:bg-white/50"
+            className="h-7 w-7 sm:h-8 sm:w-8 p-0 hover:bg-white/50 flex-shrink-0"
           >
-            <X className="w-4 h-4" />
+            <X className="w-3 h-3 sm:w-4 sm:h-4" />
           </Button>
         </div>
       </CardHeader>
 
-      <CardContent className="p-4 space-y-4">
+      <CardContent className="p-3 sm:p-4 space-y-3 sm:space-y-4 max-h-[70vh] overflow-y-auto">
         {/* Cultural Information Grid */}
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
           {languageFamily && (
             <div className="flex items-center gap-2 p-2 bg-blue-50 rounded-lg">
               <Globe className="w-4 h-4 text-blue-600" />
@@ -130,10 +130,10 @@ export default function TerritoryInfoPanel({
 
         {/* Native Title Information - Australian Government Data */}
         {nativeTitleData && nativeTitleData.success && (
-          <div className="space-y-2 p-3 bg-orange-50 rounded-lg border border-orange-200">
-            <div className="flex items-center gap-2 text-sm font-semibold text-orange-800">
+          <div className="space-y-2 p-2 sm:p-3 bg-orange-50 rounded-lg border border-orange-200">
+            <div className="flex items-center gap-2 text-xs sm:text-sm font-semibold text-orange-800 flex-wrap">
               <Shield className="w-4 h-4" />
-              Native Title Status
+              <span>Native Title Status</span>
               <Badge variant="outline" className="text-xs bg-white text-orange-700 border-orange-300">
                 Government Verified
               </Badge>
@@ -156,20 +156,22 @@ export default function TerritoryInfoPanel({
                     </div>
                     
                     {/* Individual Application Details */}
-                    <div className="space-y-1 max-h-32 overflow-y-auto">
-                      {nativeTitleData.nativeTitle.applications.slice(0, 3).map((app, index) => (
+                    <div className="space-y-1 max-h-24 sm:max-h-32 overflow-y-auto">
+                      {nativeTitleData.nativeTitle.applications.slice(0, 3).map((app: any, index: number) => (
                         <div key={index} className="p-2 bg-white rounded border border-orange-100">
-                          <div className="flex justify-between items-start text-xs">
-                            <div className="flex-1">
-                              <div className="font-medium text-gray-800">{app.applicantName}</div>
-                              {app.tribunalNumber && (
-                                <div className="text-gray-600">Tribunal: {app.tribunalNumber}</div>
-                              )}
-                              {app.area && (
-                                <div className="text-gray-600">{app.area.toLocaleString()} sq km</div>
-                              )}
+                          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-1 text-xs">
+                            <div className="flex-1 min-w-0">
+                              <div className="font-medium text-gray-800 truncate">{app.applicantName}</div>
+                              <div className="flex flex-col sm:flex-row sm:gap-3 text-gray-600">
+                                {app.tribunalNumber && (
+                                  <div className="truncate">Tribunal: {app.tribunalNumber}</div>
+                                )}
+                                {app.area && (
+                                  <div>{app.area.toLocaleString()} sq km</div>
+                                )}
+                              </div>
                             </div>
-                            <Badge variant="outline" className="text-xs ml-2">
+                            <Badge variant="outline" className="text-xs self-start sm:ml-2 flex-shrink-0">
                               {app.status}
                             </Badge>
                           </div>
@@ -197,25 +199,29 @@ export default function TerritoryInfoPanel({
             )}
             
             <div className="text-xs text-gray-500 pt-2 border-t border-orange-200 space-y-1">
-              <div>
-                <strong>Source:</strong> {nativeTitleData.dataSource}
+              <div className="flex flex-col sm:flex-row sm:items-center gap-1">
+                <strong>Source:</strong> 
+                <span className="break-words">{nativeTitleData.dataSource}</span>
               </div>
               {nativeTitleData.nativeTitle.applications && nativeTitleData.nativeTitle.applications.length > 0 && nativeTitleData.nativeTitle.applications[0].references && (
                 <div className="space-y-1">
-                  <div>
-                    <strong>Data Provider:</strong> {nativeTitleData.nativeTitle.applications[0].references.dataProvider}
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-1">
+                    <strong>Data Provider:</strong> 
+                    <span className="break-words">{nativeTitleData.nativeTitle.applications[0].references.dataProvider}</span>
                   </div>
-                  <div>
-                    <strong>License:</strong> {nativeTitleData.nativeTitle.applications[0].references.licenseType}
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-1">
+                    <strong>License:</strong> 
+                    <span className="break-words text-xs">{nativeTitleData.nativeTitle.applications[0].references.licenseType}</span>
                   </div>
-                  <div>
-                    <strong>Last Updated:</strong> {nativeTitleData.nativeTitle.applications[0].references.lastUpdated}
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-1">
+                    <strong>Last Updated:</strong> 
+                    <span>{nativeTitleData.nativeTitle.applications[0].references.lastUpdated}</span>
                   </div>
                   <details className="mt-2">
-                    <summary className="cursor-pointer text-blue-600 hover:text-blue-800 font-medium">
-                      View Citation
+                    <summary className="cursor-pointer text-blue-600 hover:text-blue-800 font-medium text-xs">
+                      View Full Citation
                     </summary>
-                    <div className="mt-1 p-2 bg-gray-50 rounded text-xs font-mono leading-relaxed">
+                    <div className="mt-1 p-2 bg-gray-50 rounded text-xs font-mono leading-relaxed break-words">
                       {nativeTitleData.nativeTitle.applications[0].references.citation}
                     </div>
                   </details>
