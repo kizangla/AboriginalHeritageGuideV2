@@ -99,8 +99,8 @@ class SupplyNationScraper {
           console.log(`Starting page: ${page.url()}`);
           
           // Handle authentication if needed
-          const currentUrl = page.url();
-          if (currentUrl.includes('login') || currentUrl.includes('frontdoor') || currentUrl.includes('auth')) {
+          let pageUrl = page.url();
+          if (pageUrl.includes('login') || pageUrl.includes('frontdoor') || pageUrl.includes('auth')) {
             console.log('Authentication required, handling login flow...');
             
             const username = process.env.SUPPLY_NATION_USERNAME;
@@ -147,6 +147,9 @@ class SupplyNationScraper {
             }
           }
           
+          // Handle any modal popups that appear after authentication
+          await this.handlePostAuthenticationModals(page);
+          
           // Navigate to search page with query - try multiple approaches
           const searchUrl = `https://ibd.supplynation.org.au/public/s/search-results?search=${encodeURIComponent(searchQuery)}&searchfield=all`;
           console.log(`Navigating to search URL: ${searchUrl}`);
@@ -159,7 +162,7 @@ class SupplyNationScraper {
           console.log(`Search page loaded: ${page.url()}`);
           
           // Alternative approach: Use homepage search form if direct URL doesn't work
-          const currentUrl = page.url();
+          const searchPageUrl = page.url();
           if (currentUrl.includes('homepage') || !currentUrl.includes('search-results')) {
             console.log('Redirected to homepage, using search form...');
             
@@ -400,6 +403,112 @@ class SupplyNationScraper {
         searchQuery: query,
         timestamp: new Date()
       };
+    }
+  }
+
+  private async handlePostAuthenticationModals(page: any): Promise<void> {
+    console.log('Checking for post-authentication modals...');
+    
+    try {
+      // Wait for page to stabilize after authentication
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      // Common modal selectors that might appear after Supply Nation authentication
+      const modalSelectors = [
+        '.modal',
+        '.popup',
+        '.overlay',
+        '[role="dialog"]',
+        '.slds-modal',
+        '.slds-backdrop',
+        '.welcome-modal',
+        '.notification-modal',
+        '.survey-modal',
+        '.feedback-modal'
+      ];
+      
+      for (const selector of modalSelectors) {
+        try {
+          const modal = await page.$(selector);
+          if (modal) {
+            console.log(`Found modal with selector: ${selector}`);
+            
+            // Look for close buttons within the modal
+            const closeButtons = [
+              `${selector} .close`,
+              `${selector} .modal-close`,
+              `${selector} [aria-label="Close"]`,
+              `${selector} button[title="Close"]`,
+              `${selector} .slds-button_icon`,
+              `${selector} .fa-times`,
+              `${selector} .cancel`,
+              `${selector} [data-dismiss="modal"]`
+            ];
+            
+            for (const closeButton of closeButtons) {
+              try {
+                const button = await page.$(closeButton);
+                if (button) {
+                  console.log(`Clicking close button: ${closeButton}`);
+                  await button.click();
+                  await new Promise(resolve => setTimeout(resolve, 1000));
+                  break;
+                }
+              } catch (e) {
+                // Continue to next close button option
+              }
+            }
+            
+            // Alternative: Press Escape key to close modal
+            try {
+              await page.keyboard.press('Escape');
+              console.log('Pressed Escape to close modal');
+              await new Promise(resolve => setTimeout(resolve, 1000));
+            } catch (e) {
+              // Continue
+            }
+          }
+        } catch (e) {
+          // Continue to next modal selector
+        }
+      }
+      
+      // Check for specific Supply Nation welcome/tutorial overlays
+      try {
+        const tutorialOverlay = await page.$('.tutorial-overlay, .welcome-tour, .intro-overlay');
+        if (tutorialOverlay) {
+          console.log('Found tutorial/welcome overlay, attempting to dismiss...');
+          
+          // Try clicking "Skip" or "Got it" buttons
+          const skipButtons = [
+            'button:contains("Skip")',
+            'button:contains("Got it")',
+            'button:contains("Continue")',
+            'button:contains("Next")',
+            '.skip-button',
+            '.tutorial-skip'
+          ];
+          
+          for (const skipButton of skipButtons) {
+            try {
+              await page.click(skipButton);
+              console.log(`Clicked skip button: ${skipButton}`);
+              await new Promise(resolve => setTimeout(resolve, 1000));
+              break;
+            } catch (e) {
+              // Continue to next skip button
+            }
+          }
+        }
+      } catch (e) {
+        // No tutorial overlay found
+      }
+      
+      console.log('Modal handling completed');
+      
+    } catch (error) {
+      console.log(`Modal handling error: ${error}`);
+      // Don't throw - continue with scraping even if modal handling fails
     }
   }
 
