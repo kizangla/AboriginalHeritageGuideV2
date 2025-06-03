@@ -63,50 +63,64 @@ export class NativeTitleImportService {
   private parseNativeTitleFeature(feature: NativeTitleFeature): typeof insertNativeTitleClaimSchema._type {
     const props = feature.properties;
     
-    // Extract traditional owners from applicant name
-    const traditionalOwners = this.extractTraditionalOwners(props.Applicant_Name || '');
+    // Map actual Australian Government property names to our schema
+    const claimName = props.NAME || props.Applicant_Name || 'Unknown Claim';
+    const tribunalId = props.TRIBID || props.Tribunal_Number || null;
+    const federalCourtNo = props.FCNO || props.Federal_Court_Number || null;
+    const status = props.STATUS || props.Status || 'Unknown';
+    const representative = props.REP || 'Unknown Representative';
+    const jurisdiction = props.JURIS || props.State || 'Unknown';
+    const area = props.AREASQKM || props.Area_sqkm || null;
+    const registrationDate = props.DATEREG || props.Registration_Date || null;
+    const determinationDate = props.DATESTATUS || props.Determination_Date || null;
+    
+    // Extract traditional owners from claim name and representative
+    const traditionalOwners = this.extractTraditionalOwners(claimName, representative);
 
     return {
-      applicationId: props.Application_ID || `unknown_${Date.now()}`,
-      tribunalNumber: props.Tribunal_Number || null,
-      applicantName: props.Applicant_Name || 'Unknown Applicant',
-      status: props.Status || 'Unknown',
-      determinationDate: props.Determination_Date || null,
-      state: props.State || 'Unknown',
-      outcome: props.Outcome || null,
-      area: props.Area_sqkm || null,
+      applicationId: tribunalId || federalCourtNo || `claim_${Date.now()}`,
+      tribunalNumber: tribunalId,
+      applicantName: claimName,
+      status: status,
+      determinationDate: determinationDate,
+      state: jurisdiction,
+      outcome: props.RTSTATUS || props.Outcome || null,
+      area: area,
       geometry: feature.geometry,
       traditionalOwners,
-      federalCourtNumber: props.Federal_Court_Number || null,
-      registrationDate: props.Registration_Date || null,
+      federalCourtNumber: federalCourtNo,
+      registrationDate: registrationDate,
       lastUpdated: new Date().toISOString(),
       dataSource: 'Australian Government Native Title Tribunal'
     };
   }
 
   /**
-   * Extract traditional owner names from applicant string
+   * Extract traditional owner names from claim name and representative
    */
-  private extractTraditionalOwners(applicantName: string): string[] {
-    if (!applicantName) return [];
+  private extractTraditionalOwners(claimName: string, representative: string): string[] {
+    if (!claimName) return [];
     
-    // Common patterns in Native Title applicant names
+    // Common patterns in Native Title claim names
     const patterns = [
-      /on behalf of the (.+?) people/i,
       /(.+?) people/i,
       /(.+?) nation/i,
-      /(.+?) group/i
+      /(.+?) group/i,
+      /(.+?) community/i,
+      /(.+?) tribe/i,
+      /(.+?) traditional owners/i
     ];
 
+    // Try to extract from claim name first
     for (const pattern of patterns) {
-      const match = applicantName.match(pattern);
+      const match = claimName.match(pattern);
       if (match && match[1]) {
         return [match[1].trim()];
       }
     }
 
-    // Fallback: return the full applicant name
-    return [applicantName];
+    // If no pattern matches, use the claim name as the traditional owner
+    return [claimName];
   }
 
   /**
