@@ -81,7 +81,7 @@ export class DatabaseStorage implements IStorage {
             name: territoryName,
             groupName: this.getGroupName(territoryName, centerLat, centerLng),
             languageFamily: this.getLanguageFamily(centerLat, centerLng),
-            region: this.getRegion(centerLat, centerLng),
+            region: feature.properties.Region || this.getRegion(centerLat, centerLng),
             regionType: this.getRegionType(centerLat, centerLng),
             estimatedPopulation: this.getPopulation(coords.length),
             culturalInfo: this.getCulturalInfo(territoryName, centerLat, centerLng),

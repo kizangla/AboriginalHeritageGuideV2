@@ -99,6 +99,7 @@ export default function MapPage() {
         <SimpleMap 
           onMapReady={setMapInstance}
           onTerritorySelect={handleTerritorySelect}
+          regionFilter={selectedRegion}
         />
         
         {/* Territory Filter Component */}

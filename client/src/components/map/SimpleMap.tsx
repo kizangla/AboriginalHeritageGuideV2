@@ -6,9 +6,10 @@ import type { Territory } from '@shared/schema';
 interface SimpleMapProps {
   onMapReady?: (map: L.Map) => void;
   onTerritorySelect?: (territory: Territory) => void;
+  regionFilter?: string | null;
 }
 
-export default function SimpleMap({ onMapReady, onTerritorySelect }: SimpleMapProps) {
+export default function SimpleMap({ onMapReady, onTerritorySelect, regionFilter }: SimpleMapProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
   const territoryLayerRef = useRef<L.GeoJSON | null>(null);
@@ -57,15 +58,38 @@ export default function SimpleMap({ onMapReady, onTerritorySelect }: SimpleMapPr
     console.log('Adding Aboriginal territories to map...');
     console.log('Territories data received:', territoriesGeoJSON?.features?.length || 0);
 
-    // Add Australia territory layer
-    if (territoriesGeoJSON && territoriesGeoJSON.features) {
-      const territoryLayer = L.geoJSON(territoriesGeoJSON, {
-        style: (feature) => ({
-          color: feature?.properties?.color || '#e74c3c',
-          weight: 2,
-          opacity: 0.8,
-          fillOpacity: 0.6,
-        }),
+    // Filter territories based on selected region
+    let filteredFeatures = territoriesGeoJSON?.features || [];
+    if (regionFilter) {
+      filteredFeatures = filteredFeatures.filter((feature: any) => {
+        const featureRegion = feature.properties?.Region || feature.properties?.region;
+        return featureRegion === regionFilter;
+      });
+    }
+
+    console.log(`Displaying ${filteredFeatures.length} territories ${regionFilter ? `for ${regionFilter} region` : 'total'}`);
+
+    // Add filtered territory layer
+    if (filteredFeatures.length > 0) {
+      const getRegionColor = (region: string) => {
+        switch (region) {
+          case 'Kimberley': return '#FF6B35'; // Orange for Kimberley
+          case 'Southeast': return '#4ECDC4'; // Teal for Southeast
+          case 'Riverine': return '#45B7D1'; // Blue for Riverine
+          default: return '#e74c3c'; // Default red
+        }
+      };
+
+      const territoryLayer = L.geoJSON(filteredFeatures as any, {
+        style: (feature) => {
+          const region = feature?.properties?.Region || feature?.properties?.region;
+          return {
+            color: getRegionColor(region),
+            weight: regionFilter ? 3 : 2,
+            opacity: regionFilter ? 1 : 0.8,
+            fillOpacity: regionFilter ? 0.8 : 0.6,
+          };
+        },
         onEachFeature: (feature, layer) => {
           const territory = feature.properties;
           
@@ -108,9 +132,9 @@ export default function SimpleMap({ onMapReady, onTerritorySelect }: SimpleMapPr
       territoryLayerRef.current = territoryLayer;
       territoryLayer.addTo(mapInstanceRef.current);
       
-      console.log(`Added ${territoriesGeoJSON.features.length} Aboriginal territories`);
+      console.log(`Added ${filteredFeatures.length} Aboriginal territories`);
     }
-  }, [territoriesGeoJSON, isLoading, onTerritorySelect]);
+  }, [territoriesGeoJSON, isLoading, onTerritorySelect, regionFilter]);
 
   return (
     <div className="relative w-full h-[calc(100vh-80px)]">
