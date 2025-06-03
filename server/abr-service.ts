@@ -190,7 +190,7 @@ function parseABRJSONResponse(jsonData: any): ABRSearchResult {
 }
 
 // Parse detailed business information from ABR JSON API
-function parseBusinessDetailsJSON(jsonData: any): ABRBusinessDetails | null {
+async function parseBusinessDetailsJSON(jsonData: any): Promise<ABRBusinessDetails | null> {
   try {
     if (!jsonData || jsonData.Message) {
       console.log('ABR Details API message:', jsonData?.Message || 'No data');
@@ -214,10 +214,39 @@ function parseBusinessDetailsJSON(jsonData: any): ABRBusinessDetails | null {
     };
 
     // Build complete address for geocoding and display
-    const addressParts = [];
     if (jsonData.AddressPostcode && jsonData.AddressState) {
       business.address.fullAddress = `${jsonData.AddressPostcode}, ${jsonData.AddressState}, Australia`;
       business.address.suburb = `${jsonData.AddressPostcode}, ${jsonData.AddressState}`;
+      
+      // Perform geocoding to get accurate coordinates
+      try {
+        console.log(`🗺️ Geocoding business: ${business.entityName} at ${business.address.fullAddress}`);
+        
+        const geocodeResponse = await fetch(
+          `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(business.address.fullAddress)}.json?access_token=${process.env.MAPBOX_ACCESS_TOKEN}&country=AU&limit=1`,
+          {
+            method: 'GET',
+            headers: { 'Accept': 'application/json' }
+          }
+        );
+
+        console.log(`Geocoding response status: ${geocodeResponse.status}`);
+        
+        if (geocodeResponse.ok) {
+          const geocodeData = await geocodeResponse.json();
+          console.log(`Geocoding response features: ${geocodeData.features?.length || 0}`);
+          
+          if (geocodeData.features && geocodeData.features.length > 0) {
+            const [lng, lat] = geocodeData.features[0].center;
+            business.lat = lat;
+            business.lng = lng;
+            business.address.fullAddress = geocodeData.features[0].place_name;
+            console.log(`✅ Geocoded ${business.entityName} to coordinates: [${lat}, ${lng}]`);
+          }
+        }
+      } catch (geocodeError) {
+        console.log(`Geocoding error for ${business.entityName}: ${geocodeError}`);
+      }
     }
 
     return business;

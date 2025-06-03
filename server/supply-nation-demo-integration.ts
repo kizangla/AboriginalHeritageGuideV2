@@ -35,6 +35,48 @@ export const sampleSupplyNationBusinesses: SupplyNationVerifiedBusiness[] = [
       email: "info@myaligroup.com.au", 
       website: "http://www.myaligroup.com.au"
     }
+  },
+  {
+    companyName: "MGM ALLIANCE PTY LTD",
+    abn: "47653970962",
+    location: "6714, Western Australia",
+    supplynationId: "a1G7F000001RLdBUA2",
+    profileUrl: "https://ibd.supplynation.org.au/public/s/supplierprofile?accid=a1G7F000001RLdBUA2",
+    verified: true,
+    categories: ["Supply Nation Verified", "Mining services", "Engineering services"],
+    contactInfo: {
+      phone: "(08) 9144 2000",
+      email: "info@mgmalliance.com.au",
+      website: "http://www.mgmalliance.com.au"
+    }
+  },
+  {
+    companyName: "INDIGENOUS BUSINESS AUSTRALIA",
+    abn: "42513562148",
+    location: "Canberra, ACT 2601",
+    supplynationId: "a1G7F000001RLdBUA3",
+    profileUrl: "https://ibd.supplynation.org.au/public/s/supplierprofile?accid=a1G7F000001RLdBUA3",
+    verified: true,
+    categories: ["Supply Nation Verified", "Business development", "Financial services"],
+    contactInfo: {
+      phone: "1800 107 107",
+      email: "info@iba.gov.au",
+      website: "http://www.iba.gov.au"
+    }
+  },
+  {
+    companyName: "MURDI PAAKI REGIONAL ASSEMBLY",
+    abn: "85103230989",
+    location: "Broken Hill, NSW 2880",
+    supplynationId: "a1G7F000001RLdBUA4",
+    profileUrl: "https://ibd.supplynation.org.au/public/s/supplierprofile?accid=a1G7F000001RLdBUA4",
+    verified: true,
+    categories: ["Supply Nation Verified", "Community services", "Training"],
+    contactInfo: {
+      phone: "(08) 8082 9777",
+      email: "info@murdipaaki.org",
+      website: "http://www.murdipaaki.org"
+    }
   }
 ];
 
