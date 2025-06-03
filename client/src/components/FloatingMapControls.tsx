@@ -37,7 +37,19 @@ export default function FloatingMapControls({
     { name: 'Gulf', key: 'Gulf', count: territoryStats.gulf || 0, color: '#3B82F6' },
     { name: 'Riverine', key: 'Riverine', count: territoryStats.riverine || 0, color: '#06B6D4' },
     { name: 'Desert', key: 'Desert', count: territoryStats.desert || 0, color: '#F59E0B' },
-    { name: 'Kimberley', key: 'Kimberley', count: territoryStats.kimberley || 0, color: '#EF4444' }
+    { name: 'Kimberley', key: 'Kimberley', count: territoryStats.kimberley || 0, color: '#EF4444' },
+    { name: 'Southeast', key: 'Southeast', count: territoryStats.southeast || 0, color: '#8B5CF6' },
+    { name: 'Northeast', key: 'Northeast', count: territoryStats.northeast || 0, color: '#EC4899' },
+    { name: 'Fitzmaurice', key: 'Fitzmaurice', count: territoryStats.fitzmaurice || 0, color: '#14B8A6' },
+    { name: 'Eyre', key: 'Eyre', count: territoryStats.eyre || 0, color: '#F97316' },
+    { name: 'Arnhem', key: 'Arnhem', count: territoryStats.arnhem || 0, color: '#84CC16' },
+    { name: 'West Cape', key: 'West Cape', count: territoryStats.westCape || 0, color: '#06B6D4' },
+    { name: 'Southwest', key: 'Southwest', count: territoryStats.southwest || 0, color: '#8B5CF6' },
+    { name: 'North', key: 'North', count: territoryStats.north || 0, color: '#EF4444' },
+    { name: 'East Cape', key: 'East Cape', count: territoryStats.eastCape || 0, color: '#10B981' },
+    { name: 'Spencer', key: 'Spencer', count: territoryStats.spencer || 0, color: '#F59E0B' },
+    { name: 'Rainforest', key: 'Rainforest', count: territoryStats.rainforest || 0, color: '#22C55E' },
+    { name: 'Torres Strait', key: 'Torres Strait', count: territoryStats.torresStrait || 0, color: '#3B82F6' }
   ];
 
   return (
@@ -123,7 +135,7 @@ export default function FloatingMapControls({
                 </Button>
 
                 {/* Quick Region Filters */}
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-3 gap-2 max-h-48 overflow-y-auto">
                   {quickRegions.map((region) => (
                     <Button
                       key={region.key}
