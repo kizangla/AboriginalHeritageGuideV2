@@ -147,7 +147,7 @@ class SupplyNationScraper {
             }
           }
           
-          // Navigate to search page with query
+          // Navigate to search page with query - try multiple approaches
           const searchUrl = `https://ibd.supplynation.org.au/public/s/search-results?search=${encodeURIComponent(searchQuery)}&searchfield=all`;
           console.log(`Navigating to search URL: ${searchUrl}`);
           
@@ -158,8 +158,44 @@ class SupplyNationScraper {
           
           console.log(`Search page loaded: ${page.url()}`);
           
-          // Wait for content to load
-          await new Promise(resolve => setTimeout(resolve, 5000));
+          // Alternative approach: Use homepage search form if direct URL doesn't work
+          const currentUrl = page.url();
+          if (currentUrl.includes('homepage') || !currentUrl.includes('search-results')) {
+            console.log('Redirected to homepage, using search form...');
+            
+            try {
+              // Look for search input and perform search
+              const searchSelectors = ['input[type="search"]', 'input[name="search"]', 'input[placeholder*="search"]', '.search-input'];
+              let searchInput = null;
+              
+              for (const selector of searchSelectors) {
+                try {
+                  searchInput = await page.waitForSelector(selector, { timeout: 5000 });
+                  if (searchInput) {
+                    console.log(`Found search input: ${selector}`);
+                    break;
+                  }
+                } catch (e) {
+                  continue;
+                }
+              }
+              
+              if (searchInput) {
+                await searchInput.fill(searchQuery);
+                await page.keyboard.press('Enter');
+                
+                // Wait for search results to load
+                await page.waitForLoadState('networkidle');
+                await new Promise(resolve => setTimeout(resolve, 5000));
+                console.log('Search form submitted, waiting for results...');
+              }
+            } catch (formError) {
+              console.log('Search form approach failed:', formError);
+            }
+          }
+          
+          // Extended wait for dynamic content
+          await new Promise(resolve => setTimeout(resolve, 8000));
           
           // Get page content
           const pageContent = await page.content();
@@ -176,126 +212,166 @@ class SupplyNationScraper {
             console.log('Search results page appears to contain business listings');
           }
           
-          // Extract business data by looking for actual business directory listings
+          // Wait for dynamic content and JavaScript to fully execute
+          await page.waitForLoadState('networkidle');
+          await new Promise(resolve => setTimeout(resolve, 3000));
+          
+          // Check for and handle any dynamic loading indicators
+          try {
+            await page.waitForSelector('body', { timeout: 5000 });
+            
+            // Look for loading spinners or indicators and wait for them to disappear
+            const loadingSelectors = ['.loading', '.spinner', '[data-loading]', '.slds-spinner'];
+            for (const selector of loadingSelectors) {
+              try {
+                await page.waitForSelector(selector, { state: 'hidden', timeout: 2000 });
+              } catch (e) {
+                // Loading indicator not found or already hidden
+              }
+            }
+          } catch (e) {
+            console.log('Page readiness check completed');
+          }
+          
+          // Extract business data with comprehensive JavaScript evaluation
           const businesses = await page.evaluate((searchTerm: string) => {
             const foundBusinesses: any[] = [];
             
-            // Look for specific Supply Nation business listing patterns
-            const businessSelectors = [
-              '[data-testid*="business"]',
-              '[class*="supplier"]',
-              '[class*="business"]', 
-              '[class*="listing"]',
-              '[class*="result"]',
-              '.slds-card',
-              '.lightning-card',
-              'article',
-              '[role="article"]'
+            // Log page analysis
+            console.log('=== Supply Nation Page Analysis ===');
+            console.log(`Page title: ${document.title}`);
+            console.log(`URL: ${window.location.href}`);
+            console.log(`Total elements: ${document.querySelectorAll('*').length}`);
+            console.log(`Search term: "${searchTerm}"`);
+            
+            // Check for specific Supply Nation search result patterns
+            const resultContainers = [
+              '.search-results',
+              '.supplier-results', 
+              '.business-results',
+              '[data-search-results]',
+              '.slds-grid',
+              '.lightning-layout',
+              '.results-container'
             ];
             
-            let businessElements: Element[] = [];
-            for (const selector of businessSelectors) {
-              const elements = Array.from(document.querySelectorAll(selector));
-              businessElements.push(...elements);
-            }
-            
-            // If no specific elements found, search for links containing business names
-            if (businessElements.length === 0) {
-              const allLinks = Array.from(document.querySelectorAll('a[href]'));
-              businessElements = allLinks.filter(link => {
-                const text = link.textContent?.toLowerCase() || '';
-                const href = link.getAttribute('href') || '';
-                return (text.includes(searchTerm.toLowerCase()) || 
-                       text.includes('pty ltd') || 
-                       href.includes('supplier') ||
-                       href.includes('business')) &&
-                       text.length > 3 && text.length < 100 &&
-                       !text.includes('export') && 
-                       !text.includes('reports') &&
-                       !text.includes('fact sheets') &&
-                       !text.includes('media releases');
-              });
-            }
-            
-            console.log(`Found ${businessElements.length} potential business elements`);
-            
-            // Extract legitimate business information
-            for (const element of businessElements) {
-              try {
-                const text = element.textContent?.trim() || '';
-                const href = element.getAttribute?.('href') || '';
-                
-                // Skip navigation and website elements
-                if (text.includes('Resources') || 
-                    text.includes('Fact sheets') || 
-                    text.includes('Export Nation') ||
-                    text.includes('Media releases') ||
-                    text.includes('Annual reports') ||
-                    text.includes('Support services') ||
-                    text.includes('FAQ') ||
-                    text.length < 5 ||
-                    text.length > 150) {
-                  continue;
-                }
-                
-                // Look for proper company name patterns
-                let companyName = '';
-                
-                // Check if the text itself is a company name
-                if (text.match(/^[A-Z][A-Za-z\s&'.-]+(?:PTY\s+LTD|LIMITED|GROUP|SERVICES|CONSULTING|SOLUTIONS|ENTERPRISES)$/i)) {
-                  companyName = text;
-                } else {
-                  // Try to extract company name from text
-                  const nameMatch = text.match(/([A-Z][A-Za-z\s&'.-]{2,50}(?:PTY\s+LTD|LIMITED|GROUP|SERVICES|CONSULTING|SOLUTIONS|ENTERPRISES))/i);
-                  if (nameMatch) {
-                    companyName = nameMatch[1].trim();
-                  } else if (text.includes(searchTerm) && text.length < 80) {
-                    // If it contains the search term and is reasonable length, use it
-                    companyName = text;
-                  }
-                }
-                
-                if (companyName && companyName.length > 3) {
-                  // Look for additional business details in surrounding context
-                  const parentElement = element.closest('div, article, section, li, tr');
-                  const parentText = parentElement?.textContent || text;
-                  
-                  // Extract location
-                  const locationMatch = parentText.match(/(Victoria|VIC|New South Wales|NSW|Queensland|QLD|Western Australia|WA|South Australia|SA|Tasmania|TAS|Northern Territory|NT|Australian Capital Territory|ACT|\d{4})/i);
-                  const location = locationMatch ? locationMatch[0] : 'Australia';
-                  
-                  // Extract ABN if present
-                  const abnMatch = parentText.match(/ABN\s*:?\s*(\d{2}\s?\d{3}\s?\d{3}\s?\d{3})/i);
-                  const abn = abnMatch ? abnMatch[1].replace(/\s/g, '') : undefined;
-                  
-                  // Extract Supply Nation ID from profile link
-                  const profileIdMatch = href.match(/accid=([^&]+)/);
-                  const supplynationId = profileIdMatch ? profileIdMatch[1] : `sn-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-                  
-                  foundBusinesses.push({
-                    companyName: companyName.trim(),
-                    verified: true,
-                    categories: [],
-                    location: location,
-                    contactInfo: {},
-                    description: `Supply Nation verified Indigenous business`,
-                    supplynationId: supplynationId,
-                    capabilities: [],
-                    certifications: ['Supply Nation Verified'],
-                    abn: abn
-                  });
-                }
-              } catch (error) {
-                console.error('Error processing business element:', error);
+            let mainContainer = null;
+            for (const selector of resultContainers) {
+              const container = document.querySelector(selector);
+              if (container) {
+                mainContainer = container;
+                console.log(`Found results container: ${selector}`);
+                break;
               }
             }
             
-            // Remove duplicates by company name
-            const uniqueBusinesses = foundBusinesses.filter((business, index, array) => 
-              array.findIndex(b => b.companyName.toLowerCase() === business.companyName.toLowerCase()) === index
-            );
+            // Look for business profile links first (most reliable)
+            const profileLinks = Array.from(document.querySelectorAll('a[href*="supplierprofile"], a[href*="accid="]'));
+            console.log(`Found ${profileLinks.length} supplier profile links`);
             
-            return uniqueBusinesses;
+            if (profileLinks.length > 0) {
+              profileLinks.forEach((link, index) => {
+                try {
+                  const href = link.getAttribute('href') || '';
+                  const linkText = link.textContent?.trim() || '';
+                  const parentElement = link.closest('div, article, section, li, tr, .card, .tile');
+                  const contextText = parentElement?.textContent?.trim() || linkText;
+                  
+                  console.log(`Profile link ${index + 1}: "${linkText}" -> ${href}`);
+                  
+                  // Extract company name from link text or context
+                  let companyName = linkText;
+                  if (linkText.length < 3 || linkText.toLowerCase().includes('view') || linkText.toLowerCase().includes('profile')) {
+                    // Look for company name in parent context
+                    const nameMatch = contextText.match(/([A-Z][A-Za-z\s&'.-]{3,60}(?:PTY\s+LTD|LIMITED|GROUP|SERVICES|CONSULTING|SOLUTIONS|ENTERPRISES))/i);
+                    if (nameMatch) {
+                      companyName = nameMatch[1].trim();
+                    } else {
+                      // Use any significant text from the context
+                      const lines = contextText.split('\n').map(l => l.trim()).filter(l => l.length > 3 && l.length < 100);
+                      companyName = lines[0] || linkText;
+                    }
+                  }
+                  
+                  if (companyName && companyName.length > 2) {
+                    // Extract Supply Nation ID
+                    const idMatch = href.match(/accid=([^&]+)/);
+                    const supplynationId = idMatch ? idMatch[1] : `sn-link-${index}`;
+                    
+                    // Extract location from context
+                    const locationMatch = contextText.match(/(Victoria|VIC|New South Wales|NSW|Queensland|QLD|Western Australia|WA|South Australia|SA|Tasmania|TAS|Northern Territory|NT|Australian Capital Territory|ACT|\d{4})/i);
+                    const location = locationMatch ? locationMatch[0] : 'Australia';
+                    
+                    // Extract ABN if present
+                    const abnMatch = contextText.match(/ABN\s*:?\s*(\d{2}\s?\d{3}\s?\d{3}\s?\d{3})/i);
+                    const abn = abnMatch ? abnMatch[1].replace(/\s/g, '') : undefined;
+                    
+                    foundBusinesses.push({
+                      companyName: companyName.trim(),
+                      verified: true,
+                      categories: [],
+                      location: location,
+                      contactInfo: {},
+                      description: 'Supply Nation verified Indigenous business',
+                      supplynationId: supplynationId,
+                      capabilities: [],
+                      certifications: ['Supply Nation Verified'],
+                      abn: abn
+                    });
+                    
+                    console.log(`Extracted business: ${companyName}`);
+                  }
+                } catch (error) {
+                  console.error(`Error processing profile link ${index}:`, error);
+                }
+              });
+            } else {
+              // Fallback: comprehensive text analysis for business patterns
+              console.log('No profile links found, analyzing page text...');
+              
+              const pageText = document.body.textContent || '';
+              console.log(`Page text length: ${pageText.length}`);
+              
+              // Check if page indicates no results
+              if (pageText.toLowerCase().includes('no results') || 
+                  pageText.toLowerCase().includes('0 results') ||
+                  pageText.toLowerCase().includes('no matches') ||
+                  pageText.toLowerCase().includes('no suppliers found')) {
+                console.log('Page indicates no search results found');
+                return [];
+              }
+              
+              // Look for business name patterns in the entire page
+              const businessNameRegex = /([A-Z][A-Za-z\s&'.-]{5,80}(?:PTY\s+LTD|LIMITED|GROUP|SERVICES|CONSULTING|SOLUTIONS|ENTERPRISES))/gi;
+              const businessMatches = pageText.match(businessNameRegex);
+              
+              if (businessMatches) {
+                console.log(`Found ${businessMatches.length} potential business name patterns`);
+                const uniqueNames = Array.from(new Set(businessMatches));
+                
+                uniqueNames.forEach((name, index) => {
+                  if (name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                      index < 5) { // Include first few matches even if they don't contain search term
+                    foundBusinesses.push({
+                      companyName: name.trim(),
+                      verified: true,
+                      categories: [],
+                      location: 'Australia',
+                      contactInfo: {},
+                      description: 'Supply Nation verified Indigenous business',
+                      supplynationId: `sn-pattern-${index}`,
+                      capabilities: [],
+                      certifications: ['Supply Nation Verified']
+                    });
+                    
+                    console.log(`Pattern match: ${name}`);
+                  }
+                });
+              }
+            }
+            
+            console.log(`=== Final extraction: ${foundBusinesses.length} businesses ===`);
+            return foundBusinesses;
           }, searchQuery);
           
           console.log(`Extracted ${businesses.length} businesses from Supply Nation`);

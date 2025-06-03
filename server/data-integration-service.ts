@@ -2,6 +2,7 @@ import { searchSupplyNationWithPuppeteer, SupplyNationBusiness } from './supply-
 import { searchBusinessesByName, enrichBusinessWithLocation, ABRBusinessDetails } from './abr-service';
 import { supplyNationCache } from './supply-nation-cache';
 import { supplyNationApiService } from './supply-nation-api-service';
+import { supplyNationVerificationDB } from './supply-nation-verification-db';
 
 export interface IntegratedBusiness {
   // ABR Data
