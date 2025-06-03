@@ -1,9 +1,9 @@
 import { useState, useMemo } from 'react';
 import SimpleMap from '@/components/map/SimpleMap';
 import TerritoryModal from '@/components/map/TerritoryModal';
-import TerritoryFilter from '@/components/TerritoryFilter';
 import TerritoryInfoPanel from '@/components/TerritoryInfoPanel';
-import UnifiedSearch from '@/components/map/UnifiedSearch';
+import FloatingMapControls from '@/components/FloatingMapControls';
+import CollapsibleSearch from '@/components/CollapsibleSearch';
 import { Button } from '@/components/ui/button';
 import { Building2 } from 'lucide-react';
 import { Link } from 'wouter';
@@ -15,6 +15,7 @@ export default function MapPage() {
   const [showModal, setShowModal] = useState(false);
   const [mapInstance, setMapInstance] = useState<any>(null);
   const [selectedRegion, setSelectedRegion] = useState<string | null>(null);
+  const [showSearch, setShowSearch] = useState(false);
 
   const { data: territoriesGeoJSON } = useQuery<any>({
     queryKey: ['/api/territories'],
@@ -125,34 +126,26 @@ export default function MapPage() {
           regionFilter={selectedRegion}
         />
         
-        {/* Territory Filter Component */}
-        <TerritoryFilter
+        {/* Floating Map Controls */}
+        <FloatingMapControls
           onRegionFilter={handleRegionFilter}
           selectedRegion={selectedRegion}
           territoryStats={territoryStats}
+          onResetView={handleResetView}
+          onToggleSearch={() => setShowSearch(!showSearch)}
+          showSearch={showSearch}
         />
         
-        <UnifiedSearch 
+        {/* Collapsible Search Panel */}
+        <CollapsibleSearch
           map={mapInstance}
           onLocationSelect={handleSearch}
-          onBusinessSelect={(business) => {
+          onBusinessSelect={(business: any) => {
             console.log('Selected business:', business);
           }}
+          isVisible={showSearch}
+          onClose={() => setShowSearch(false)}
         />
-        
-        {/* Minimalist Controls */}
-        <div className="absolute bottom-6 left-6 z-[1000] flex flex-col gap-2">
-          <Button
-            onClick={handleResetView}
-            size="sm"
-            variant="outline"
-            className="bg-white shadow-md h-10 w-10 p-0"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z" />
-            </svg>
-          </Button>
-        </div>
         
         {/* Enhanced Territory Info Panel */}
         {selectedTerritory && (

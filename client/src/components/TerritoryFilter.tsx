@@ -16,7 +16,7 @@ export default function TerritoryFilter({
   selectedRegion, 
   territoryStats 
 }: TerritoryFilterProps) {
-  const [isOpen, setIsOpen] = useState(true);
+  const [isOpen, setIsOpen] = useState(false);
 
   // Group regions by significance and geography
   const majorRegions = [
