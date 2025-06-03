@@ -25,14 +25,25 @@ export default function TerritoryInfoPanel({
   const traditionalLanguages = territory.traditionalLanguages;
 
   // Fetch authentic Native Title data from Australian Government
-  const { data: nativeTitleData, isLoading: nativeTitleLoading } = useQuery({
+  const { data: nativeTitleData, isLoading: nativeTitleLoading, error: nativeTitleError } = useQuery({
     queryKey: ['/api/territories', territoryName, 'native-title', territory.centerLat, territory.centerLng],
     queryFn: async () => {
       const response = await fetch(`/api/territories/${encodeURIComponent(territoryName)}/native-title?lat=${territory.centerLat}&lng=${territory.centerLng}`);
       if (!response.ok) throw new Error('Failed to fetch Native Title data');
-      return response.json();
+      const data = await response.json();
+      console.log('Native Title data received:', data);
+      return data;
     },
     enabled: !!(territoryName && territory.centerLat && territory.centerLng)
+  });
+
+  // Debug logging
+  console.log('Territory panel data:', {
+    territoryName,
+    coordinates: { lat: territory.centerLat, lng: territory.centerLng },
+    nativeTitleData,
+    nativeTitleLoading,
+    nativeTitleError
   });
 
   return (
