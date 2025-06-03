@@ -62,21 +62,21 @@ export class SupplyNationDynamicIntegration {
         return { success: false, businesses: [], error: 'Authentication cooldown active' };
       }
 
-      // Attempt optimized session-based authentication
-      console.log('Attempting optimized Supply Nation session establishment...');
-      const { supplyNationSessionOptimizer } = await import('./supply-nation-session-optimizer');
+      // Attempt advanced persistent session establishment
+      console.log('Attempting advanced Supply Nation session establishment...');
+      const { supplyNationAdvancedSessionManager } = await import('./supply-nation-advanced-session-manager');
       
-      const sessionInitialized = await supplyNationSessionOptimizer.initializeSessionOptimizer();
+      const sessionInitialized = await supplyNationAdvancedSessionManager.initializeAdvancedSession();
       
       if (sessionInitialized) {
-        const sessionEstablished = await supplyNationSessionOptimizer.establishOptimizedSession();
+        const sessionEstablished = await supplyNationAdvancedSessionManager.establishPersistentSession();
         
         if (sessionEstablished) {
-          console.log('Optimized session established, searching live data...');
-          const liveBusinesses = await supplyNationSessionOptimizer.searchWithOptimizedSession(query);
+          console.log('Advanced persistent session established, searching live data...');
+          const liveBusinesses = await supplyNationAdvancedSessionManager.searchWithAdvancedSession(query);
           
           if (liveBusinesses.length > 0) {
-            console.log(`Found ${liveBusinesses.length} businesses through optimized Supply Nation session`);
+            console.log(`Found ${liveBusinesses.length} businesses through advanced Supply Nation session`);
             
             // Convert to standard format
             const convertedBusinesses: SupplyNationVerifiedBusiness[] = liveBusinesses.map(business => ({
@@ -90,12 +90,12 @@ export class SupplyNationDynamicIntegration {
               contactInfo: business.contactInfo
             }));
             
-            await supplyNationSessionOptimizer.closeSessionOptimizer();
+            await supplyNationAdvancedSessionManager.closeAdvancedSession();
             return { success: true, businesses: convertedBusinesses };
           }
         }
         
-        await supplyNationSessionOptimizer.closeSessionOptimizer();
+        await supplyNationAdvancedSessionManager.closeAdvancedSession();
       }
       
       console.log('Supply Nation authentication failed - live data unavailable');
