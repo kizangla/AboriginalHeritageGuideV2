@@ -37,7 +37,14 @@ class GeocodingService {
       return this.geocodeCache.get(cacheKey)!;
     }
 
-    // Try Google Maps API first
+    // Use postcode lookup as primary method for Australian businesses
+    const postcodeResult = this.geocodeWithPostcode(business);
+    if (postcodeResult) {
+      this.geocodeCache.set(cacheKey, postcodeResult);
+      return postcodeResult;
+    }
+
+    // Try Google Maps API if postcode lookup fails and API is available
     if (process.env.GOOGLE_MAPS_API_KEY && addressQuery !== 'Australia') {
       try {
         const result = await this.geocodeWithGoogleMaps(addressQuery);
@@ -48,13 +55,6 @@ class GeocodingService {
       } catch (error) {
         console.log(`Google Maps geocoding failed for ${business.entityName}: ${error}`);
       }
-    }
-
-    // Fallback to postcode lookup
-    const postcodeResult = this.geocodeWithPostcode(business);
-    if (postcodeResult) {
-      this.geocodeCache.set(cacheKey, postcodeResult);
-      return postcodeResult;
     }
 
     // No coordinates found

@@ -222,43 +222,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const abrResults = await searchBusinessesByName(query);
       console.log(`Found ${abrResults.totalResults} businesses in ABR for: "${query}"`);
       
-      // Transform all businesses with async coordinate mapping for frontend display
+      // Transform all businesses with geocoding service for precise coordinates
       const allBusinesses = await Promise.all(
         abrResults.businesses.map(async (business: ABRBusinessDetails) => {
-          let lat = business.lat || 0;
-          let lng = business.lng || 0;
+          // Get coordinates using the geocoding service
+          const geoResult = await geocodingService.geocodeBusiness(business);
           
-          // Geocode business address using Google Maps API for precise coordinates
-          if (lat === 0 && lng === 0) {
-            const addressQuery = `${business.address.suburb || ''} ${business.address.stateCode || ''} ${business.address.postcode || ''} Australia`.trim();
-            if (addressQuery !== 'Australia' && process.env.GOOGLE_MAPS_API_KEY) {
-              try {
-                const geocodeUrl = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(addressQuery)}&key=${process.env.GOOGLE_MAPS_API_KEY}`;
-                const geocodeResponse = await fetch(geocodeUrl);
-                
-                if (geocodeResponse.ok) {
-                  const geocodeData = await geocodeResponse.json();
-                  if (geocodeData.status === 'OK' && geocodeData.results.length > 0) {
-                    const location = geocodeData.results[0].geometry.location;
-                    lat = location.lat;
-                    lng = location.lng;
-                    console.log(`Geocoded ${business.entityName} to ${lat}, ${lng}`);
-                  }
-                }
-              } catch (geocodeError) {
-                console.log(`Google Maps geocoding failed for ${business.entityName}: ${geocodeError}`);
-                // Fallback to postcode lookup if Google Maps fails
-                if (business.address.postcode && business.address.stateCode) {
-                  const postcodeCoordinates = getPostcodeCoordinates(business.address.postcode, business.address.stateCode);
-                  if (postcodeCoordinates) {
-                    lat = postcodeCoordinates.lat;
-                    lng = postcodeCoordinates.lng;
-                    console.log(`Used postcode fallback for ${business.entityName}: ${lat}, ${lng}`);
-                  }
-                }
-              }
-            }
-          }
+          console.log(`${business.entityName}: ${geoResult.lat}, ${geoResult.lng} (${geoResult.source})`);
 
           return {
             id: `abr-${business.abn}`,
@@ -270,8 +240,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
                     `${business.address.suburb || ''} ${business.address.stateCode || ''} ${business.address.postcode || ''}`.trim(),
             abn: business.abn,
             status: business.status,
-            lat,
-            lng,
+            lat: geoResult.lat,
+            lng: geoResult.lng,
             isVerified: business.supplyNationVerified || false,
             verificationSource: business.supplyNationVerified ? 'supply_nation' : 'abr_data',
             verificationConfidence: business.supplyNationVerified ? 'high' : 'medium',
