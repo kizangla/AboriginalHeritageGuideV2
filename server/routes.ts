@@ -161,6 +161,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Search businesses with Aboriginal verification
+  app.get("/api/businesses/search", async (req, res) => {
+    try {
+      const query = req.query.q as string;
+      if (!query) {
+        return res.status(400).json({ message: "Search query is required" });
+      }
+
+      const { businessSearchService } = await import('./business-search-service');
+      const results = await businessSearchService.searchAboriginalBusinesses(query);
+      
+      res.json(results.businesses);
+    } catch (error) {
+      console.error("Error searching Aboriginal businesses:", error);
+      res.status(500).json({ message: "Failed to search Aboriginal businesses" });
+    }
+  });
+
   // ABR Business Search Routes
   
   // Test Supply Nation connection
