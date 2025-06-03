@@ -1,0 +1,94 @@
+componentProfiler.js:1 ComponentProfiler: Component-level profiling has not been enabled.
+u @ componentProfiler.js:1
+e.initialize @ componentProfiler.js:1
+e.default @ locatorService.js:1
+(anonymous) @ aura_prod.js:745
+aJ @ aura_prod.js:745
+hL @ aura_prod.js:1004
+(anonymous) @ aura_prod.js:999
+D.$a @ aura_prod.js:1017
+(anonymous) @ aura_prod.js:999
+Promise.then
+e @ aura_prod.js:999
+Promise.then
+(anonymous) @ aura_prod.js:1000
+Promise.then
+(anonymous) @ aura_prod.js:1000
+(anonymous) @ aura_prod.js:259
+lH @ aura_prod.js:590
+J.Wr @ aura_prod.js:259
+J @ aura_prod.js:258
+D.Tr @ aura_prod.js:999
+initFramework @ s/:2011
+setTimeout
+(anonymous) @ s/:2036
+(anonymous) @ s/:2070Understand this warning
+AsBannerSection.js:10 Apex Result:Action {getName: ƒ, setCallback: ƒ, setParams: ƒ, setParam: ƒ, getParams: ƒ, …}
+AsPopupSection.js:10 Apex Result:Action {getName: ƒ, setCallback: ƒ, setParams: ƒ, setParam: ƒ, getParams: ƒ, …}
+SupplierDashboard.js:355 getOffers[{"src":"/public/resource/1728022143000/offers/bp_banner.jpg","url":"/public/s/exclusive-offer-bp"}]
+SupplierDashboard.js:21 {modalHasShownToday: 'yes'}
+sidePanelUtil.js:18 Uncaught ReferenceError: startTime is not defined
+    at sidePanelUtil.js:18:885
+(anonymous) @ sidePanelUtil.js:18
+setInterval
+(anonymous) @ sidePanelUtil.js:18
+r @ sidePanelUtil.js:18
+await in r
+isCurrentWebPageReadable @ GenAIWebpageEligibilityService.js:18
+await in isCurrentWebPageReadable
+_shouldShowTouchpoints @ GenAIWebpageEligibilityService.js:18
+await in _shouldShowTouchpoints
+shouldShowTouchpoints @ GenAIWebpageEligibilityService.js:18
+(anonymous) @ content-script-utils.js:18
+(anonymous) @ content-script-utils.js:18
+j @ jquery-3.1.1.min.js:2
+k @ jquery-3.1.1.min.js:2
+setTimeout
+(anonymous) @ jquery-3.1.1.min.js:2
+i @ jquery-3.1.1.min.js:2
+fireWith @ jquery-3.1.1.min.js:2
+fire @ jquery-3.1.1.min.js:2
+i @ jquery-3.1.1.min.js:2
+fireWith @ jquery-3.1.1.min.js:2
+ready @ jquery-3.1.1.min.js:2
+R @ jquery-3.1.1.min.js:3Understand this error
+sidePanelUtil.js:18 Uncaught ReferenceError: startTime is not defined
+    at sidePanelUtil.js:18:885
+(anonymous) @ sidePanelUtil.js:18
+setInterval
+(anonymous) @ sidePanelUtil.js:18
+r @ sidePanelUtil.js:18
+await in r
+isCurrentWebPageReadable @ GenAIWebpageEligibilityService.js:18
+await in isCurrentWebPageReadable
+_shouldShowTouchpoints @ GenAIWebpageEligibilityService.js:18
+await in _shouldShowTouchpoints
+shouldShowTouchpoints @ GenAIWebpageEligibilityService.js:18
+isEligible @ ActionableCoachmark.js:18
+getRenderPrompt @ ShowOneChild.js:18
+await in getRenderPrompt
+render @ ShowOneChild.js:18
+(anonymous) @ ch-content-script-dend.js:18
+await in (anonymous)
+(anonymous) @ ch-content-script-dend.js:18
+j @ jquery-3.1.1.min.js:2
+k @ jquery-3.1.1.min.js:2
+setTimeout
+(anonymous) @ jquery-3.1.1.min.js:2
+i @ jquery-3.1.1.min.js:2
+add @ jquery-3.1.1.min.js:2
+(anonymous) @ jquery-3.1.1.min.js:2
+Deferred @ jquery-3.1.1.min.js:2
+then @ jquery-3.1.1.min.js:2
+r.fn.ready @ jquery-3.1.1.min.js:2
+(anonymous) @ ch-content-script-dend.js:18Understand this error
+AsBannerSection.js:15 Apex Result:TEST {Active: true, Audience: 'Supplier', ExpiryDate: '2025-08-21', Link: 'https://supplynation.eventsair.com/connect2025/exhibitor-registration/Site/Register', StartDate: '2025-03-27', …}
+AsBannerSection.js:18 result TEst-->  {Active: true, Audience: 'Supplier', ExpiryDate: '2025-08-21', Link: 'https://supplynation.eventsair.com/connect2025/exhibitor-registration/Site/Register', StartDate: '2025-03-27', …}
+AsBannerSection.js:20 Supplier
+AsPopupSection.js:15 Apex Result:TEST {Active: true, Audience: 'Supplier', ExpiryDate: '2025-06-03', Link: 'https://connect.supplynation.org.au/tickets/', StartDate: '2025-05-26', …}
+AsPopupSection.js:18 result TEst-->  {Active: true, Audience: 'Supplier', ExpiryDate: '2025-06-03', Link: 'https://connect.supplynation.org.au/tickets/', StartDate: '2025-05-26', …}
+AsPopupSection.js:20 Supplier
+AsPopupSection.js:24 {modalHasShownToday: 'yes'}
+AsArticleSection.js:14 result -->  []
+ASOffersSection.js:14 result Offers -->  [{…}]
+beaconLib.BeaconLibrary.js:42 {InstrumentationResult :  ( RECEIVED = 9 , SUCCESS -> UE = 1 , SUCCESS -> LOG = 9 , Topic = AILTN )  , TelemetryResponse : ( AsyncResults )O11yInstrumentationResult : O11y Logs successfully processed by instrumentation-processing: {…}}

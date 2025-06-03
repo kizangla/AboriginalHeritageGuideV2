@@ -55,28 +55,40 @@ export class SupplyNationSimpleScraper {
       const loginPageHtml = await loginPageResponse.text();
       const $ = cheerio.load(loginPageHtml);
       
-      // Look for hidden form fields that might be required
-      const hiddenFields: Record<string, string> = {};
-      $('input[type="hidden"]').each((_, element) => {
+      // Look for all form fields and their actual names
+      const allInputs: Record<string, string> = {};
+      $('input').each((_, element) => {
         const name = $(element).attr('name');
-        const value = $(element).attr('value');
-        if (name && value) {
-          hiddenFields[name] = value;
+        const type = $(element).attr('type');
+        const value = $(element).attr('value') || '';
+        if (name) {
+          allInputs[name] = value;
+          console.log(`Found input: ${name} (type: ${type}) = ${value}`);
         }
       });
+
+      // Look for any CSRF tokens or state parameters
+      const csrfToken = $('input[name*="csrf"], input[name*="token"], input[name*="state"]').attr('value');
+      const retUrl = $('input[name="retURL"]').attr('value');
+      const startUrl = $('input[name="startURL"]').attr('value');
 
       // Check for actual form field names in the login page
       const usernameField = $('input[name*="username"], input[name*="user"], input[name*="email"]').attr('name') || 'username';
       const passwordField = $('input[name*="password"], input[name*="pass"]').attr('name') || 'password';
       
       console.log(`Login form fields detected: ${usernameField}, ${passwordField}`);
-      console.log(`Hidden fields found: ${Object.keys(hiddenFields).join(', ')}`);
+      console.log(`All form inputs:`, Object.keys(allInputs));
+      if (csrfToken) console.log(`CSRF token found: ${csrfToken.substring(0, 10)}...`);
+      if (retUrl) console.log(`Return URL: ${retUrl}`);
 
-      // Prepare login data with detected field names
+      // Prepare login data with all detected fields
       const loginData = new URLSearchParams({
         [usernameField]: username,
         [passwordField]: password,
-        ...hiddenFields
+        ...allInputs,
+        ...(csrfToken && { 'csrf_token': csrfToken }),
+        ...(retUrl && { 'retURL': retUrl }),
+        ...(startUrl && { 'startURL': startUrl })
       });
 
       // Attempt login
@@ -109,9 +121,14 @@ export class SupplyNationSimpleScraper {
           currentCookies += '; ' + loginSetCookie;
         }
         
-        // Follow the frontdoor.jsp redirect first
-        if (currentLocation && currentLocation.includes('frontdoor.jsp')) {
-          const frontdoorResponse = await fetch(currentLocation, {
+        // Follow the redirect chain properly (frontdoor.jsp -> CommunitiesLanding -> /public/s/)
+        let redirectCount = 0;
+        const maxRedirects = 5;
+        
+        while (currentLocation && redirectCount < maxRedirects) {
+          console.log(`Following redirect ${redirectCount + 1}: ${currentLocation}`);
+          
+          const redirectResponse = await fetch(currentLocation, {
             method: 'GET',
             headers: {
               'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
@@ -120,17 +137,20 @@ export class SupplyNationSimpleScraper {
             redirect: 'manual'
           });
           
-          const frontdoorSetCookie = frontdoorResponse.headers.get('set-cookie');
-          if (frontdoorSetCookie) {
-            currentCookies += '; ' + frontdoorSetCookie;
+          const redirectSetCookie = redirectResponse.headers.get('set-cookie');
+          if (redirectSetCookie) {
+            currentCookies += '; ' + redirectSetCookie;
           }
           
-          // Check for next redirect to /public/s/
-          if (frontdoorResponse.status === 302) {
-            const nextLocation = frontdoorResponse.headers.get('location');
-            if (nextLocation) {
-              currentLocation = nextLocation;
+          if (redirectResponse.status === 302 || redirectResponse.status === 301) {
+            currentLocation = redirectResponse.headers.get('location');
+            if (currentLocation && !currentLocation.startsWith('http')) {
+              currentLocation = 'https://ibd.supplynation.org.au' + currentLocation;
             }
+            redirectCount++;
+          } else {
+            // Final destination reached
+            break;
           }
         }
         
