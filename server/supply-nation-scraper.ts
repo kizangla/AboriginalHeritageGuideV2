@@ -116,8 +116,9 @@ class SupplyNationScraper {
       
       const businesses: SupplyNationBusiness[] = [];
       
-      const result = await this.cluster.execute(async ({ page }: any, data: any) => {
+      const result = await this.cluster.execute(async ({ page }: any) => {
         const extractedBusinesses: SupplyNationBusiness[] = [];
+        const searchQuery = query; // Use the outer scope query variable
         
         try {
           // Navigate to Supply Nation search
@@ -170,7 +171,7 @@ class SupplyNationScraper {
           const searchInput = await page.waitForSelector('input[name="q"], input[type="search"]', { timeout: 10000 });
           if (searchInput) {
             await page.evaluate((input) => input.value = '', searchInput);
-            await searchInput.type(data.query);
+            await searchInput.type(searchQuery);
             
             // Submit search
             await Promise.race([
@@ -220,7 +221,7 @@ class SupplyNationScraper {
         }
         
         return extractedBusinesses;
-      }, { query });
+      });
       
       businesses.push(...(result || []));
       
