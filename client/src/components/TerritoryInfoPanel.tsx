@@ -1,7 +1,8 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { MapPin, Users, Globe, Calendar, Leaf, X } from 'lucide-react';
+import { MapPin, Users, Globe, Calendar, Leaf, X, Shield, AlertCircle } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
 import type { Territory } from '@shared/schema';
 
 interface TerritoryInfoPanelProps {
@@ -22,6 +23,17 @@ export default function TerritoryInfoPanel({
   const languageFamily = territory.languageFamily;
   const estimatedPopulation = territory.estimatedPopulation;
   const traditionalLanguages = territory.traditionalLanguages;
+
+  // Fetch authentic Native Title data from Australian Government
+  const { data: nativeTitleData, isLoading: nativeTitleLoading } = useQuery({
+    queryKey: ['/api/territories', territoryName, 'native-title', territory.centerLat, territory.centerLng],
+    queryFn: async () => {
+      const response = await fetch(`/api/territories/${encodeURIComponent(territoryName)}/native-title?lat=${territory.centerLat}&lng=${territory.centerLng}`);
+      if (!response.ok) throw new Error('Failed to fetch Native Title data');
+      return response.json();
+    },
+    enabled: !!(territoryName && territory.centerLat && territory.centerLng)
+  });
 
   return (
     <Card className="absolute bottom-6 right-6 z-[1000] w-96 bg-white/95 backdrop-blur-sm shadow-xl border-0 rounded-2xl overflow-hidden">
@@ -77,6 +89,60 @@ export default function TerritoryInfoPanel({
             </div>
           )}
         </div>
+
+        {/* Native Title Information - Australian Government Data */}
+        {nativeTitleData && nativeTitleData.success && (
+          <div className="space-y-2 p-3 bg-orange-50 rounded-lg border border-orange-200">
+            <div className="flex items-center gap-2 text-sm font-semibold text-orange-800">
+              <Shield className="w-4 h-4" />
+              Native Title Status
+              <Badge variant="outline" className="text-xs bg-white text-orange-700 border-orange-300">
+                Government Verified
+              </Badge>
+            </div>
+            
+            {nativeTitleData.nativeTitle.hasNativeTitle ? (
+              <div className="space-y-2">
+                <div className="text-sm text-gray-700">
+                  <strong>Status:</strong> {nativeTitleData.nativeTitle.status}
+                </div>
+                {nativeTitleData.nativeTitle.primaryApplicant && (
+                  <div className="text-sm text-gray-700">
+                    <strong>Traditional Owners:</strong> {nativeTitleData.nativeTitle.primaryApplicant}
+                  </div>
+                )}
+                {nativeTitleData.nativeTitle.applications && nativeTitleData.nativeTitle.applications.length > 0 && (
+                  <div className="text-xs text-gray-600">
+                    {nativeTitleData.nativeTitle.applications.length} Native Title application(s) recorded
+                  </div>
+                )}
+                {nativeTitleData.nativeTitle.culturalSignificance && (
+                  <div className="text-xs text-gray-600 italic">
+                    {nativeTitleData.nativeTitle.culturalSignificance}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 text-sm text-gray-600">
+                <AlertCircle className="w-4 h-4" />
+                No Native Title applications recorded for this area
+              </div>
+            )}
+            
+            <div className="text-xs text-gray-500 pt-1 border-t border-orange-200">
+              Source: {nativeTitleData.dataSource}
+            </div>
+          </div>
+        )}
+
+        {nativeTitleLoading && (
+          <div className="space-y-2 p-3 bg-gray-50 rounded-lg">
+            <div className="flex items-center gap-2 text-sm text-gray-600">
+              <div className="animate-spin w-4 h-4 border-2 border-gray-300 border-t-gray-600 rounded-full"></div>
+              Loading Native Title information...
+            </div>
+          </div>
+        )}
 
         {/* Traditional Languages */}
         {traditionalLanguages && traditionalLanguages.length > 0 && (
