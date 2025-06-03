@@ -130,25 +130,13 @@ export default function MapPage() {
           </Button>
         </div>
         
-        {/* Territory Info Panel - Google Maps style */}
+        {/* Enhanced Territory Info Panel */}
         {selectedTerritory && (
-          <div className="absolute bottom-6 left-6 z-[1000] bg-white rounded-xl shadow-lg p-4 max-w-sm">
-            <div className="flex items-start justify-between mb-2">
-              <h3 className="font-medium text-gray-900">{selectedTerritory.name}</h3>
-              <Button
-                onClick={handleShowModal}
-                variant="ghost"
-                size="sm"
-                className="h-6 w-6 p-0 text-gray-500 hover:text-gray-700"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </Button>
-            </div>
-            <p className="text-sm text-gray-600 mb-1">{selectedTerritory.groupName}</p>
-            <p className="text-xs text-gray-500">{selectedTerritory.region}, {selectedTerritory.regionType}</p>
-          </div>
+          <TerritoryInfoPanel
+            territory={selectedTerritory}
+            onClose={() => setSelectedTerritory(null)}
+            onViewDetails={handleShowModal}
+          />
         )}
 
         {showModal && selectedTerritory && (
