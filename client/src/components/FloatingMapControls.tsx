@@ -72,13 +72,20 @@ export default function FloatingMapControls({
         </Button>
 
         {/* Region Filter */}
-        <Popover open={showRegionFilter} onOpenChange={setShowRegionFilter}>
+        <Popover open={showRegionFilter} onOpenChange={(open) => {
+          console.log('Region filter popover state changing to:', open);
+          setShowRegionFilter(open);
+        }}>
           <PopoverTrigger asChild>
             <Button
               size="sm"
               variant={selectedRegion ? "default" : "ghost"}
               className="h-8 px-3 rounded-full"
               title="Filter by region"
+              onClick={() => {
+                console.log('Region filter button clicked, current state:', showRegionFilter);
+                setShowRegionFilter(!showRegionFilter);
+              }}
             >
               <Filter className="w-4 h-4 mr-1" />
               {selectedRegion || 'Regions'}
