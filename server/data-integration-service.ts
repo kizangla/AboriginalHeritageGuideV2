@@ -98,29 +98,24 @@ class DataIntegrationService {
       // Process ABR businesses with Supply Nation prioritization
       for (const abrBusiness of abrResults.businesses) {
         try {
-          // Check if this business exists in Supply Nation first
-          const supplyNationMatch = supplyNationMap.get(abrBusiness.abn) || 
-            supplyNationNameMap.get(abrBusiness.entityName.toLowerCase().replace(/[^a-z0-9]/g, ''));
-
-          let enrichedBusiness: any;
+          // Always process business regardless of verification status
+          let enrichedBusiness = await enrichBusinessWithLocation(abrBusiness);
           let verificationSource: 'abr_only' | 'supply_nation' | 'both' | 'indigenous_analysis' = 'abr_only';
           let verificationConfidence: 'high' | 'medium' | 'low' = 'low';
           let supplyNationVerified = false;
+          
+          // Check if this business exists in Supply Nation first
+          const supplyNationMatch = supplyNationMap.get(abrBusiness.abn) || 
+            supplyNationNameMap.get(abrBusiness.entityName.toLowerCase().replace(/[^a-z0-9]/g, ''));
 
           if (supplyNationMatch) {
             // PRIORITIZE Supply Nation data when business found on both platforms
             console.log(`🎯 Using Supply Nation data for: ${abrBusiness.entityName}`);
             supplyNationProcessed++;
             
-            // Get ABR location data for geocoding fallback
-            const abrEnriched = await enrichBusinessWithLocation(abrBusiness);
-            
             // Create integrated business using Supply Nation data as primary source
-            enrichedBusiness = {
-              ...abrEnriched,
-              entityName: supplyNationMatch.companyName || abrEnriched.entityName,
-              supplyNationData: supplyNationMatch
-            };
+            enrichedBusiness.entityName = supplyNationMatch.companyName || enrichedBusiness.entityName;
+            enrichedBusiness.supplyNationData = supplyNationMatch;
 
             verificationSource = 'both';
             verificationConfidence = 'high';
@@ -151,9 +146,6 @@ class DataIntegrationService {
               }
             }
           } else {
-            // Use ABR data with Indigenous analysis for non-Supply Nation businesses
-            enrichedBusiness = await enrichBusinessWithLocation(abrBusiness);
-            
             // Apply enhanced verification using authentic data sources only
             const verificationResult = await enhancedIndigenousVerification.verifyBusiness(enrichedBusiness);
 
@@ -163,7 +155,7 @@ class DataIntegrationService {
               supplyNationVerified = verificationResult.verificationSource === 'supply_nation';
               console.log(`✓ Indigenous business verified: ${enrichedBusiness.entityName} - ${verificationResult.verificationMethod} (${verificationConfidence} confidence)`);
             } else {
-              // Business does not show Indigenous indicators
+              // Business shows no Indigenous indicators - include with ABR-only status
               verificationSource = 'abr_only';
               verificationConfidence = 'low';
               supplyNationVerified = false;
