@@ -54,12 +54,21 @@ class DataIntegrationService {
       if (includeSupplyNation) {
         try {
           console.log('Searching Supply Nation database...');
-          const { supplyNationApiService } = await import('./supply-nation-api-service');
-          supplyNationBusinesses = await supplyNationApiService.searchBusinesses(query);
-          supplyNationFound = supplyNationBusinesses.length;
-          console.log(`Supply Nation found ${supplyNationFound} verified businesses`);
+          const { supplyNationSimpleScraper } = await import('./supply-nation-simple-scraper');
+          
+          // Authenticate first, then search
+          const authenticated = await supplyNationSimpleScraper.authenticate();
+          if (authenticated) {
+            supplyNationBusinesses = await supplyNationSimpleScraper.searchVerifiedBusinesses(query);
+            supplyNationFound = supplyNationBusinesses.length;
+            console.log(`Supply Nation found ${supplyNationFound} verified businesses`);
+          } else {
+            console.log('Supply Nation authentication failed - this may require updated credentials or captcha handling');
+            // Continue with ABR-only search
+          }
         } catch (error) {
           console.log(`Supply Nation search failed: ${error}`);
+          // Continue with ABR-only search
         }
       }
 
