@@ -1,6 +1,7 @@
 import { searchSupplyNationWithPuppeteer, SupplyNationBusiness } from './supply-nation-scraper';
 import { searchBusinessesByName, enrichBusinessWithLocation, ABRBusinessDetails } from './abr-service';
 import { supplyNationCache } from './supply-nation-cache';
+import { supplyNationApiService } from './supply-nation-api-service';
 
 export interface IntegratedBusiness {
   // ABR Data
@@ -71,10 +72,16 @@ class DataIntegrationService {
           console.log(`Using cached Supply Nation data: ${cachedResults.length} businesses`);
           supplyNationResults = cachedResults;
         } else {
-          console.log('Scraping fresh Supply Nation data with browser automation...');
-          const snResults = await searchSupplyNationWithPuppeteer(query, location);
-          supplyNationResults = snResults.businesses;
-          console.log(`Scraped ${supplyNationResults.length} businesses from Supply Nation`);
+          console.log('Fetching fresh Supply Nation data via HTTP API...');
+          try {
+            supplyNationResults = await supplyNationApiService.searchBusinesses(query);
+            console.log(`Retrieved ${supplyNationResults.length} businesses from Supply Nation API`);
+          } catch (apiError) {
+            console.log('HTTP API failed, falling back to browser automation...');
+            const snResults = await searchSupplyNationWithPuppeteer(query, location);
+            supplyNationResults = snResults.businesses;
+            console.log(`Scraped ${supplyNationResults.length} businesses from Supply Nation`);
+          }
           
           // Store fresh data in database cache
           if (supplyNationResults.length > 0) {

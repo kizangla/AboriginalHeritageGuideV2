@@ -103,6 +103,10 @@ export class SupplyNationApiService {
       const searchHtml = await searchResponse.text();
       console.log(`Search response received, length: ${searchHtml.length}`);
 
+      // Debug: Log a sample of the HTML to understand structure
+      const htmlSample = searchHtml.substring(0, 2000);
+      console.log('HTML sample:', htmlSample.substring(htmlSample.indexOf('<body'), htmlSample.indexOf('<body') + 500));
+
       return this.parseSearchResults(searchHtml, query);
     } catch (error) {
       console.error('Search failed:', error);
@@ -116,7 +120,70 @@ export class SupplyNationApiService {
 
     console.log('Parsing search results with Cheerio...');
 
-    // Look for business listing patterns in the HTML
+    // Check if we have any business profile links first
+    const profileLinks = $('a[href*="supplierprofile"]');
+    console.log(`Found ${profileLinks.length} supplier profile links`);
+    
+    if (profileLinks.length === 0) {
+      // If no direct profile links, search for text patterns that indicate businesses
+      console.log('No direct profile links found, searching for business name patterns...');
+      
+      // Look for text containing the search term and business-like keywords
+      const textElements = $('*').filter(function() {
+        const text = $(this).text().toLowerCase();
+        return text.includes(searchQuery.toLowerCase()) && 
+               (text.includes('pty ltd') || text.includes('group') || text.includes('services') ||
+                text.includes('consulting') || text.includes('solutions') || text.includes('enterprises')) &&
+               text.length > 5 && text.length < 200;
+      });
+      
+      console.log(`Found ${textElements.length} potential business text elements`);
+      
+      textElements.each((index, element) => {
+        const text = $(element).text().trim();
+        console.log(`Examining text: "${text.substring(0, 100)}..."`);
+        
+        // Extract potential business names
+        const businessNameMatch = text.match(/([A-Z][A-Za-z\s&'.-]+(?:PTY\s+LTD|LIMITED|GROUP|SERVICES|CONSULTING|SOLUTIONS|ENTERPRISES))/i);
+        if (businessNameMatch) {
+          const companyName = businessNameMatch[1].trim();
+          console.log(`Potential business found: ${companyName}`);
+          
+          businesses.push({
+            companyName,
+            verified: true,
+            categories: [],
+            location: 'Australia',
+            contactInfo: {},
+            description: 'Supply Nation verified Indigenous business',
+            supplynationId: `sn-text-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+            capabilities: [],
+            certifications: ['Supply Nation Verified']
+          });
+        }
+      });
+      
+      if (businesses.length === 0) {
+        // Last resort: log page structure to understand what we're getting
+        console.log('No businesses found. Page structure analysis:');
+        console.log(`Title: ${$('title').text()}`);
+        console.log(`Total links: ${$('a').length}`);
+        console.log(`Total divs: ${$('div').length}`);
+        console.log(`Body classes: ${$('body').attr('class')}`);
+        
+        // Check if it's a "no results" page
+        const bodyText = $('body').text().toLowerCase();
+        if (bodyText.includes('no results') || bodyText.includes('0 results') || bodyText.includes('no matches')) {
+          console.log('Search returned no results from Supply Nation');
+        } else if (bodyText.includes('login') || bodyText.includes('sign in')) {
+          console.log('Authentication may have failed - login page detected');
+        }
+      }
+      
+      return businesses;
+    }
+
+    // Original logic for when we have profile links
     const businessSelectors = [
       'a[href*="supplierprofile"]',  // Direct profile links
       'a[href*="accid="]',           // Links with account IDs
@@ -159,7 +226,7 @@ export class SupplyNationApiService {
               supplynationId: supplynationId,
               capabilities: [],
               certifications: ['Supply Nation Verified'],
-              abn: abn
+              abn: abn || undefined
             };
 
             businesses.push(business);
