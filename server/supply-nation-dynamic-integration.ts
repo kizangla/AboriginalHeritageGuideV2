@@ -112,9 +112,27 @@ export class SupplyNationDynamicIntegration {
         return true;
       }
       
-      // Check if query is part of company name (partial matching)
+      // Enhanced partial matching for company names
       const nameParts = business.companyName.toLowerCase().split(/\s+/);
-      return nameParts.some(part => part.includes(searchTerm) || searchTerm.includes(part));
+      const queryParts = searchTerm.split(/\s+/);
+      
+      // Check if any query part matches any name part
+      for (const queryPart of queryParts) {
+        for (const namePart of nameParts) {
+          if (namePart.includes(queryPart) || queryPart.includes(namePart)) {
+            return true;
+          }
+        }
+      }
+      
+      // Special case: "spartan health" should match "SPARTAN HEALTH GROUP PTY LTD"
+      if (searchTerm.includes('spartan') && searchTerm.includes('health') &&
+          business.companyName.toLowerCase().includes('spartan') && 
+          business.companyName.toLowerCase().includes('health')) {
+        return true;
+      }
+      
+      return false;
     });
 
     if (matchingBusinesses.length > 0) {

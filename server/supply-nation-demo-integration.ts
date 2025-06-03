@@ -133,6 +133,20 @@ export const sampleSupplyNationBusinesses: SupplyNationVerifiedBusiness[] = [
       email: "info@yothuyindi.com",
       website: "http://www.yothuyindi.com"
     }
+  },
+  {
+    companyName: "SPARTAN HEALTH GROUP PTY LTD",
+    abn: "21623012537",
+    location: "6106, Western Australia",
+    supplynationId: "a1G7F000001RLdBUA9",
+    profileUrl: "https://ibd.supplynation.org.au/public/s/supplierprofile?accid=a1G7F000001RLdBUA9",
+    verified: true,
+    categories: ["Supply Nation Verified", "Health services", "Mental wellbeing", "Community health"],
+    contactInfo: {
+      phone: "(08) 9472 5500",
+      email: "info@spartanhealth.com.au",
+      website: "http://www.spartanhealth.com.au"
+    }
   }
 ];
 
