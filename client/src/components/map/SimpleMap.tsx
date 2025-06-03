@@ -128,7 +128,7 @@ export default function SimpleMap({ onMapReady, onTerritorySelect, regionFilter 
     // Add overlay layer only when filtering is active
     if (regionFilter) {
       const filteredFeatures = territoriesGeoJSON.features.filter((feature: any) => {
-        const featureRegion = feature.properties?.Region || feature.properties?.region;
+        const featureRegion = feature.properties?.region;
         return featureRegion === regionFilter;
       });
 

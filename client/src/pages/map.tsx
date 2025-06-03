@@ -39,8 +39,7 @@ export default function MapPage() {
     };
 
     territoriesGeoJSON.features.forEach((feature: any) => {
-      const region = feature.properties?.region || feature.properties?.Region;
-      const regionKey = region?.toLowerCase().replace(/\s+/g, '');
+      const region = feature.properties?.region;
       
       switch (region) {
         case 'Kimberley': stats.kimberley++; break;
