@@ -91,13 +91,51 @@ export class SupplyNationSimpleScraper {
         this.sessionCookies = loginSetCookie;
       }
 
-      // Check if login was successful by looking at the response
-      const loginResponseText = await loginResponse.text();
-      this.isAuthenticated = !loginResponseText.includes('Invalid') && 
-                            !loginResponseText.includes('Error') &&
-                            (loginResponse.status === 302 || loginResponse.status === 200);
+      // Follow redirect to check authentication success
+      if (loginResponse.status === 302) {
+        const redirectLocation = loginResponse.headers.get('location');
+        if (redirectLocation) {
+          const redirectResponse = await fetch(redirectLocation, {
+            method: 'GET',
+            headers: {
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+              'Cookie': this.sessionCookies
+            }
+          });
+
+          const redirectSetCookie = redirectResponse.headers.get('set-cookie');
+          if (redirectSetCookie) {
+            this.sessionCookies += '; ' + redirectSetCookie;
+          }
+
+          const redirectText = await redirectResponse.text();
+          
+          // Check for successful authentication indicators
+          this.isAuthenticated = redirectText.includes('searchIBDButton') || 
+                                redirectText.includes('Search Indigenous Business') ||
+                                !redirectText.includes('login');
+        }
+      } else {
+        // Check if login was successful by looking at the response
+        const loginResponseText = await loginResponse.text();
+        this.isAuthenticated = !loginResponseText.includes('Invalid') && 
+                              !loginResponseText.includes('Error') &&
+                              (loginResponseText.includes('searchIBDButton') || 
+                               loginResponseText.includes('Search Indigenous Business'));
+      }
 
       console.log(`Supply Nation authentication ${this.isAuthenticated ? 'successful' : 'failed'}`);
+      
+      // Debug output for troubleshooting
+      if (!this.isAuthenticated) {
+        console.log('Authentication debug info:');
+        console.log('- Login response status:', loginResponse.status);
+        console.log('- Cookies received:', this.sessionCookies ? 'Yes' : 'No');
+        if (loginResponse.status === 302) {
+          console.log('- Redirect location:', loginResponse.headers.get('location'));
+        }
+      }
+      
       return this.isAuthenticated;
 
     } catch (error) {
@@ -118,6 +156,28 @@ export class SupplyNationSimpleScraper {
 
       console.log(`Searching Supply Nation for verified businesses: ${query}`);
 
+      // First navigate to the main page to access the search button
+      const mainPageResponse = await fetch('https://ibd.supplynation.org.au/public/s/', {
+        method: 'GET',
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+          'Cookie': this.sessionCookies
+        }
+      });
+
+      if (!mainPageResponse.ok) {
+        console.log(`Main page access failed: ${mainPageResponse.status}`);
+        return [];
+      }
+
+      const mainPageHtml = await mainPageResponse.text();
+      
+      // Check if there's a popup to close or search button to click
+      if (mainPageHtml.includes('searchIBDButton')) {
+        console.log('Found Search Indigenous Business Direct button');
+      }
+
+      // Now proceed with the search
       const searchUrl = `https://ibd.supplynation.org.au/public/s/search-results?q=${encodeURIComponent(query)}`;
       
       const searchResponse = await fetch(searchUrl, {
@@ -137,8 +197,25 @@ export class SupplyNationSimpleScraper {
       const searchHtml = await searchResponse.text();
       const businesses = this.parseSearchResults(searchHtml, query);
       
-      console.log(`Found ${businesses.length} verified businesses in Supply Nation`);
-      return businesses;
+      // Extract detailed information from profile pages
+      const detailedBusinesses: SupplyNationVerifiedBusiness[] = [];
+      
+      for (const business of businesses.slice(0, 3)) { // Limit to 3 profiles to avoid timeouts
+        try {
+          const detailed = await this.extractProfileDetails(business);
+          if (detailed) {
+            detailedBusinesses.push(detailed);
+          }
+          // Add delay between requests
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        } catch (error) {
+          console.log(`Failed to extract profile for ${business.companyName}: ${error}`);
+          detailedBusinesses.push(business); // Use basic info as fallback
+        }
+      }
+      
+      console.log(`Found ${detailedBusinesses.length} verified businesses in Supply Nation`);
+      return detailedBusinesses;
 
     } catch (error) {
       console.error('Supply Nation search error:', error);
@@ -146,67 +223,161 @@ export class SupplyNationSimpleScraper {
     }
   }
 
+  async extractProfileDetails(business: SupplyNationVerifiedBusiness): Promise<SupplyNationVerifiedBusiness | null> {
+    try {
+      if (!business.profileUrl) {
+        return business;
+      }
+
+      console.log(`Extracting profile details from: ${business.profileUrl}`);
+
+      const profileResponse = await fetch(business.profileUrl, {
+        method: 'GET',
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+          'Cookie': this.sessionCookies,
+          'Referer': 'https://ibd.supplynation.org.au/public/s/search-results'
+        }
+      });
+
+      if (!profileResponse.ok) {
+        console.log(`Profile request failed: ${profileResponse.status}`);
+        return business;
+      }
+
+      const profileHtml = await profileResponse.text();
+      const $ = cheerio.load(profileHtml);
+
+      // Extract detailed information from the profile page
+      const enhanced: SupplyNationVerifiedBusiness = { ...business };
+
+      // Extract address from the profile section
+      const addressElements = $('#sn-business-details .slds-media__body');
+      addressElements.each((_, element) => {
+        const text = $(element).text().trim();
+        
+        // Look for address pattern: "L 1 2 MILL ST, PERTH WA 6000"
+        const addressMatch = text.match(/([A-Z0-9\s,.-]+),\s*([A-Z\s]+)\s+([A-Z]{2,3})\s+(\d{4})/);
+        if (addressMatch) {
+          enhanced.location = `${addressMatch[1].trim()}, ${addressMatch[2].trim()}, ${addressMatch[3]} ${addressMatch[4]}`;
+        }
+      });
+
+      // Extract ABN
+      const abnText = $('#sn-business-details').text();
+      const abnMatch = abnText.match(/ABN[:\s]*(\d{2}\s?\d{3}\s?\d{3}\s?\d{3})/i);
+      if (abnMatch) {
+        enhanced.abn = abnMatch[1].replace(/\s/g, '');
+      }
+
+      // Extract phone number
+      const phoneMatch = abnText.match(/\((\d{2})\)\s*(\d{4})\s*(\d{4})/);
+      if (phoneMatch) {
+        enhanced.contactInfo = enhanced.contactInfo || {};
+        enhanced.contactInfo.phone = `(${phoneMatch[1]}) ${phoneMatch[2]} ${phoneMatch[3]}`;
+      }
+
+      // Extract email
+      const emailMatch = abnText.match(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/);
+      if (emailMatch) {
+        enhanced.contactInfo = enhanced.contactInfo || {};
+        enhanced.contactInfo.email = emailMatch[1];
+      }
+
+      // Extract website
+      const websiteMatch = abnText.match(/(https?:\/\/[^\s]+|www\.[^\s]+\.[a-z]{2,})/i);
+      if (websiteMatch) {
+        enhanced.contactInfo = enhanced.contactInfo || {};
+        enhanced.contactInfo.website = websiteMatch[1];
+      }
+
+      // Extract services/categories
+      const serviceElements = $('#sn-business-details .slds-media');
+      const services: string[] = [];
+      serviceElements.each((_, element) => {
+        const text = $(element).text().trim();
+        if (text.includes('services') || text.includes('construction') || text.includes('management')) {
+          const lines = text.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+          lines.forEach(line => {
+            if (line.length > 3 && line.length < 50 && !line.includes('ABN') && !line.includes('(0')) {
+              services.push(line);
+            }
+          });
+        }
+      });
+
+      if (services.length > 0) {
+        enhanced.categories = [...(enhanced.categories || []), ...services.slice(0, 5)];
+      }
+
+      console.log(`Enhanced ${enhanced.companyName} with detailed profile data`);
+      return enhanced;
+
+    } catch (error) {
+      console.error(`Failed to extract profile details: ${error}`);
+      return business;
+    }
+  }
+
   private parseSearchResults(html: string, searchQuery: string): SupplyNationVerifiedBusiness[] {
     const $ = cheerio.load(html);
     const businesses: SupplyNationVerifiedBusiness[] = [];
 
-    // Look for business listings in the search results
-    const businessSelectors = [
-      '.search-result-item',
-      '.business-listing',
-      '.supplier-card',
-      'article',
-      '.result-item',
-      '[data-testid*="business"]',
-      '[class*="business"]',
-      '[class*="supplier"]'
-    ];
+    // Look for Supply Nation specific search result structure
+    // Based on your example: <p class="slds-text-heading_medium slds-text-align_center main-header">
+    $('p.slds-text-heading_medium.main-header, .main-header').each((index, element) => {
+      const $element = $(element);
+      
+      // Look for the profile link with specific pattern
+      const profileLink = $element.find('a[href*="supplierprofile"][data-supplierid]').first();
+      
+      if (profileLink.length > 0) {
+        const companyName = profileLink.text().trim();
+        const profileUrl = profileLink.attr('href');
+        const supplierIdAttr = profileLink.attr('data-supplierid');
+        const accountIdAttr = profileLink.attr('data-accountid');
+        
+        if (companyName && profileUrl) {
+          const business: SupplyNationVerifiedBusiness = {
+            companyName: companyName,
+            abn: undefined, // Will be extracted from profile page
+            location: undefined, // Will be extracted from profile page
+            supplynationId: supplierIdAttr || this.extractSupplyNationId(profileUrl),
+            profileUrl: profileUrl.startsWith('http') ? profileUrl : `https://ibd.supplynation.org.au${profileUrl}`,
+            verified: true,
+            categories: ['Supply Nation Verified'],
+            contactInfo: {}
+          };
 
-    for (const selector of businessSelectors) {
-      $(selector).each((index, element) => {
-        const $element = $(element);
-        const text = $element.text().trim();
-
-        // Skip if this looks like navigation or header content
-        if (this.isNavigationElement(text)) {
-          return;
+          console.log(`Found Supply Nation business: ${companyName} with profile URL: ${business.profileUrl}`);
+          businesses.push(business);
         }
-
-        // Extract company name
-        const companyName = this.extractCompanyName($element, text, searchQuery);
-        if (!companyName) {
-          return;
-        }
-
-        // Extract location
-        const location = this.extractLocation($element);
-
-        // Extract ABN if available
-        const abn = this.extractABN($element);
-
-        // Extract profile link
-        const profileLink = $element.find('a[href*="supplierprofile"]').first();
-        const profileUrl = profileLink.length > 0 ? profileLink.attr('href') : undefined;
-        const supplynationId = profileUrl ? this.extractSupplyNationId(profileUrl) : `sn_${index}`;
-
-        const business: SupplyNationVerifiedBusiness = {
-          companyName: companyName,
-          abn: abn,
-          location: location,
-          supplynationId: supplynationId,
-          profileUrl: profileUrl,
-          verified: true,
-          categories: ['Supply Nation Verified'],
-          contactInfo: {}
-        };
-
-        businesses.push(business);
-      });
-
-      // If we found businesses with this selector, break to avoid duplicates
-      if (businesses.length > 0) {
-        break;
       }
+    });
+
+    // If no results with specific structure, try broader search
+    if (businesses.length === 0) {
+      // Look for any links to supplier profiles
+      $('a[href*="supplierprofile"]').each((index, element) => {
+        const $link = $(element);
+        const companyName = $link.text().trim();
+        const profileUrl = $link.attr('href');
+        
+        if (companyName && profileUrl && companyName.length > 2 && !this.isNavigationElement(companyName)) {
+          const business: SupplyNationVerifiedBusiness = {
+            companyName: companyName,
+            abn: undefined,
+            location: undefined,
+            supplynationId: this.extractSupplyNationId(profileUrl),
+            profileUrl: profileUrl.startsWith('http') ? profileUrl : `https://ibd.supplynation.org.au${profileUrl}`,
+            verified: true,
+            categories: ['Supply Nation Verified'],
+            contactInfo: {}
+          };
+
+          businesses.push(business);
+        }
+      });
     }
 
     return businesses;
