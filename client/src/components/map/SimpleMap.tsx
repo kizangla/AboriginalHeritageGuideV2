@@ -343,7 +343,8 @@ export default function SimpleMap({ onMapReady, onTerritorySelect, regionFilter,
       ];
 
       for (const record of allRecords) {
-        if (record.geometry && record.coordinates && record.coordinates.lat !== 0) {
+        // Create point markers for Native Title records using territory coordinates as reference
+        if (record.applicantName || record.determinationName) {
           nativeTitleFeatures.push({
             type: "Feature",
             properties: {
@@ -353,22 +354,27 @@ export default function SimpleMap({ onMapReady, onTerritorySelect, regionFilter,
               area: record.area,
               tribunalNumber: record.tribunalNumber
             },
-            geometry: record.geometry
+            geometry: {
+              type: "Point",
+              coordinates: [lng, lat] // Use territory coordinates as reference point
+            }
           });
         }
       }
 
       if (nativeTitleFeatures.length > 0) {
-        // Create Native Title layer with distinct styling
+        // Create Native Title layer with point markers
         const nativeTitleLayer = L.geoJSON(nativeTitleFeatures as any, {
-          style: (feature) => ({
-            color: '#FF6B6B', // Red border for Native Title
-            weight: 2,
-            opacity: 0.8,
-            fillColor: '#FF6B6B',
-            fillOpacity: 0.3,
-            dashArray: '10,5', // Dashed border to distinguish from territory boundaries
-          }),
+          pointToLayer: (feature, latlng) => {
+            return L.circleMarker(latlng, {
+              radius: 6,
+              fillColor: '#FF6B6B',
+              color: '#CC0000',
+              weight: 2,
+              opacity: 1,
+              fillOpacity: 0.8
+            });
+          },
           onEachFeature: (feature, layer) => {
             const props = feature.properties;
             layer.bindPopup(`
