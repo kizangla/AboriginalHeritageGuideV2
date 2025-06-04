@@ -189,7 +189,7 @@ export default function TerritoryInfoPanel({
                   return null;
                 })()}
                 {nativeTitleData.nativeTitle.applications && nativeTitleData.nativeTitle.applications.length > 0 && (
-                  <div className="space-y-2">
+                  <div className="space-y-2 mt-4">
                     <div className="text-xs text-gray-600">
                       {nativeTitleData.nativeTitle.applications.length} Native Title application(s) recorded
                     </div>
