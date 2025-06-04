@@ -81,11 +81,29 @@ class ComprehensiveNativeTitleService {
       // Remove duplicates based on tribunal number
       const uniqueData = this.removeDuplicates(allData);
 
+      // Separate applications and determinations based on actual data
+      const applications = uniqueData.filter(d => 
+        d.status === 'pending' || 
+        d.outcome?.includes('application') || 
+        d.outcome?.includes('Application') ||
+        !d.outcome?.includes('Native title exists') && !d.outcome?.includes('Native title does not exist')
+      );
+      
+      const determinations = uniqueData.filter(d => 
+        d.status === 'determined' || 
+        d.outcome?.includes('Native title exists') || 
+        d.outcome?.includes('Native title does not exist') ||
+        d.outcome?.includes('determination')
+      );
+
+      console.log(`Categorized data: ${applications.length} applications, ${determinations.length} determinations from ${uniqueData.length} total records`);
+
       return {
         hasNativeTitle: uniqueData.length > 0,
-        applications: uniqueData.filter(d => d.status === 'pending'),
-        determinations: uniqueData.filter(d => d.status === 'determined'),
+        applications: applications,
+        determinations: determinations,
         registeredBodies: uniqueData.filter(d => d.status === 'registered'),
+        totalRecords: uniqueData.length,
         overallStatus: this.determineOverallStatus(uniqueData),
         primaryApplicant: uniqueData[0]?.applicantName,
         culturalSignificance: this.generateCulturalSignificance(territoryName, uniqueData),
