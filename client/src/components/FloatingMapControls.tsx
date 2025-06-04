@@ -60,34 +60,35 @@ export default function FloatingMapControls({
   ];
 
   return (
-    <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 z-[1000] flex items-center gap-2">
+    <div className="absolute bottom-4 sm:bottom-6 left-1/2 transform -translate-x-1/2 z-[1000] flex items-center gap-1 sm:gap-2">
       {/* Floating Control Bar */}
-      <div className="bg-white/95 backdrop-blur-sm rounded-full shadow-lg border border-gray-200 px-4 py-2 flex items-center gap-2">
+      <div className="bg-white/95 backdrop-blur-sm rounded-full shadow-lg border border-gray-200 px-2 sm:px-4 py-1.5 sm:py-2 flex items-center gap-1 sm:gap-2 max-w-[95vw] overflow-x-auto">
         
         {/* Reset View */}
         <Button
           onClick={onResetView}
           size="sm"
           variant="ghost"
-          className="h-8 w-8 p-0 rounded-full hover:bg-gray-100"
+          className="h-7 w-7 sm:h-8 sm:w-8 p-0 rounded-full hover:bg-gray-100"
           title="Reset map view"
         >
-          <RotateCcw className="w-4 h-4" />
+          <RotateCcw className="w-3 h-3 sm:w-4 sm:h-4" />
         </Button>
 
         {/* Divider */}
-        <div className="h-6 w-px bg-gray-300" />
+        <div className="h-4 sm:h-6 w-px bg-gray-300" />
 
         {/* Search Toggle */}
         <Button
           onClick={onToggleSearch}
           size="sm"
           variant={showSearch ? "default" : "ghost"}
-          className="h-8 px-3 rounded-full"
+          className="h-7 sm:h-8 px-2 sm:px-3 rounded-full text-xs sm:text-sm"
           title="Toggle search"
         >
-          <Search className="w-4 h-4 mr-1" />
-          Search
+          <Search className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
+          <span className="hidden sm:inline">Search</span>
+          <span className="sm:hidden">Find</span>
         </Button>
 
         {/* Region Filter */}
@@ -95,17 +96,18 @@ export default function FloatingMapControls({
           <Button
             size="sm"
             variant={selectedRegion ? "default" : "ghost"}
-            className="h-8 px-3 rounded-full"
+            className="h-7 sm:h-8 px-2 sm:px-3 rounded-full text-xs sm:text-sm"
             title="Filter by region"
             onClick={() => {
               console.log('Region filter button clicked, current state:', showRegionFilter);
               setShowRegionFilter(!showRegionFilter);
             }}
           >
-            <Filter className="w-4 h-4 mr-1" />
-            {selectedRegion || 'Regions'}
+            <Filter className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
+            <span className="hidden sm:inline">{selectedRegion || 'Regions'}</span>
+            <span className="sm:hidden">{selectedRegion || 'Area'}</span>
             {selectedRegion && (
-              <Badge variant="secondary" className="ml-1 text-xs">
+              <Badge variant="secondary" className="ml-1 text-xs px-1">
                 {territoryStats[selectedRegion.toLowerCase()] || 0}
               </Badge>
             )}
@@ -182,14 +184,15 @@ export default function FloatingMapControls({
           <Button
             size="sm"
             variant={Object.values(nativeTitleFilters).some(Boolean) ? "default" : "ghost"}
-            className="h-8 px-3 rounded-full"
+            className="h-7 sm:h-8 px-2 sm:px-3 rounded-full text-xs sm:text-sm"
             title="Filter by Native Title status"
             onClick={() => setShowNativeTitleFilter(!showNativeTitleFilter)}
           >
-            <Scale className="w-4 h-4 mr-1" />
-            Native Title
+            <Scale className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
+            <span className="hidden sm:inline">Native Title</span>
+            <span className="sm:hidden">Title</span>
             {Object.values(nativeTitleFilters).some(Boolean) && (
-              <Badge variant="secondary" className="ml-1 text-xs">
+              <Badge variant="secondary" className="ml-1 text-xs px-1">
                 {Object.values(nativeTitleFilters).filter(Boolean).length}
               </Badge>
             )}
@@ -197,7 +200,7 @@ export default function FloatingMapControls({
           </Button>
           
           {showNativeTitleFilter && (
-            <div className="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 w-96 max-w-[90vw] bg-white shadow-xl border rounded-lg z-[1002]">
+            <div className="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 w-96 max-w-[95vw] sm:max-w-[90vw] md:max-w-[80vw] lg:max-w-[70vw] bg-white shadow-xl border rounded-lg z-[1002] max-h-[80vh] overflow-y-auto">
               <NativeTitleFilter
                 onFilterChange={onNativeTitleFilter}
                 activeFilters={nativeTitleFilters}

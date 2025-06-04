@@ -77,27 +77,27 @@ export default function NativeTitleFilter({ onFilterChange, activeFilters }: Nat
     <Card className="w-full">
       <Collapsible open={isOpen} onOpenChange={setIsOpen}>
         <CollapsibleTrigger asChild>
-          <CardHeader className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
-            <CardTitle className="flex items-center justify-between text-base">
-              <div className="flex items-center gap-2">
-                <Filter className="h-4 w-4" />
-                Native Title Status Filter
+          <CardHeader className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors px-3 py-3 sm:px-4 sm:py-4">
+            <CardTitle className="flex items-center justify-between text-sm sm:text-base">
+              <div className="flex items-center gap-1 sm:gap-2 min-w-0">
+                <Filter className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
+                <span className="truncate">Native Title Status</span>
                 {hasActiveFilters && (
-                  <Badge variant="secondary" className="ml-2">
-                    {getActiveFilterCount()} active
+                  <Badge variant="secondary" className="ml-1 text-xs px-1.5 py-0.5">
+                    {getActiveFilterCount()}
                   </Badge>
                 )}
               </div>
-              {isOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+              {isOpen ? <ChevronUp className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" /> : <ChevronDown className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />}
             </CardTitle>
           </CardHeader>
         </CollapsibleTrigger>
 
         <CollapsibleContent>
-          <CardContent className="pt-0">
+          <CardContent className="pt-0 px-3 pb-3 sm:px-4 sm:pb-4">
             {hasActiveFilters && (
-              <div className="flex items-center justify-between mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                <span className="text-sm text-blue-700 dark:text-blue-300">
+              <div className="flex items-center justify-between mb-3 p-2 sm:p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                <span className="text-xs sm:text-sm text-blue-700 dark:text-blue-300">
                   {getActiveFilterCount()} filter(s) applied
                 </span>
                 <Button 
@@ -107,38 +107,39 @@ export default function NativeTitleFilter({ onFilterChange, activeFilters }: Nat
                   className="h-auto p-1 text-blue-700 dark:text-blue-300 hover:text-blue-900 dark:hover:text-blue-100"
                 >
                   <X className="h-3 w-3 mr-1" />
-                  Clear all
+                  <span className="hidden sm:inline">Clear all</span>
+                  <span className="sm:hidden">Clear</span>
                 </Button>
               </div>
             )}
 
-            <div className="space-y-6">
+            <div className="space-y-4 sm:space-y-6">
               {filterOptions.map((category) => (
                 <div key={category.category} className="space-y-3">
                   <h4 className="font-medium text-sm text-gray-700 dark:text-gray-300 border-b pb-1">
                     {category.category}
                   </h4>
-                  <div className="space-y-3">
+                  <div className="space-y-2 sm:space-y-3">
                     {category.options.map((option) => (
-                      <div key={option.key} className="flex items-start space-x-3">
+                      <div key={option.key} className="flex items-start space-x-2 sm:space-x-3">
                         <Checkbox
                           id={option.key}
                           checked={activeFilters[option.key]}
                           onCheckedChange={() => handleFilterToggle(option.key)}
-                          className="mt-0.5"
+                          className="mt-0.5 h-4 w-4"
                         />
                         <div className="flex-1 min-w-0">
                           <label
                             htmlFor={option.key}
-                            className="text-sm font-medium text-gray-900 dark:text-gray-100 cursor-pointer block"
+                            className="text-xs sm:text-sm font-medium text-gray-900 dark:text-gray-100 cursor-pointer block leading-tight"
                           >
                             {option.label}
                           </label>
-                          <div className="flex items-center gap-2 mt-1">
-                            <span className="text-xs text-gray-500 dark:text-gray-400">
+                          <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 mt-1">
+                            <span className="text-xs text-gray-500 dark:text-gray-400 leading-tight">
                               {option.description}
                             </span>
-                            <Badge variant="outline" className="text-xs px-1.5 py-0.5">
+                            <Badge variant="outline" className="text-xs px-1.5 py-0.5 w-fit">
                               {option.count.toLocaleString()}
                             </Badge>
                           </div>
