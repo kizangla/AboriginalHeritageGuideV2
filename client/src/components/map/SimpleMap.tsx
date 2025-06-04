@@ -10,6 +10,7 @@ interface SimpleMapProps {
   regionFilter?: string | null;
   nativeTitleFilter?: NativeTitleStatusFilter;
   selectedTerritory?: Territory | null;
+  showRATSIBBoundaries?: boolean;
 }
 
 export default function SimpleMap({ onMapReady, onTerritorySelect, regionFilter, nativeTitleFilter, selectedTerritory }: SimpleMapProps) {

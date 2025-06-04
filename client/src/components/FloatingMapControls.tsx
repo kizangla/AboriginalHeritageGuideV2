@@ -23,6 +23,8 @@ interface FloatingMapControlsProps {
   showSearch: boolean;
   onNativeTitleFilter: (filters: NativeTitleStatusFilter) => void;
   nativeTitleFilters: NativeTitleStatusFilter;
+  onToggleRATSIB?: (show: boolean) => void;
+  showRATSIBBoundaries?: boolean;
 }
 
 function FloatingMapControls({
@@ -33,7 +35,9 @@ function FloatingMapControls({
   onToggleSearch,
   showSearch,
   onNativeTitleFilter,
-  nativeTitleFilters
+  nativeTitleFilters,
+  onToggleRATSIB,
+  showRATSIBBoundaries = true
 }: FloatingMapControlsProps) {
   const [showRegionFilter, setShowRegionFilter] = useState(false);
   const [showNativeTitleFilter, setShowNativeTitleFilter] = useState(false);
@@ -139,6 +143,21 @@ function FloatingMapControls({
             <ChevronDown className="w-3 h-3 ml-1" />
           </Button>
         </div>
+
+        {/* RATSIB Boundaries Toggle */}
+        {onToggleRATSIB && (
+          <Button
+            onClick={() => onToggleRATSIB(!showRATSIBBoundaries)}
+            size="sm"
+            variant={showRATSIBBoundaries ? "default" : "ghost"}
+            className="h-7 sm:h-8 px-2 sm:px-3 rounded-full text-xs sm:text-sm"
+            title="Toggle RATSIB boundaries"
+          >
+            <Building2 className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
+            <span className="hidden sm:inline">RATSIB</span>
+            <span className="sm:hidden">Corp</span>
+          </Button>
+        )}
 
         {/* Divider */}
         <div className="h-6 w-px bg-gray-300" />

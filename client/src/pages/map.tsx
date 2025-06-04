@@ -27,6 +27,7 @@ export default function MapPage() {
     discontinued: false,
     dismissed: false
   });
+  const [showRATSIBBoundaries, setShowRATSIBBoundaries] = useState(true);
 
   const { data: territoriesGeoJSON } = useQuery<any>({
     queryKey: ['/api/territories'],
@@ -141,6 +142,7 @@ export default function MapPage() {
           regionFilter={selectedRegion}
           nativeTitleFilter={nativeTitleFilters}
           selectedTerritory={selectedTerritory}
+          showRATSIBBoundaries={showRATSIBBoundaries}
         />
         
         {/* Floating Map Controls */}
@@ -153,6 +155,8 @@ export default function MapPage() {
           showSearch={showSearch}
           onNativeTitleFilter={handleNativeTitleFilter}
           nativeTitleFilters={nativeTitleFilters}
+          onToggleRATSIB={setShowRATSIBBoundaries}
+          showRATSIBBoundaries={showRATSIBBoundaries}
         />
         
         {/* Collapsible Search Panel */}
