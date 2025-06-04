@@ -13,6 +13,7 @@ import {
 } from "./abr-service";
 import { nativeTitleService } from "./native-title-service";
 import { nativeTitleTerritoryFilter, type NativeTitleStatusFilter } from "./native-title-territory-filter";
+import { fetchRATSIBBoundaries } from "./ratsib-service";
 
 // Australian postcode coordinate lookup for business positioning
 function getPostcodeCoordinates(postcode: string, stateCode: string): { lat: number; lng: number } | null {
@@ -844,6 +845,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error('System status error:', error);
       res.status(500).json({ 
         error: 'Failed to retrieve system status',
+        message: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
+  // Get RATSIB boundaries for territory
+  app.get("/api/territories/:territoryName/ratsib", async (req, res) => {
+    try {
+      const { territoryName } = req.params;
+      const { lat, lng } = req.query;
+      
+      if (!lat || !lng) {
+        return res.status(400).json({ 
+          error: 'Coordinates required',
+          message: 'lat and lng query parameters are required'
+        });
+      }
+      
+      const latitude = parseFloat(lat as string);
+      const longitude = parseFloat(lng as string);
+      
+      if (isNaN(latitude) || isNaN(longitude)) {
+        return res.status(400).json({ 
+          error: 'Invalid coordinates',
+          message: 'lat and lng must be valid numbers'
+        });
+      }
+      
+      const ratsibData = await fetchRATSIBBoundaries(latitude, longitude, territoryName);
+      
+      res.json({
+        success: true,
+        territoryName,
+        coordinates: { lat: latitude, lng: longitude },
+        ratsib: ratsibData,
+        timestamp: new Date().toISOString()
+      });
+      
+    } catch (error) {
+      console.error('RATSIB boundaries error:', error);
+      res.status(500).json({ 
+        error: 'Failed to fetch RATSIB boundaries',
         message: error instanceof Error ? error.message : 'Unknown error'
       });
     }

@@ -341,25 +341,43 @@ export default function SimpleMap({ onMapReady, onTerritorySelect, regionFilter,
 
   const loadRATSIBBoundaries = async (lat: number, lng: number, territoryName: string) => {
     try {
-      // Fetch RATSIB boundaries from Australian Government WFS service
-      const bbox = `${lng - 0.5},${lat - 0.5},${lng + 0.5},${lat + 0.5}`;
-      const wfsUrl = `https://data.gov.au/geoserver/ratsib-boundaries/wfs?service=WFS&version=1.0.0&request=GetFeature&typeName=ratsib-boundaries:ratsib-boundaries&outputFormat=application/json&bbox=${bbox}`;
-      
       console.log(`Fetching RATSIB boundaries for ${territoryName} from Australian Government...`);
-      const response = await fetch(wfsUrl);
+      
+      // Use our backend API to fetch RATSIB boundaries
+      const response = await fetch(`/api/territories/${encodeURIComponent(territoryName)}/ratsib?lat=${lat}&lng=${lng}`);
       if (!response.ok) {
         console.warn('Failed to fetch RATSIB boundaries:', response.status);
         return;
       }
       
       const data = await response.json();
-      if (!data.features || data.features.length === 0) {
+      if (!data.success || !data.ratsib.boundaries || data.ratsib.boundaries.length === 0) {
         console.log('No RATSIB boundaries found for this region');
         return;
       }
 
+      // Create GeoJSON features from RATSIB boundaries
+      const ratsibFeatures = data.ratsib.boundaries.map((boundary: any) => ({
+        type: "Feature",
+        properties: {
+          id: boundary.id,
+          name: boundary.name,
+          organizationName: boundary.organizationName,
+          corporationType: boundary.corporationType,
+          registrationDate: boundary.registrationDate,
+          status: boundary.status,
+          abn: boundary.abn,
+          address: boundary.address,
+          contact: boundary.contact
+        },
+        geometry: boundary.geometry || {
+          type: "Point",
+          coordinates: [lng, lat] // Fallback to territory center if no geometry
+        }
+      }));
+
       // Create RATSIB layer with boundary polygons
-      const ratsibLayer = L.geoJSON(data, {
+      const ratsibLayer = L.geoJSON({ type: "FeatureCollection", features: ratsibFeatures }, {
         style: (feature) => ({
           color: '#8B5CF6',
           weight: 2,
@@ -367,18 +385,29 @@ export default function SimpleMap({ onMapReady, onTerritorySelect, regionFilter,
           fillColor: '#8B5CF6',
           fillOpacity: 0.1
         }),
+        pointToLayer: (feature, latlng) => {
+          return L.circleMarker(latlng, {
+            radius: 8,
+            fillColor: '#8B5CF6',
+            color: '#7C3AED',
+            weight: 2,
+            opacity: 1,
+            fillOpacity: 0.7
+          });
+        },
         onEachFeature: (feature, layer) => {
           const props = feature.properties;
           layer.bindPopup(`
             <div class="p-3 min-w-[200px] border-l-4 border-purple-500">
-              <h3 class="font-bold text-lg mb-2 text-purple-700">RATSIB: ${props.name || props.organisation_name || 'Aboriginal Corporation'}</h3>
+              <h3 class="font-bold text-lg mb-2 text-purple-700">RATSIB: ${props.name || 'Aboriginal Corporation'}</h3>
               <div class="space-y-1 text-sm">
-                <p><strong>Type:</strong> <span class="px-2 py-1 bg-purple-100 text-purple-700 rounded text-xs">${props.type || props.corporation_type || 'Registered Body'}</span></p>
-                ${props.registration_date ? `<p><strong>Registered:</strong> ${props.registration_date}</p>` : ''}
+                <p><strong>Organization:</strong> ${props.organizationName}</p>
+                <p><strong>Type:</strong> <span class="px-2 py-1 bg-purple-100 text-purple-700 rounded text-xs">${props.corporationType}</span></p>
+                <p><strong>Status:</strong> ${props.status}</p>
+                ${props.registrationDate ? `<p><strong>Registered:</strong> ${props.registrationDate}</p>` : ''}
+                ${props.abn ? `<p><strong>ABN:</strong> ${props.abn}</p>` : ''}
                 ${props.address ? `<p><strong>Address:</strong> ${props.address}</p>` : ''}
                 ${props.contact ? `<p><strong>Contact:</strong> ${props.contact}</p>` : ''}
-                ${props.status ? `<p><strong>Status:</strong> ${props.status}</p>` : ''}
-                ${props.abn ? `<p><strong>ABN:</strong> ${props.abn}</p>` : ''}
               </div>
               <div class="mt-2 text-xs text-gray-500 border-t pt-2">
                 Source: Australian Government RATSIB Register
@@ -388,10 +417,10 @@ export default function SimpleMap({ onMapReady, onTerritorySelect, regionFilter,
             className: 'custom-popup ratsib-popup'
           });
         }
-      }).addTo(mapInstanceRef.current);
+      }).addTo(mapInstanceRef.current!);
 
       nativeTitleLayerRef.current = ratsibLayer;
-      console.log(`Added ${data.features.length} RATSIB boundaries to map for ${territoryName}`);
+      console.log(`Added ${data.ratsib.boundaries.length} RATSIB boundaries to map for ${territoryName}`);
     } catch (error) {
       console.warn('Failed to load RATSIB boundaries:', error);
     }
