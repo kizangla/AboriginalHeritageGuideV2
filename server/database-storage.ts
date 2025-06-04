@@ -91,7 +91,7 @@ export class DatabaseStorage implements IStorage {
             languageFamily: this.getLanguageFamily(centerLat, centerLng),
             region: feature.properties.Region || this.getRegion(centerLat, centerLng),
             regionType: this.getRegionType(centerLat, centerLng),
-            estimatedPopulation: this.getPopulation(coords.length),
+            estimatedPopulation: null, // Requires authentic ABS demographic data
             culturalInfo: this.getCulturalInfo(territoryName, centerLat, centerLng),
             historicalContext: this.getHistoricalContext(territoryName, centerLat, centerLng),
             traditionalLanguages: this.getTraditionalLanguages(centerLat, centerLng),
@@ -309,8 +309,10 @@ export class DatabaseStorage implements IStorage {
     return "Arid";
   }
 
-  private getPopulation(complexity: number): number {
-    return Math.floor(Math.random() * (5000 - 500) + 500) + complexity * 10;
+  private getPopulation(complexity: number): number | null {
+    // Population data requires authentic demographic sources from Australian Bureau of Statistics
+    // Cannot provide accurate population estimates without access to official ABS Indigenous demographic data
+    return null;
   }
 
   private getCulturalInfo(name: string, lat: number, lng: number): string {
