@@ -9,13 +9,15 @@ interface SimpleMapProps {
   onTerritorySelect?: (territory: Territory) => void;
   regionFilter?: string | null;
   nativeTitleFilter?: NativeTitleStatusFilter;
+  selectedTerritory?: Territory | null;
 }
 
-export default function SimpleMap({ onMapReady, onTerritorySelect, regionFilter, nativeTitleFilter }: SimpleMapProps) {
+export default function SimpleMap({ onMapReady, onTerritorySelect, regionFilter, nativeTitleFilter, selectedTerritory }: SimpleMapProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
   const territoryLayerRef = useRef<L.GeoJSON | null>(null);
   const overlayLayerRef = useRef<L.GeoJSON | null>(null);
+  const nativeTitleLayerRef = useRef<L.GeoJSON | null>(null);
 
   const { data: territoriesGeoJSON, isLoading } = useQuery<any>({
     queryKey: ['/api/territories'],
@@ -305,7 +307,96 @@ export default function SimpleMap({ onMapReady, onTerritorySelect, regionFilter,
         overlayLayer.bringToFront();
       }
     }
-  }, [regionFilter, territoriesGeoJSON, onTerritorySelect]);
+
+    // Add Native Title boundaries when a territory is selected
+    if (selectedTerritory && selectedTerritory.centerLat && selectedTerritory.centerLng) {
+      addNativeTitleOverlay(selectedTerritory.name, selectedTerritory.centerLat, selectedTerritory.centerLng);
+    }
+  }, [regionFilter, territoriesGeoJSON, onTerritorySelect, selectedTerritory]);
+
+  // Function to add Native Title boundary overlays
+  const addNativeTitleOverlay = async (territoryName: string, lat: number, lng: number) => {
+    if (!mapInstanceRef.current) return;
+
+    // Remove existing Native Title layer
+    if (nativeTitleLayerRef.current) {
+      mapInstanceRef.current.removeLayer(nativeTitleLayerRef.current);
+      nativeTitleLayerRef.current = null;
+    }
+
+    try {
+      // Fetch Native Title data for the territory
+      const response = await fetch(`/api/territories/${encodeURIComponent(territoryName)}/native-title?lat=${lat}&lng=${lng}`);
+      if (!response.ok) return;
+      
+      const data = await response.json();
+      if (!data.success || !data.nativeTitle.hasNativeTitle) return;
+
+      // Create GeoJSON features from Native Title records with geometry
+      const nativeTitleFeatures = [];
+      
+      // Process applications and determinations
+      const allRecords = [
+        ...(data.nativeTitle.applications || []),
+        ...(data.nativeTitle.determinations || []),
+        ...(data.nativeTitle.registeredBodies || [])
+      ];
+
+      for (const record of allRecords) {
+        if (record.geometry && record.coordinates && record.coordinates.lat !== 0) {
+          nativeTitleFeatures.push({
+            type: "Feature",
+            properties: {
+              name: record.applicantName || record.determinationName,
+              status: record.status,
+              outcome: record.outcome,
+              area: record.area,
+              tribunalNumber: record.tribunalNumber
+            },
+            geometry: record.geometry
+          });
+        }
+      }
+
+      if (nativeTitleFeatures.length > 0) {
+        // Create Native Title layer with distinct styling
+        const nativeTitleLayer = L.geoJSON(nativeTitleFeatures as any, {
+          style: (feature) => ({
+            color: '#FF6B6B', // Red border for Native Title
+            weight: 2,
+            opacity: 0.8,
+            fillColor: '#FF6B6B',
+            fillOpacity: 0.3,
+            dashArray: '10,5', // Dashed border to distinguish from territory boundaries
+          }),
+          onEachFeature: (feature, layer) => {
+            const props = feature.properties;
+            layer.bindPopup(`
+              <div class="p-3 min-w-[200px] border-l-4 border-red-500">
+                <h3 class="font-bold text-lg mb-2 text-red-700">Native Title: ${props.name}</h3>
+                <div class="space-y-1 text-sm">
+                  <p><strong>Status:</strong> <span class="px-2 py-1 bg-red-100 text-red-700 rounded text-xs">${props.status}</span></p>
+                  <p><strong>Outcome:</strong> ${props.outcome}</p>
+                  ${props.area ? `<p><strong>Area:</strong> ${props.area.toFixed(1)} km²</p>` : ''}
+                  ${props.tribunalNumber ? `<p><strong>File:</strong> ${props.tribunalNumber}</p>` : ''}
+                </div>
+                <div class="mt-2 text-xs text-gray-500 border-t pt-2">
+                  Source: Australian Government Native Title Tribunal
+                </div>
+              </div>
+            `, {
+              className: 'custom-popup native-title-popup'
+            });
+          }
+        }).addTo(mapInstanceRef.current);
+
+        nativeTitleLayerRef.current = nativeTitleLayer;
+        console.log(`Added ${nativeTitleFeatures.length} Native Title boundaries to map`);
+      }
+    } catch (error) {
+      console.warn('Failed to load Native Title boundaries:', error);
+    }
+  };
 
   return (
     <div className="relative w-full h-[calc(100vh-80px)]">
