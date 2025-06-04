@@ -81,38 +81,65 @@ export async function fetchRATSIBBoundaries(
       };
     }
     
-    // Filter features by geographic coverage area and jurisdiction
+    // Filter features by precise geographic coverage and service area
     const relevantFeatures = data.features.filter((feature: any) => {
       const props = feature.properties || {};
       
-      // Filter by jurisdiction based on territory coordinates
+      // First filter by jurisdiction
+      let jurisdictionMatch = false;
       if (lat >= -35 && lat <= -13 && lng >= 113 && lng <= 129) { // Western Australia
-        return props.JURIS === 'WA';
+        jurisdictionMatch = props.JURIS === 'WA';
       } else if (lat >= -29 && lat <= -9 && lng >= 138 && lng <= 154) { // Queensland
-        return props.JURIS === 'QLD';
+        jurisdictionMatch = props.JURIS === 'QLD';
       } else if (lat >= -37 && lat <= -28 && lng >= 141 && lng <= 154) { // New South Wales
-        return props.JURIS === 'NSW';
+        jurisdictionMatch = props.JURIS === 'NSW';
       } else if (lat >= -39 && lat <= -34 && lng >= 141 && lng <= 150) { // Victoria
-        return props.JURIS === 'VIC';
+        jurisdictionMatch = props.JURIS === 'VIC';
       } else if (lat >= -38 && lat <= -26 && lng >= 129 && lng <= 141) { // South Australia
-        return props.JURIS === 'SA';
+        jurisdictionMatch = props.JURIS === 'SA';
       } else if (lat >= -43 && lat <= -39 && lng >= 144 && lng <= 149) { // Tasmania
-        return props.JURIS === 'TAS';
+        jurisdictionMatch = props.JURIS === 'TAS';
       } else if (lat >= -26 && lat <= -10 && lng >= 129 && lng <= 138) { // Northern Territory
-        return props.JURIS === 'NT';
+        jurisdictionMatch = props.JURIS === 'NT';
       }
       
-      // For coordinates that don't clearly fall in a state, use proximity
+      if (!jurisdictionMatch) return false;
+      
+      // Enhanced geographic filtering based on service area coverage
       if (feature.geometry && feature.geometry.coordinates) {
-        const coords = feature.geometry.coordinates;
-        if (feature.geometry.type === 'Point') {
-          const [fLng, fLat] = coords;
-          const distance = Math.sqrt(Math.pow(fLat - lat, 2) + Math.pow(fLng - lng, 2));
-          return distance <= 2.0; // Within approximately 200km
+        try {
+          const geometry = feature.geometry;
+          
+          // Check if point is within service area polygon
+          if (geometry.type === 'Polygon' || geometry.type === 'MultiPolygon') {
+            return isPointInGeometry(lat, lng, geometry);
+          }
+          
+          // For point geometries, use proximity with smaller radius for precision
+          if (geometry.type === 'Point') {
+            const [fLng, fLat] = geometry.coordinates;
+            const distance = Math.sqrt(Math.pow(fLat - lat, 2) + Math.pow(fLng - lng, 2));
+            return distance <= 0.5; // Within approximately 50km for more precision
+          }
+        } catch (error) {
+          // Fallback to name-based regional matching for WA specific areas
+          if (props.JURIS === 'WA') {
+            const serviceName = (props.NAME || '').toLowerCase();
+            const orgName = (props.ORG || '').toLowerCase();
+            
+            // For Malpa territory (Goldfields region), match specific services
+            if (lat < -29 && lng > 119) { // Goldfields/Southern WA region
+              return serviceName.includes('goldfields') || 
+                     serviceName.includes('central desert') ||
+                     orgName.includes('goldfields') || 
+                     orgName.includes('central desert');
+            }
+          }
+          return false;
         }
       }
       
-      return false; // Exclude features that don't match geographic criteria
+      return false;
     });
     
     const boundaries: RATSIBBoundary[] = relevantFeatures.map((feature: any, index: number) => {
@@ -213,4 +240,44 @@ function processORICCorporations(corporations: any[], territoryName: string, lat
     bbox: `${lng - 0.5},${lat - 0.5},${lng + 0.5},${lat + 0.5}`,
     source: 'australian_government_wfs'
   };
+}
+
+/**
+ * Check if a point is within a geometric polygon
+ */
+function isPointInGeometry(lat: number, lng: number, geometry: any): boolean {
+  try {
+    if (geometry.type === 'Polygon') {
+      return isPointInPolygon(lat, lng, geometry.coordinates[0]);
+    } else if (geometry.type === 'MultiPolygon') {
+      return geometry.coordinates.some((polygon: any) => 
+        isPointInPolygon(lat, lng, polygon[0])
+      );
+    }
+    return false;
+  } catch (error) {
+    return false;
+  }
+}
+
+/**
+ * Ray casting algorithm to determine if point is inside polygon
+ */
+function isPointInPolygon(lat: number, lng: number, polygon: number[][]): boolean {
+  let inside = false;
+  const x = lng;
+  const y = lat;
+  
+  for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+    const xi = polygon[i][0];
+    const yi = polygon[i][1];
+    const xj = polygon[j][0];
+    const yj = polygon[j][1];
+    
+    if (((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi)) {
+      inside = !inside;
+    }
+  }
+  
+  return inside;
 }
