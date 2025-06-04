@@ -186,7 +186,10 @@ export default function FloatingMapControls({
             variant={Object.values(nativeTitleFilters).some(Boolean) ? "default" : "ghost"}
             className="h-7 sm:h-8 px-2 sm:px-3 rounded-full text-xs sm:text-sm"
             title="Filter by Native Title status"
-            onClick={() => setShowNativeTitleFilter(!showNativeTitleFilter)}
+            onClick={() => {
+              console.log('Native Title filter button clicked, current state:', showNativeTitleFilter);
+              setShowNativeTitleFilter(!showNativeTitleFilter);
+            }}
           >
             <Scale className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
             <span className="hidden sm:inline">Native Title</span>
