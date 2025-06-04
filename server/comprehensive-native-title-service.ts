@@ -249,32 +249,44 @@ class ComprehensiveNativeTitleService {
    */
   private extractCoordinatesFromGeometry(geometry: any): { lat: number; lng: number } {
     if (!geometry || !geometry.coordinates) {
+      console.log('No geometry or coordinates found');
       return { lat: 0, lng: 0 };
     }
 
     try {
-      let coords: number[];
+      console.log('Processing geometry type:', geometry.type, 'with coordinates:', geometry.coordinates?.length || 'N/A');
       
       if (geometry.type === 'Point') {
-        coords = geometry.coordinates;
-        return { lat: coords[1], lng: coords[0] };
+        const coords = geometry.coordinates;
+        const result = { lat: coords[1], lng: coords[0] };
+        console.log('Extracted Point coordinates:', result);
+        return result;
       } else if (geometry.type === 'Polygon') {
         // Calculate centroid of polygon
         const polygonCoords = geometry.coordinates[0];
-        const lat = polygonCoords.reduce((sum: number, coord: number[]) => sum + coord[1], 0) / polygonCoords.length;
-        const lng = polygonCoords.reduce((sum: number, coord: number[]) => sum + coord[0], 0) / polygonCoords.length;
-        return { lat, lng };
+        if (polygonCoords && polygonCoords.length > 0) {
+          const lat = polygonCoords.reduce((sum: number, coord: number[]) => sum + coord[1], 0) / polygonCoords.length;
+          const lng = polygonCoords.reduce((sum: number, coord: number[]) => sum + coord[0], 0) / polygonCoords.length;
+          const result = { lat, lng };
+          console.log('Extracted Polygon centroid:', result);
+          return result;
+        }
       } else if (geometry.type === 'MultiPolygon') {
         // Calculate centroid of first polygon in multipolygon
         const firstPolygon = geometry.coordinates[0][0];
-        const lat = firstPolygon.reduce((sum: number, coord: number[]) => sum + coord[1], 0) / firstPolygon.length;
-        const lng = firstPolygon.reduce((sum: number, coord: number[]) => sum + coord[0], 0) / firstPolygon.length;
-        return { lat, lng };
+        if (firstPolygon && firstPolygon.length > 0) {
+          const lat = firstPolygon.reduce((sum: number, coord: number[]) => sum + coord[1], 0) / firstPolygon.length;
+          const lng = firstPolygon.reduce((sum: number, coord: number[]) => sum + coord[0], 0) / firstPolygon.length;
+          const result = { lat, lng };
+          console.log('Extracted MultiPolygon centroid:', result);
+          return result;
+        }
       }
     } catch (error) {
       console.warn('Failed to extract coordinates from geometry:', error);
     }
 
+    console.log('Returning default coordinates (0,0)');
     return { lat: 0, lng: 0 };
   }
 
