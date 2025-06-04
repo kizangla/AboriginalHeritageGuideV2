@@ -144,6 +144,13 @@ export default function MapPage() {
           nativeTitleFilter={nativeTitleFilters}
           selectedTerritory={selectedTerritory}
           showRATSIBBoundaries={showRATSIBBoundaries}
+          businessSearchQuery={businessSearchQuery}
+          onBusinessSelect={(business) => {
+            console.log('Selected enhanced business:', business);
+            if (mapInstance && business.coordinates) {
+              mapInstance.setView([business.coordinates.lat, business.coordinates.lng], 15);
+            }
+          }}
         />
         
         {/* Floating Map Controls */}
@@ -165,7 +172,11 @@ export default function MapPage() {
           map={mapInstance}
           onLocationSelect={handleSearch}
           onBusinessSelect={(business: any) => {
-            console.log('Selected business:', business);
+            console.log('Selected business from search:', business);
+            setBusinessSearchQuery(business.entityName || business.name || '');
+            if (mapInstance && business.lat && business.lng) {
+              mapInstance.setView([business.lat, business.lng], 15);
+            }
           }}
           isVisible={showSearch}
           onClose={() => setShowSearch(false)}
