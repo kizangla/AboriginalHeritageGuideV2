@@ -167,6 +167,8 @@ export default function MapPage() {
           nativeTitleFilters={nativeTitleFilters}
           onToggleRATSIB={setShowRATSIBBoundaries}
           showRATSIBBoundaries={showRATSIBBoundaries}
+          onToggleMining={setShowMining}
+          showMining={showMining}
         />
         
         {/* Collapsible Search Panel */}
