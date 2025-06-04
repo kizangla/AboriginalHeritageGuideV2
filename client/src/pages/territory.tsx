@@ -92,14 +92,14 @@ export default function TerritoryPage() {
     );
   }
 
-  const activeDeterminations = nativeTitleData?.success ? 
-    nativeTitleData.nativeTitleData?.determinations?.filter((d: any) => 
+  const activeDeterminations = (nativeTitleData as any)?.success ? 
+    (nativeTitleData as any).nativeTitleData?.determinations?.filter((d: any) => 
       d.status?.toLowerCase().includes('determined') || 
       d.outcome?.toLowerCase().includes('exists')
     ) || [] : [];
 
-  const activeApplications = nativeTitleData?.success ? 
-    nativeTitleData.nativeTitleData?.applications?.filter((a: any) => 
+  const activeApplications = (nativeTitleData as any)?.success ? 
+    (nativeTitleData as any).nativeTitleData?.applications?.filter((a: any) => 
       a.status?.toLowerCase() === 'active' || 
       a.status?.toLowerCase() === 'registration test'
     ) || [] : [];
@@ -272,7 +272,7 @@ export default function TerritoryPage() {
                 <CardDescription>Legal recognition status</CardDescription>
               </CardHeader>
               <CardContent>
-                {nativeTitleData?.success ? (
+                {(nativeTitleData as any)?.success ? (
                   <div className="space-y-4">
                     <div className="grid grid-cols-2 gap-4">
                       <div className="text-center p-3 bg-green-50 rounded-lg">
@@ -318,20 +318,20 @@ export default function TerritoryPage() {
                 <CardDescription>Representative bodies and services</CardDescription>
               </CardHeader>
               <CardContent>
-                {ratsibData?.success ? (
+                {(ratsibData as any)?.success ? (
                   <div className="space-y-4">
                     <div className="text-center p-3 bg-orange-50 rounded-lg">
                       <div className="text-2xl font-bold text-orange-700">
-                        {ratsibData.ratsibData?.totalBoundaries || 0}
+                        {(ratsibData as any).ratsibData?.totalBoundaries || 0}
                       </div>
                       <div className="text-sm text-orange-600">Service Areas</div>
                     </div>
 
-                    {ratsibData.ratsibData?.boundaries && ratsibData.ratsibData.boundaries.length > 0 && (
+                    {(ratsibData as any).ratsibData?.boundaries && (ratsibData as any).ratsibData.boundaries.length > 0 && (
                       <div>
                         <label className="text-sm font-medium text-gray-500 mb-2 block">Service Providers</label>
                         <ScrollArea className="h-24">
-                          {ratsibData.ratsibData.boundaries.slice(0, 3).map((boundary: any, index: number) => (
+                          {(ratsibData as any).ratsibData.boundaries.slice(0, 3).map((boundary: any, index: number) => (
                             <div key={index} className="text-sm text-gray-600 mb-1">
                               {boundary.properties?.ORG || boundary.properties?.NAME || 'Service Provider'}
                             </div>
@@ -366,7 +366,7 @@ export default function TerritoryPage() {
                     View on Map
                   </Button>
                   
-                  {nativeTitleData?.success && nativeTitleData.nativeTitleData?.totalRecords > 0 && (
+                  {(nativeTitleData as any)?.success && (nativeTitleData as any).nativeTitleData?.totalRecords > 0 && (
                     <Button 
                       variant="outline" 
                       className="w-full justify-start"
