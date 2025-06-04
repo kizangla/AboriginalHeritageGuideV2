@@ -52,12 +52,12 @@ export default function TerritoryPage() {
 
   const { data: nativeTitleData } = useQuery({
     queryKey: [`/api/territories/${territoryName}/native-title`],
-    enabled: !!territoryName
+    enabled: !!territoryName && !!territoryDetails?.geometry
   });
 
   const { data: ratsibData } = useQuery({
     queryKey: [`/api/territories/${territoryName}/ratsib`],
-    enabled: !!territoryName
+    enabled: !!territoryName && !!territoryDetails?.geometry
   });
 
   if (isLoading) {

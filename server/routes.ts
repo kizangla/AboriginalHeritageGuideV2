@@ -828,24 +828,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/territories/:territoryName/native-title", async (req, res) => {
     try {
       const { territoryName } = req.params;
-      const { lat, lng } = req.query;
+      const decodedName = decodeURIComponent(territoryName);
       
+      // Get territory from database to extract coordinates
+      const allTerritories = await storage.getTerritories();
+      const territory = allTerritories.find(t => 
+        t.name === decodedName || 
+        t.groupName === decodedName ||
+        t.name.toLowerCase() === decodedName.toLowerCase() ||
+        t.groupName.toLowerCase() === decodedName.toLowerCase()
+      );
+      
+      if (!territory) {
+        return res.status(404).json({ 
+          error: 'Territory not found',
+          searchedName: decodedName
+        });
+      }
+
+      // Extract coordinates from territory geometry or center point
+      let lat, lng;
+      if (territory.geometry && (territory.geometry as any).coordinates) {
+        const coords = (territory.geometry as any).coordinates[0][0]; // First coordinate of polygon
+        lng = coords[0];
+        lat = coords[1];
+      } else {
+        // Fallback to center coordinates if available
+        lat = (territory as any).centerLat || (territory as any).lat;
+        lng = (territory as any).centerLng || (territory as any).lng;
+      }
+
       if (!lat || !lng) {
         return res.status(400).json({ 
-          error: 'Latitude and longitude required' 
+          error: 'Territory coordinates not available' 
         });
       }
 
       const nativeTitleInfo = await nativeTitleService.getNativeTitleInfo(
-        parseFloat(lat as string), 
-        parseFloat(lng as string), 
-        territoryName
+        lat, lng, decodedName
       );
 
       res.json({
         success: true,
-        territoryName,
-        nativeTitle: nativeTitleInfo,
+        territoryName: decodedName,
+        nativeTitleData: nativeTitleInfo,
         dataSource: 'Australian Government Native Title Tribunal',
         lastUpdated: new Date().toISOString()
       });
@@ -888,32 +914,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/territories/:territoryName/ratsib", async (req, res) => {
     try {
       const { territoryName } = req.params;
-      const { lat, lng } = req.query;
+      const decodedName = decodeURIComponent(territoryName);
       
+      // Get territory from database to extract coordinates
+      const allTerritories = await storage.getTerritories();
+      const territory = allTerritories.find(t => 
+        t.name === decodedName || 
+        t.groupName === decodedName ||
+        t.name.toLowerCase() === decodedName.toLowerCase() ||
+        t.groupName.toLowerCase() === decodedName.toLowerCase()
+      );
+      
+      if (!territory) {
+        return res.status(404).json({ 
+          error: 'Territory not found',
+          searchedName: decodedName
+        });
+      }
+
+      // Extract coordinates from territory geometry or center point
+      let lat, lng;
+      if (territory.geometry && (territory.geometry as any).coordinates) {
+        const coords = (territory.geometry as any).coordinates[0][0]; // First coordinate of polygon
+        lng = coords[0];
+        lat = coords[1];
+      } else {
+        // Fallback to center coordinates if available
+        lat = (territory as any).centerLat || (territory as any).lat;
+        lng = (territory as any).centerLng || (territory as any).lng;
+      }
+
       if (!lat || !lng) {
         return res.status(400).json({ 
-          error: 'Coordinates required',
-          message: 'lat and lng query parameters are required'
+          error: 'Territory coordinates not available' 
         });
       }
       
-      const latitude = parseFloat(lat as string);
-      const longitude = parseFloat(lng as string);
-      
-      if (isNaN(latitude) || isNaN(longitude)) {
-        return res.status(400).json({ 
-          error: 'Invalid coordinates',
-          message: 'lat and lng must be valid numbers'
-        });
-      }
-      
-      const ratsibData = await fetchRATSIBBoundaries(latitude, longitude, territoryName);
+      const ratsibData = await fetchRATSIBBoundaries(lat, lng, decodedName);
       
       res.json({
         success: true,
-        territoryName,
-        coordinates: { lat: latitude, lng: longitude },
-        ratsib: ratsibData,
+        territoryName: decodedName,
+        coordinates: { lat, lng },
+        ratsibData,
         timestamp: new Date().toISOString()
       });
       
