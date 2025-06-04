@@ -25,6 +25,8 @@ interface FloatingMapControlsProps {
   nativeTitleFilters: NativeTitleStatusFilter;
   onToggleRATSIB?: (show: boolean) => void;
   showRATSIBBoundaries?: boolean;
+  onToggleMining?: (show: boolean) => void;
+  showMining?: boolean;
 }
 
 function FloatingMapControls({
@@ -37,7 +39,9 @@ function FloatingMapControls({
   onNativeTitleFilter,
   nativeTitleFilters,
   onToggleRATSIB,
-  showRATSIBBoundaries = true
+  showRATSIBBoundaries = true,
+  onToggleMining,
+  showMining = false
 }: FloatingMapControlsProps) {
   const [showRegionFilter, setShowRegionFilter] = useState(false);
   const [showNativeTitleFilter, setShowNativeTitleFilter] = useState(false);
@@ -156,6 +160,21 @@ function FloatingMapControls({
             <Building2 className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
             <span className="hidden sm:inline">RATSIB</span>
             <span className="sm:hidden">Corp</span>
+          </Button>
+        )}
+
+        {/* Mining Overlay Toggle */}
+        {onToggleMining && (
+          <Button
+            onClick={() => onToggleMining(!showMining)}
+            size="sm"
+            variant={showMining ? "default" : "ghost"}
+            className="h-7 sm:h-8 px-2 sm:px-3 rounded-full text-xs sm:text-sm"
+            title="Toggle mining tenements overlay"
+          >
+            <Scale className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
+            <span className="hidden sm:inline">Mining</span>
+            <span className="sm:hidden">Mine</span>
           </Button>
         )}
 

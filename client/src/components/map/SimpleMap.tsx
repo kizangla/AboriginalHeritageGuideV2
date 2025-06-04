@@ -568,6 +568,12 @@ export default function SimpleMap({ onMapReady, onTerritorySelect, regionFilter,
         searchQuery={businessSearchQuery || ''}
         onBusinessSelect={onBusinessSelect}
       />
+      {/* Mining Overlay */}
+      <MiningOverlay
+        map={mapInstanceRef.current}
+        showMining={showMining}
+        selectedTerritory={selectedTerritory}
+      />
     </div>
   );
 }
