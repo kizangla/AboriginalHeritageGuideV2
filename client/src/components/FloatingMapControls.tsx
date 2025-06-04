@@ -203,12 +203,76 @@ export default function FloatingMapControls({
           </Button>
           
           {showNativeTitleFilter && (
-            <div className="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 w-96 max-w-[95vw] sm:max-w-[90vw] md:max-w-[80vw] lg:max-w-[70vw] bg-white shadow-xl border border-gray-300 rounded-lg z-[9999] max-h-[80vh] overflow-y-auto">
-              <div className="p-4">
-                <NativeTitleFilter
-                  onFilterChange={onNativeTitleFilter}
-                  activeFilters={nativeTitleFilters}
-                />
+            <div className="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 w-80 max-w-[95vw] bg-white shadow-xl border border-gray-300 rounded-lg z-[9999] max-h-[80vh] overflow-y-auto">
+              <div className="p-4 space-y-4">
+                <div className="flex items-center justify-between">
+                  <h4 className="font-medium text-sm">Native Title Status</h4>
+                  <button 
+                    onClick={() => setShowNativeTitleFilter(false)}
+                    className="text-gray-400 hover:text-gray-600"
+                  >
+                    ×
+                  </button>
+                </div>
+                
+                <div className="space-y-3">
+                  <div>
+                    <h5 className="text-xs font-medium text-gray-600 mb-2">Status</h5>
+                    <label className="flex items-center space-x-2 text-sm cursor-pointer">
+                      <input 
+                        type="checkbox" 
+                        checked={nativeTitleFilters.determined}
+                        onChange={() => onNativeTitleFilter({...nativeTitleFilters, determined: !nativeTitleFilters.determined})}
+                        className="rounded"
+                      />
+                      <span>Determined (648)</span>
+                    </label>
+                    <label className="flex items-center space-x-2 text-sm cursor-pointer">
+                      <input 
+                        type="checkbox" 
+                        checked={nativeTitleFilters.pending}
+                        onChange={() => onNativeTitleFilter({...nativeTitleFilters, pending: !nativeTitleFilters.pending})}
+                        className="rounded"
+                      />
+                      <span>Pending Applications (102)</span>
+                    </label>
+                  </div>
+                  
+                  <div>
+                    <h5 className="text-xs font-medium text-gray-600 mb-2">Outcomes</h5>
+                    <label className="flex items-center space-x-2 text-sm cursor-pointer">
+                      <input 
+                        type="checkbox" 
+                        checked={nativeTitleFilters.exists}
+                        onChange={() => onNativeTitleFilter({...nativeTitleFilters, exists: !nativeTitleFilters.exists})}
+                        className="rounded"
+                      />
+                      <span>Native Title Exists (425)</span>
+                    </label>
+                    <label className="flex items-center space-x-2 text-sm cursor-pointer">
+                      <input 
+                        type="checkbox" 
+                        checked={nativeTitleFilters.entireArea}
+                        onChange={() => onNativeTitleFilter({...nativeTitleFilters, entireArea: !nativeTitleFilters.entireArea})}
+                        className="rounded"
+                      />
+                      <span>Exists in Entire Area (291)</span>
+                    </label>
+                    <label className="flex items-center space-x-2 text-sm cursor-pointer">
+                      <input 
+                        type="checkbox" 
+                        checked={nativeTitleFilters.partialArea}
+                        onChange={() => onNativeTitleFilter({...nativeTitleFilters, partialArea: !nativeTitleFilters.partialArea})}
+                        className="rounded"
+                      />
+                      <span>Exists in Part (134)</span>
+                    </label>
+                  </div>
+                </div>
+                
+                <div className="pt-2 border-t text-xs text-gray-500">
+                  Data from National Native Title Tribunal
+                </div>
               </div>
             </div>
           )}
