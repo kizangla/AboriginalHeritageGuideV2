@@ -26,30 +26,24 @@ export default function TerritoryInfoPanel({
 
   // Extract coordinates from GeoJSON data for territories from the map
   const getCoordinates = () => {
-    console.log('Territory data for coordinate extraction:', territory);
-    
     // Try database schema first
     if (territory.centerLat && territory.centerLng) {
-      console.log('Using database coordinates:', { lat: territory.centerLat, lng: territory.centerLng });
       return { lat: territory.centerLat, lng: territory.centerLng };
     }
     
     // Extract from GeoJSON properties if available
     const props = (territory as any);
     if (props.lat && props.lng) {
-      console.log('Using props coordinates:', { lat: props.lat, lng: props.lng });
       return { lat: props.lat, lng: props.lng };
     }
     
     // Check for properties.centerLat/centerLng (from database)
     if (props.properties && props.properties.centerLat && props.properties.centerLng) {
-      console.log('Using properties center coordinates:', { lat: props.properties.centerLat, lng: props.properties.centerLng });
       return { lat: props.properties.centerLat, lng: props.properties.centerLng };
     }
     
     // Check for properties.lat/lng (common in GeoJSON features)
     if (props.properties && props.properties.lat && props.properties.lng) {
-      console.log('Using properties coordinates:', { lat: props.properties.lat, lng: props.properties.lng });
       return { lat: props.properties.lat, lng: props.properties.lng };
     }
     
@@ -60,16 +54,13 @@ export default function TerritoryInfoPanel({
         if (coords && coords.length > 0) {
           // For polygon, take first coordinate pair
           const firstCoord = Array.isArray(coords[0]) ? coords[0][0] : coords[0];
-          const extractedCoords = { lat: firstCoord[1], lng: firstCoord[0] };
-          console.log('Using geometry coordinates:', extractedCoords);
-          return extractedCoords;
+          return { lat: firstCoord[1], lng: firstCoord[0] };
         }
       } catch (e) {
         console.warn('Failed to extract coordinates from geometry:', e);
       }
     }
     
-    console.warn('No coordinates found for territory:', territoryName);
     return null;
   };
 

@@ -15,15 +15,16 @@ export interface NativeTitleDetermination {
   applicantName: string;
   status: 'determined' | 'pending' | 'registered';
   outcome: string;
-  determinationDate?: string;
+  determinationDate?: string | null;
   area: number;
   state: string;
   traditionalOwners: string[];
-  federalCourtNumber?: string;
+  federalCourtNumber?: string | null;
   coordinates: {
     lat: number;
     lng: number;
   };
+  geometry?: any; // GeoJSON geometry data from government sources
   references: {
     sourceUrl: string;
     lastUpdated: string;
@@ -136,7 +137,7 @@ class ComprehensiveNativeTitleService {
       applicantName: claim.applicantName || '',
       status: 'pending' as const,
       outcome: claim.outcome || 'Accepted for registration',
-      determinationDate: claim.determinationDate,
+      determinationDate: claim.determinationDate || undefined,
       area: claim.area || 0,
       state: claim.state || '',
       traditionalOwners: claim.traditionalOwners || [],
@@ -216,6 +217,9 @@ class ComprehensiveNativeTitleService {
     const props = feature.properties;
     const applicantName = props.NAME || props.DET_NAME || props.RNTBC_NAME || props.Applicant_Name || 'Unknown';
     
+    // Extract coordinates from geometry if available
+    const coordinates = this.extractCoordinatesFromGeometry(feature.geometry);
+    
     return {
       applicationId: props.TRIBID || props.Application_ID || '',
       tribunalNumber: props.TRIBID || props.Tribunal_Number || '',
@@ -228,7 +232,8 @@ class ComprehensiveNativeTitleService {
       state: props.JURIS || props.State || '',
       traditionalOwners: this.extractTraditionalOwners(applicantName),
       federalCourtNumber: props.FCNO || props.Federal_Court_Number,
-      coordinates: { lat: 0, lng: 0 },
+      coordinates: coordinates,
+      geometry: feature.geometry, // Include full geometry data
       references: {
         sourceUrl: status === 'determined' ? 'https://data.gov.au/data/dataset/native-title-determinations' : 'https://data.gov.au/data/dataset/registered-native-title-body-corporate-rntbc-areas',
         lastUpdated: props.DT_EXTRACT || new Date().toISOString().split('T')[0],
@@ -237,6 +242,40 @@ class ComprehensiveNativeTitleService {
         citation: `National Native Title Tribunal. (${new Date().getFullYear()}). ${status === 'determined' ? 'Native Title Determinations' : 'RNTBC Areas'} Register. Retrieved from https://data.gov.au`
       }
     };
+  }
+
+  /**
+   * Extract coordinates from GeoJSON geometry
+   */
+  private extractCoordinatesFromGeometry(geometry: any): { lat: number; lng: number } {
+    if (!geometry || !geometry.coordinates) {
+      return { lat: 0, lng: 0 };
+    }
+
+    try {
+      let coords: number[];
+      
+      if (geometry.type === 'Point') {
+        coords = geometry.coordinates;
+        return { lat: coords[1], lng: coords[0] };
+      } else if (geometry.type === 'Polygon') {
+        // Calculate centroid of polygon
+        const polygonCoords = geometry.coordinates[0];
+        const lat = polygonCoords.reduce((sum: number, coord: number[]) => sum + coord[1], 0) / polygonCoords.length;
+        const lng = polygonCoords.reduce((sum: number, coord: number[]) => sum + coord[0], 0) / polygonCoords.length;
+        return { lat, lng };
+      } else if (geometry.type === 'MultiPolygon') {
+        // Calculate centroid of first polygon in multipolygon
+        const firstPolygon = geometry.coordinates[0][0];
+        const lat = firstPolygon.reduce((sum: number, coord: number[]) => sum + coord[1], 0) / firstPolygon.length;
+        const lng = firstPolygon.reduce((sum: number, coord: number[]) => sum + coord[0], 0) / firstPolygon.length;
+        return { lat, lng };
+      }
+    } catch (error) {
+      console.warn('Failed to extract coordinates from geometry:', error);
+    }
+
+    return { lat: 0, lng: 0 };
   }
 
   /**
