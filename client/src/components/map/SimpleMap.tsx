@@ -1,9 +1,10 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import L from 'leaflet';
 import type { Territory } from '@shared/schema';
 import type { NativeTitleStatusFilter } from '@/components/NativeTitleFilter';
 import { dataOptimizationService } from '@/lib/data-optimization';
+import EnhancedBusinessMarkers from './EnhancedBusinessMarkers';
 
 interface SimpleMapProps {
   onMapReady?: (map: L.Map) => void;
@@ -12,9 +13,11 @@ interface SimpleMapProps {
   nativeTitleFilter?: NativeTitleStatusFilter;
   selectedTerritory?: Territory | null;
   showRATSIBBoundaries?: boolean;
+  businessSearchQuery?: string;
+  onBusinessSelect?: (business: any) => void;
 }
 
-export default function SimpleMap({ onMapReady, onTerritorySelect, regionFilter, nativeTitleFilter, selectedTerritory, showRATSIBBoundaries = true }: SimpleMapProps) {
+export default function SimpleMap({ onMapReady, onTerritorySelect, regionFilter, nativeTitleFilter, selectedTerritory, showRATSIBBoundaries = true, businessSearchQuery, onBusinessSelect }: SimpleMapProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
   const territoryLayerRef = useRef<L.GeoJSON | null>(null);
@@ -556,6 +559,12 @@ export default function SimpleMap({ onMapReady, onTerritorySelect, regionFilter,
         ref={mapRef} 
         className="w-full h-full"
         style={{ minHeight: '500px' }}
+      />
+      {/* Enhanced Business Markers */}
+      <EnhancedBusinessMarkers
+        map={mapInstanceRef.current}
+        searchQuery={businessSearchQuery || ''}
+        onBusinessSelect={onBusinessSelect}
       />
     </div>
   );

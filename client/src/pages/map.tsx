@@ -28,6 +28,7 @@ export default function MapPage() {
     dismissed: false
   });
   const [showRATSIBBoundaries, setShowRATSIBBoundaries] = useState(true);
+  const [businessSearchQuery, setBusinessSearchQuery] = useState<string>('');
 
   const { data: territoriesGeoJSON } = useQuery<any>({
     queryKey: ['/api/territories'],

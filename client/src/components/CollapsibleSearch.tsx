@@ -194,10 +194,10 @@ export default function CollapsibleSearch({
               </>
             )}
 
-            {/* Business Results */}
-            {searchType === 'businesses' && Array.isArray(businessResults) && (
+            {/* Enhanced Business Results */}
+            {searchType === 'businesses' && businessResults?.businesses && (
               <>
-                {businessResults.map((business: any, index: number) => (
+                {businessResults.businesses.map((business: any, index: number) => (
                   <Button
                     key={business.id || business.abn || index}
                     onClick={() => handleBusinessSelect(business)}
@@ -206,15 +206,27 @@ export default function CollapsibleSearch({
                   >
                     <Building2 className="w-4 h-4 mr-2 flex-shrink-0" />
                     <div className="flex-1">
-                      <div className="font-medium text-sm">{business.name || business.entityName}</div>
+                      <div className="font-medium text-sm">{business.entityName}</div>
                       <div className="text-xs text-gray-500">
-                        {business.businessType || business.entityType} • {business.address || business.displayAddress}
+                        {business.entityType} • {business.address?.fullAddress || `${business.address?.suburb || ''} ${business.address?.stateCode || ''} ${business.address?.postcode || ''}`.trim()}
                       </div>
-                      {business.isVerified && (
-                        <div className="text-xs text-green-600 font-medium mt-1">
-                          ✓ Aboriginal Business Verified
-                        </div>
-                      )}
+                      <div className="flex items-center gap-2 mt-1">
+                        {business.businessInfo?.supplyNationVerified && (
+                          <div className="text-xs text-green-600 font-medium">
+                            ✓ Verified
+                          </div>
+                        )}
+                        {business.coordinates?.source === 'google_maps' && (
+                          <div className="text-xs text-blue-600 font-medium">
+                            📍 Google Maps
+                          </div>
+                        )}
+                        {business.googleMapsData?.rating && (
+                          <div className="text-xs text-yellow-600">
+                            ⭐ {business.googleMapsData.rating}
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </Button>
                 ))}
