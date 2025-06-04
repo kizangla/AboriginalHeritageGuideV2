@@ -1393,9 +1393,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log(`Fetching territory details for: ${decodedName}`);
       
-      // Get territory from storage
-      const territories = await storage.getIndigenousTerritories();
-      const territory = territories.find(t => 
+      // Get territory from database using the correct method
+      const allTerritories = await storage.getTerritories();
+      const territory = allTerritories.find(t => 
         t.name === decodedName || 
         t.groupName === decodedName ||
         t.name.toLowerCase() === decodedName.toLowerCase() ||
@@ -1405,19 +1405,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!territory) {
         return res.status(404).json({ 
           error: 'Territory not found',
-          searchedName: decodedName 
+          searchedName: decodedName,
+          availableTerritories: allTerritories.slice(0, 5).map(t => t.name)
         });
       }
       
-      // Get traditional languages for this territory
-      const languageGroups = await storage.getLanguageGroups();
-      const relatedLanguages = languageGroups
-        .filter(lg => 
-          lg.region === territory.region || 
-          lg.languageFamily === territory.languageFamily ||
-          lg.groupName === territory.groupName
+      // Get related territories from the same language family for traditional languages
+      const relatedLanguages = allTerritories
+        .filter(t => 
+          t.region === territory.region || 
+          t.languageFamily === territory.languageFamily
         )
-        .map(lg => lg.name)
+        .map(t => t.name)
+        .filter(name => name !== territory.name)
         .slice(0, 5);
       
       const territoryDetails = {
