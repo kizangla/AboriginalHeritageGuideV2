@@ -463,17 +463,18 @@ export default function SimpleMap({ onMapReady, onTerritorySelect, regionFilter,
       // Create GeoJSON features from RATSIB boundaries
       const ratsibFeatures = data.ratsib.boundaries.map((boundary: any) => ({
         type: "Feature",
-        properties: boundary.originalProperties || {
+        properties: {
           id: boundary.id,
           name: boundary.name,
-          org: boundary.organizationName,
-          ratsibtype: boundary.corporationType,
-          legisauth: boundary.legislativeAuthority,
-          ratsiblink: boundary.website,
+          organizationName: boundary.organizationName,
+          corporationType: boundary.corporationType,
+          legislativeAuthority: boundary.legislativeAuthority,
+          website: boundary.website,
+          jurisdiction: boundary.jurisdiction,
           status: boundary.status,
-          abn: boundary.abn,
-          address: boundary.address,
-          contact: boundary.contact
+          registrationDate: boundary.registrationDate,
+          // Also include original properties for fallback
+          ...boundary.originalProperties
         },
         geometry: boundary.geometry || {
           type: "Point",
@@ -503,24 +504,26 @@ export default function SimpleMap({ onMapReady, onTerritorySelect, regionFilter,
         onEachFeature: (feature, layer) => {
           const props = feature.properties;
           layer.bindPopup(`
-            <div class="p-3 min-w-[250px] border-l-4 border-purple-500">
-              <h3 class="font-bold text-lg mb-2 text-purple-700">${props.name || props.org || 'Aboriginal Corporation'}</h3>
+            <div class="p-3 min-w-[280px] border-l-4 border-purple-500">
+              <h3 class="font-bold text-lg mb-2 text-purple-700">${props.ORG || props.organizationName || 'Aboriginal Organization'}</h3>
               <div class="space-y-2 text-sm">
-                ${props.org ? `<p><strong>Organization:</strong> ${props.org}</p>` : ''}
-                ${props.name ? `<p><strong>Name:</strong> ${props.name}</p>` : ''}
-                ${props.ratsibtype ? `<p><strong>Type:</strong> <span class="px-2 py-1 bg-purple-100 text-purple-700 rounded text-xs">${props.ratsibtype}</span></p>` : ''}
-                ${props.legisauth ? `<p><strong>Legislative Authority:</strong> <span class="text-xs">${props.legisauth}</span></p>` : ''}
-                ${props.ratsiblink ? `<p><strong>Website:</strong> <a href="${props.ratsiblink}" target="_blank" class="text-purple-600 hover:text-purple-800 underline text-xs">${props.ratsiblink}</a></p>` : ''}
-                ${props.status ? `<p><strong>Status:</strong> ${props.status}</p>` : ''}
-                ${props.abn ? `<p><strong>ABN:</strong> ${props.abn}</p>` : ''}
-                ${props.address ? `<p><strong>Address:</strong> ${props.address}</p>` : ''}
+                ${props.NAME || props.name ? `<p><strong>Territory:</strong> ${props.NAME || props.name}</p>` : ''}
+                ${props.RATSIBTYPE || props.corporationType ? `<p><strong>Type:</strong> <span class="px-2 py-1 bg-purple-100 text-purple-700 rounded text-xs">${props.RATSIBTYPE || props.corporationType}</span></p>` : ''}
+                ${props.JURIS || props.jurisdiction ? `<p><strong>Jurisdiction:</strong> <span class="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs">${props.JURIS || props.jurisdiction}</span></p>` : ''}
+                ${props.LEGISAUTH || props.legislativeAuthority ? `<p><strong>Legislative Authority:</strong> <span class="text-xs text-gray-600">${props.LEGISAUTH || props.legislativeAuthority}</span></p>` : ''}
+                ${props.RATSIBLINK || props.website ? `<p><strong>Website:</strong> <a href="${props.RATSIBLINK || props.website}" target="_blank" class="text-purple-600 hover:text-purple-800 underline text-xs break-all">${props.RATSIBLINK || props.website}</a></p>` : ''}
+                ${props.COMMENTS || props.status ? `<p><strong>Status:</strong> <span class="text-xs">${props.COMMENTS || props.status}</span></p>` : ''}
+                ${props.ID || props.id ? `<p><strong>RATSIB ID:</strong> ${props.ID || props.id}</p>` : ''}
+                ${props.DT_EXTRACT || props.registrationDate ? `<p><strong>Last Updated:</strong> <span class="text-xs">${new Date(props.DT_EXTRACT || props.registrationDate).toLocaleDateString()}</span></p>` : ''}
               </div>
-              <div class="mt-2 text-xs text-gray-500 border-t pt-2">
-                Source: Australian Government RATSIB Register
+              <div class="mt-3 text-xs text-gray-500 border-t pt-2">
+                <strong>Source:</strong> Australian Government RATSIB Register<br>
+                <span class="text-xs">Registered Aboriginal and Torres Strait Islander Bodies</span>
               </div>
             </div>
           `, {
-            className: 'custom-popup ratsib-popup'
+            className: 'custom-popup ratsib-popup',
+            maxWidth: 320
           });
         }
       }).addTo(mapInstanceRef.current);

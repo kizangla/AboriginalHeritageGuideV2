@@ -13,7 +13,11 @@ export interface RATSIBBoundary {
   abn?: string;
   address?: string;
   contact?: string;
+  legislativeAuthority?: string;
+  website?: string;
+  jurisdiction?: string;
   geometry: any;
+  originalProperties?: any;
 }
 
 export interface RATSIBResult {
@@ -90,15 +94,18 @@ export async function fetchRATSIBBoundaries(
       }
       
       return {
-        id: props.id || props.objectid || props.icn || `ratsib_${index}`,
-        name: props.name || props.organisation_name || props.corp_name || 'Aboriginal Corporation',
-        organizationName: props.org || props.organisation_name || props.corp_name || props.name || 'Unknown Organization',
-        corporationType: props.ratsibtype || props.corporation_type || props.type || props.corp_type || 'Aboriginal Corporation',
-        registrationDate: props.registration_date || props.reg_date || props.date_registered,
-        status: props.status || props.corp_status || 'Active',
+        id: props.ID || props.id || `ratsib_${index}`,
+        name: props.NAME || props.name || 'Aboriginal Territory',
+        organizationName: props.ORG || props.org || 'Aboriginal Organization',
+        corporationType: props.RATSIBTYPE || props.ratsibtype || 'Aboriginal Corporation',
+        registrationDate: props.DT_EXTRACT || props.dt_extract,
+        status: props.COMMENTS || props.comments || 'Active',
         abn: props.abn || props.australian_business_number,
         address: props.address || props.postal_address || props.street_address,
         contact: props.contact || props.phone || props.email,
+        legislativeAuthority: props.LEGISAUTH || props.legisauth,
+        website: props.RATSIBLINK || props.ratsiblink,
+        jurisdiction: props.JURIS || props.juris,
         geometry: feature.geometry || {
           type: "Point",
           coordinates: [lng, lat] // Fallback to territory center
