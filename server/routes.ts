@@ -587,6 +587,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Enhanced business search with Google Maps location data
+  app.get("/api/businesses/enhanced-search", async (req, res) => {
+    try {
+      const { search } = req.query as { search?: string };
+      
+      if (!search) {
+        return res.status(400).json({ error: 'Search term is required' });
+      }
+
+      const { enhancedBusinessLocationService } = await import('./enhanced-business-location-service');
+      const enhancedBusinesses = await enhancedBusinessLocationService.searchBusinessesWithLocations(search);
+      
+      res.json({
+        success: true,
+        totalResults: enhancedBusinesses.length,
+        businesses: enhancedBusinesses,
+        searchTerm: search,
+        dataSource: {
+          abr: 'Australian Business Register',
+          googleMaps: 'Google Maps Places API',
+          enhanced: true
+        }
+      });
+
+    } catch (error) {
+      console.error('Enhanced business search error:', error);
+      res.status(500).json({
+        error: 'Failed to perform enhanced business search',
+        message: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
   // MGM Alliance comprehensive business profile endpoint
   app.get('/api/businesses/mgm-alliance', async (req, res) => {
     try {

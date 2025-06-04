@@ -58,14 +58,14 @@ export default function CollapsibleSearch({
     enabled: shouldSearch && searchType === 'places' && searchQuery.length > 2,
   });
 
-  // Business search query
+  // Enhanced business search query with Google Maps integration
   const { data: businessResults, isLoading: isLoadingBusinesses } = useQuery({
-    queryKey: ['/api/businesses/search', searchQuery],
+    queryKey: ['/api/businesses/enhanced-search', searchQuery],
     queryFn: async () => {
       if (!searchQuery.trim()) return [];
-      const response = await fetch(`/api/businesses/search?q=${encodeURIComponent(searchQuery)}`);
+      const response = await fetch(`/api/businesses/enhanced-search?search=${encodeURIComponent(searchQuery)}`);
       if (!response.ok) {
-        throw new Error('Business search failed');
+        throw new Error('Enhanced business search failed');
       }
       return response.json();
     },
