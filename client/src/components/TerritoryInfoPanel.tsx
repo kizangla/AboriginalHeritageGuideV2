@@ -174,7 +174,7 @@ export default function TerritoryInfoPanel({
                         {ownersList.length === 1 ? (
                           ownersList[0]
                         ) : (
-                          <div className="mt-1 space-y-1">
+                          <div className="mt-1 space-y-1 mb-3">
                             {ownersList.map((owner, index) => (
                               <div key={index} className="flex items-center gap-1">
                                 <span className="w-1 h-1 bg-gray-400 rounded-full flex-shrink-0"></span>
@@ -189,18 +189,18 @@ export default function TerritoryInfoPanel({
                   return null;
                 })()}
                 {nativeTitleData.nativeTitle.applications && nativeTitleData.nativeTitle.applications.length > 0 && (
-                  <div className="space-y-2 mt-4">
-                    <div className="text-xs text-gray-600">
+                  <div className="space-y-2 mt-6 pt-4 border-t border-orange-200">
+                    <div className="text-xs text-gray-600 font-medium">
                       {nativeTitleData.nativeTitle.applications.length} Native Title application(s) recorded
                     </div>
                     
                     {/* Individual Application Details */}
-                    <div className="space-y-1 max-h-32 sm:max-h-48 md:max-h-64 overflow-y-auto">
+                    <div className="space-y-2 max-h-40 sm:max-h-52 md:max-h-64 overflow-y-auto">
                       {nativeTitleData.nativeTitle.applications.map((app: any, index: number) => (
-                        <div key={index} className="p-2 bg-white rounded border border-orange-100">
-                          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-1 text-xs">
+                        <div key={index} className="p-3 bg-white rounded-md border border-orange-100 shadow-sm">
+                          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2 text-xs">
                             <div className="flex-1 min-w-0">
-                              <div className="font-medium text-gray-800 truncate">{app.applicantName}</div>
+                              <div className="font-medium text-gray-800 truncate mb-1">{app.applicantName}</div>
                               <div className="flex flex-col sm:flex-row sm:gap-3 text-gray-600">
                                 {app.tribunalNumber && (
                                   <div className="truncate">Tribunal: {app.tribunalNumber}</div>
