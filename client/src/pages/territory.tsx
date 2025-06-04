@@ -99,12 +99,12 @@ export default function TerritoryPage() {
     );
   }
 
-  // Extract Native Title data from API response
+  // Extract Native Title data from API response - fix data structure access
   const nativeTitleInfo = (nativeTitleData as any)?.success ? (nativeTitleData as any).nativeTitleData : null;
   const activeDeterminations = nativeTitleInfo?.determinations || [];
   const activeApplications = nativeTitleInfo?.applications || [];
   
-  // Extract RATSIB data from API response
+  // Extract RATSIB data from API response - fix data structure access
   const ratsibInfo = (ratsibData as any)?.success ? (ratsibData as any).ratsibData : null;
   const ratsibBoundaries = ratsibInfo?.boundaries || [];
 
@@ -405,42 +405,42 @@ export default function TerritoryPage() {
                             return (
                               <div key={index} className="text-sm text-gray-600 mb-3 p-3 bg-gray-50 rounded-lg border-l-3 border-orange-400">
                                 <div className="font-semibold text-gray-800 mb-1">
-                                  {props.ORG || props.organizationName || 'Aboriginal Organization'}
+                                  {boundary.organizationName || props.organizationName || 'Aboriginal Organization'}
                                 </div>
                                 
                                 <div className="space-y-1">
-                                  {props.NAME && (
+                                  {(boundary.name || props.name) && (
                                     <div className="text-xs">
-                                      <span className="font-medium">Coverage:</span> {props.NAME}
+                                      <span className="font-medium">Coverage:</span> {boundary.name || props.name}
                                     </div>
                                   )}
                                   
                                   <div className="text-xs">
                                     <span className="font-medium">Type:</span> 
                                     <span className="ml-1 px-2 py-0.5 bg-orange-100 text-orange-700 rounded text-xs">
-                                      {props.RATSIBTYPE || props.corporationType || 'Native Title Service Provider'}
+                                      {boundary.corporationType || props.corporationType || 'Native Title Service Provider'}
                                     </span>
                                   </div>
                                   
-                                  {props.JURIS && (
+                                  {(boundary.jurisdiction || props.jurisdiction) && (
                                     <div className="text-xs">
                                       <span className="font-medium">Jurisdiction:</span> 
                                       <span className="ml-1 px-2 py-0.5 bg-blue-100 text-blue-700 rounded text-xs">
-                                        {props.JURIS}
+                                        {boundary.jurisdiction || props.jurisdiction}
                                       </span>
                                     </div>
                                   )}
                                   
-                                  {props.LEGISAUTH && (
+                                  {(boundary.legislativeAuthority || props.legislativeAuthority) && (
                                     <div className="text-xs text-gray-600 mt-1">
-                                      <span className="font-medium">Authority:</span> {props.LEGISAUTH}
+                                      <span className="font-medium">Authority:</span> {boundary.legislativeAuthority || props.legislativeAuthority}
                                     </div>
                                   )}
                                   
-                                  {props.RATSIBLINK && (
+                                  {(boundary.website || props.website) && (
                                     <div className="text-xs mt-1">
                                       <a 
-                                        href={props.RATSIBLINK} 
+                                        href={boundary.website || props.website} 
                                         target="_blank" 
                                         rel="noopener noreferrer"
                                         className="text-blue-600 hover:text-blue-800 underline"
@@ -450,9 +450,9 @@ export default function TerritoryPage() {
                                     </div>
                                   )}
                                   
-                                  {props.COMMENTS && (
+                                  {(boundary.status || props.status) && (
                                     <div className="text-xs text-amber-600 mt-1 italic">
-                                      {props.COMMENTS}
+                                      {boundary.status || props.status}
                                     </div>
                                   )}
                                 </div>

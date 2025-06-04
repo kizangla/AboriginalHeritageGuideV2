@@ -1,0 +1,56 @@
+Download the React DevTools for a better development experience: https://reactjs.org/link/react-devtools
+territory.tsx:59 Territory Details: undefined
+territory.tsx:60 Loading: true
+territory.tsx:61 Error: null
+territory.tsx:62 Native Title Data: undefined
+territory.tsx:63 RATSIB Data: undefined
+territory.tsx:59 Territory Details: 
+{id: 752, name: 'Wiradjuri', groupName: 'Wiradjuri', languageFamily: 'Pama-Nyungan', region: 'Riverine', …}
+territory.tsx:60 Loading: false
+territory.tsx:61 Error: null
+territory.tsx:62 Native Title Data: undefined
+territory.tsx:63 RATSIB Data: undefined
+SimpleMap.tsx:36 SimpleMap: Creating map...
+SimpleMap.tsx:51 SimpleMap: Map created successfully
+SimpleMap.tsx:448 Loading RATSIB boundaries for map view...
+data-optimization.ts:38 Making optimized request to /api/territories/map-view/ratsib?lat=-25.2744&lng=133.7751
+SimpleMap.tsx:70 Adding Aboriginal territories base layer...
+SimpleMap.tsx:71 Territories data received: 717
+SimpleMap.tsx:165 Displaying 717 territories after filtering
+SimpleMap.tsx:225 Added 717 Aboriginal territories base layer
+SimpleMap.tsx:70 Adding Aboriginal territories base layer...
+SimpleMap.tsx:71 Territories data received: 717
+SimpleMap.tsx:165 Displaying 717 territories after filtering
+SimpleMap.tsx:225 Added 717 Aboriginal territories base layer
+data-optimization.ts:38 Making optimized request to /api/territories/map-view/ratsib?lat=-24.7744&lng=133.7751
+data-optimization.ts:38 Making optimized request to /api/territories/map-view/ratsib?lat=-25.7744&lng=133.7751
+data-optimization.ts:38 Making optimized request to /api/territories/map-view/ratsib?lat=-25.2744&lng=134.2751
+data-optimization.ts:38 Making optimized request to /api/territories/map-view/ratsib?lat=-25.2744&lng=133.2751
+SimpleMap.tsx:537 Added 18 RATSIB boundaries to map view
+data-optimization.ts:105 Prefetched RATSIB data for 4 nearby areas around -25.2744,133.7751
+SimpleMap.tsx:347 Failed to load Native Title boundaries: TypeError: Cannot read properties of undefined (reading 'hasNativeTitle')
+    at addNativeTitleOverlay (SimpleMap.tsx:340:46)
+TerritoryInfoPanel.tsx:79 Native Title data received: 
+{success: true, territoryName: 'Malpa', nativeTitleData: {…}, dataSource: 'Australian Government Native Title Tribunal', lastUpdated: '2025-06-04T06:48:58.657Z'}
+TerritoryInfoPanel.tsx:253 Uncaught TypeError: Cannot read properties of undefined (reading 'applications')
+    at TerritoryInfoPanel (TerritoryInfoPanel.tsx:253:44)
+TerritoryInfoPanel.tsx:253 Uncaught TypeError: Cannot read properties of undefined (reading 'applications')
+    at TerritoryInfoPanel (TerritoryInfoPanel.tsx:253:44)
+chunk-WERSD76P.js?v=bca56922:14032 The above error occurred in the <TerritoryInfoPanel> component:
+
+    at TerritoryInfoPanel (https://6c9468bd-23b1-42db-81ca-2c1e2ece2616-00-38ru53c3i3hzn.spock.replit.dev/src/components/TerritoryInfoPanel.tsx:25:3)
+    at main
+    at div
+    at MapPage (https://6c9468bd-23b1-42db-81ca-2c1e2ece2616-00-38ru53c3i3hzn.spock.replit.dev/src/pages/map.tsx:30:53)
+    at Route (https://6c9468bd-23b1-42db-81ca-2c1e2ece2616-00-38ru53c3i3hzn.spock.replit.…/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=bca56922:323:16)
+    at Switch (https://6c9468bd-23b1-42db-81ca-2c1e2ece2616-00-38ru53c3i3hzn.spock.replit.…/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=bca56922:379:17)
+    at Router
+    at Provider (https://6c9468bd-23b1-42db-81ca-2c1e2ece2616-00-38ru53c3i3hzn.spock.replit.…nner/workspace/node_modules/.vite/deps/chunk-MYIX5FZ6.js?v=bca56922:216:15)
+    at TooltipProvider (https://6c9468bd-23b1-42db-81ca-2c1e2ece2616-00-38ru53c3i3hzn.spock.replit.…space/node_modules/.vite/deps/@radix-ui_react-tooltip.js?v=bca56922:2244:5)
+    at QueryClientProvider (https://6c9468bd-23b1-42db-81ca-2c1e2ece2616-00-38ru53c3i3hzn.spock.replit.…rkspace/node_modules/.vite/deps/@tanstack_react-query.js?v=bca56922:2805:3)
+    at App
+
+Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://reactjs.org/link/error-boundaries to learn more about error boundaries.
+chunk-WERSD76P.js?v=bca56922:9129 Uncaught TypeError: Cannot read properties of undefined (reading 'applications')
+    at TerritoryInfoPanel (TerritoryInfoPanel.tsx:253:44)
