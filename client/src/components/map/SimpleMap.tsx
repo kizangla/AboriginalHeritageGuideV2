@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import L from 'leaflet';
 import type { Territory } from '@shared/schema';
 import type { NativeTitleStatusFilter } from '@/components/NativeTitleFilter';
+import { dataOptimizationService } from '@/lib/data-optimization';
 
 interface SimpleMapProps {
   onMapReady?: (map: L.Map) => void;
@@ -431,7 +432,7 @@ export default function SimpleMap({ onMapReady, onTerritorySelect, regionFilter,
     }
   };
 
-  // Load RATSIB boundaries for current map view
+  // Load RATSIB boundaries for current map view with optimization
   const loadRATSIBForMapView = async () => {
     if (!mapInstanceRef.current || !showRATSIBBoundaries) return;
 
@@ -441,14 +442,13 @@ export default function SimpleMap({ onMapReady, onTerritorySelect, regionFilter,
     try {
       console.log('Loading RATSIB boundaries for map view...');
       
-      // Use map center coordinates to fetch nearby RATSIB boundaries
-      const response = await fetch(`/api/territories/map-view/ratsib?lat=${center.lat}&lng=${center.lng}`);
-      if (!response.ok) {
-        console.warn('Failed to fetch RATSIB boundaries for map view:', response.status);
-        return;
-      }
+      // Use optimized fetch with caching and deduplication
+      const data = await dataOptimizationService.optimizedFetch(
+        `/api/territories/map-view/ratsib?lat=${center.lat}&lng=${center.lng}`
+      );
       
-      const data = await response.json();
+      // Start prefetching nearby areas for smoother navigation
+      dataOptimizationService.prefetchNearbyRATSIB(center.lat, center.lng);
       if (!data.success || !data.ratsib.boundaries || data.ratsib.boundaries.length === 0) {
         console.log('No RATSIB boundaries found for current map view');
         return;

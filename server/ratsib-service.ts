@@ -1,7 +1,10 @@
 /**
  * RATSIB (Registered Aboriginal and Torres Strait Islander Bodies) Service
  * Fetches authentic data from Australian Government WFS service
+ * Optimized with intelligent caching for improved performance
  */
+
+import { dataCacheService } from './data-cache-service';
 
 export interface RATSIBBoundary {
   id: string;
@@ -33,6 +36,13 @@ export async function fetchRATSIBBoundaries(
   territoryName: string
 ): Promise<RATSIBResult> {
   try {
+    // Check cache first for faster loading
+    const cachedData = dataCacheService.getRATSIBData(lat, lng);
+    if (cachedData) {
+      console.log(`Using cached RATSIB data for ${territoryName} (${cachedData.boundaries.length} boundaries)`);
+      return cachedData;
+    }
+
     // Create bounding box around territory (approximately 50km radius)
     const bbox = `${lng - 0.5},${lat - 0.5},${lng + 0.5},${lat + 0.5}`;
     
@@ -116,12 +126,17 @@ export async function fetchRATSIBBoundaries(
     
     console.log(`Found ${boundaries.length} RATSIB boundaries for ${territoryName}`);
     
-    return {
+    const result: RATSIBResult = {
       boundaries,
       totalFound: boundaries.length,
       bbox,
       source: 'australian_government_wfs'
     };
+
+    // Cache the result for faster future loading
+    dataCacheService.cacheRATSIBData(lat, lng, result);
+    
+    return result;
     
   } catch (error) {
     console.error('Error fetching RATSIB boundaries:', error);
