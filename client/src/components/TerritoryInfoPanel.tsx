@@ -250,26 +250,26 @@ export default function TerritoryInfoPanel({
                 <strong>Source:</strong> 
                 <span className="break-words">{nativeTitleData.dataSource}</span>
               </div>
-              {nativeTitleData.nativeTitle.applications && nativeTitleData.nativeTitle.applications.length > 0 && nativeTitleData.nativeTitle.applications[0].references && (
+              {nativeTitleData.nativeTitleData.applications && nativeTitleData.nativeTitleData.applications.length > 0 && nativeTitleData.nativeTitleData.applications[0].references && (
                 <div className="space-y-1">
                   <div className="flex flex-col sm:flex-row sm:items-center gap-1">
                     <strong>Data Provider:</strong> 
-                    <span className="break-words">{nativeTitleData.nativeTitle.applications[0].references.dataProvider}</span>
+                    <span className="break-words">{nativeTitleData.nativeTitleData.applications[0].references.dataProvider}</span>
                   </div>
                   <div className="flex flex-col sm:flex-row sm:items-center gap-1">
                     <strong>License:</strong> 
-                    <span className="break-words text-xs">{nativeTitleData.nativeTitle.applications[0].references.licenseType}</span>
+                    <span className="break-words text-xs">{nativeTitleData.nativeTitleData.applications[0].references.licenseType}</span>
                   </div>
                   <div className="flex flex-col sm:flex-row sm:items-center gap-1">
                     <strong>Last Updated:</strong> 
-                    <span>{nativeTitleData.nativeTitle.applications[0].references.lastUpdated}</span>
+                    <span>{nativeTitleData.nativeTitleData.applications[0].references.lastUpdated}</span>
                   </div>
                   <details className="mt-2">
                     <summary className="cursor-pointer text-blue-600 hover:text-blue-800 font-medium text-xs">
                       View Full Citation
                     </summary>
                     <div className="mt-1 p-2 bg-gray-50 rounded text-xs font-mono leading-relaxed break-words">
-                      {nativeTitleData.nativeTitle.applications[0].references.citation}
+                      {nativeTitleData.nativeTitleData.applications[0].references.citation}
                     </div>
                   </details>
                 </div>
