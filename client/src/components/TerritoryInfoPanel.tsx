@@ -151,11 +151,11 @@ export default function TerritoryInfoPanel({
               </Badge>
             </div>
             
-            {nativeTitleData?.nativeTitle?.hasNativeTitle ? (
+            {nativeTitleData?.nativeTitleData?.hasNativeTitle ? (
               <div className="space-y-4">
                 {/* Status */}
                 <div className="text-sm text-gray-700">
-                  <strong>Status:</strong> {nativeTitleData?.nativeTitle?.status}
+                  <strong>Status:</strong> {nativeTitleData?.nativeTitleData?.status || 'Active Native Title Claims'}
                 </div>
                 
                 {/* Traditional Owners Section */}
@@ -164,13 +164,13 @@ export default function TerritoryInfoPanel({
                   const allTraditionalOwners = new Set<string>();
                   
                   // Add primary applicant if available
-                  if (nativeTitleData?.nativeTitle?.primaryApplicant) {
-                    allTraditionalOwners.add(nativeTitleData.nativeTitle.primaryApplicant);
+                  if (nativeTitleData?.nativeTitleData?.primaryApplicant) {
+                    allTraditionalOwners.add(nativeTitleData.nativeTitleData.primaryApplicant);
                   }
                   
                   // Extract from all applications
-                  if (nativeTitleData?.nativeTitle?.applications) {
-                    nativeTitleData.nativeTitle.applications.forEach((app: any) => {
+                  if (nativeTitleData?.nativeTitleData?.applications) {
+                    nativeTitleData.nativeTitleData.applications.forEach((app: any) => {
                       if (app.applicantName) {
                         allTraditionalOwners.add(app.applicantName);
                       }
@@ -201,22 +201,22 @@ export default function TerritoryInfoPanel({
                 })()}
 
                 {/* Cultural Significance */}
-                {nativeTitleData.nativeTitle.culturalSignificance && (
+                {nativeTitleData?.nativeTitleData?.culturalSignificance && (
                   <div className="text-xs text-gray-600 italic bg-orange-25 p-2 rounded border-l-4 border-orange-300">
-                    {nativeTitleData.nativeTitle.culturalSignificance}
+                    {nativeTitleData.nativeTitleData.culturalSignificance}
                   </div>
                 )}
 
                 {/* Native Title Applications */}
-                {nativeTitleData.nativeTitle.applications && nativeTitleData.nativeTitle.applications.length > 0 && (
+                {nativeTitleData.nativeTitleData.applications && nativeTitleData.nativeTitleData.applications.length > 0 && (
                   <div className="bg-white border border-orange-200 rounded-lg p-3">
                     <div className="text-xs text-gray-600 font-medium mb-3 flex items-center gap-2">
                       <span className="w-2 h-2 bg-orange-500 rounded-full"></span>
-                      {nativeTitleData.nativeTitle.applications.length} Native Title application(s) recorded
+                      {nativeTitleData.nativeTitleData.applications.length} Native Title application(s) recorded
                     </div>
                     
                     <div className="space-y-2 max-h-48 overflow-y-auto">
-                      {nativeTitleData.nativeTitle.applications.map((app: any, index: number) => (
+                      {nativeTitleData.nativeTitleData.applications.map((app: any, index: number) => (
                         <div key={index} className="p-2 bg-orange-25 rounded border border-orange-100">
                           <div className="flex flex-col gap-1 text-xs">
                             <div className="font-medium text-gray-800">{app.applicantName}</div>
