@@ -144,11 +144,50 @@ export default function TerritoryInfoPanel({
                 <div className="text-sm text-gray-700">
                   <strong>Status:</strong> {nativeTitleData.nativeTitle.status}
                 </div>
-                {nativeTitleData.nativeTitle.primaryApplicant && (
-                  <div className="text-sm text-gray-700">
-                    <strong>Traditional Owners:</strong> {nativeTitleData.nativeTitle.primaryApplicant}
-                  </div>
-                )}
+                {(() => {
+                  // Extract all traditional owners from applications
+                  const allTraditionalOwners = new Set<string>();
+                  
+                  // Add primary applicant if available
+                  if (nativeTitleData.nativeTitle.primaryApplicant) {
+                    allTraditionalOwners.add(nativeTitleData.nativeTitle.primaryApplicant);
+                  }
+                  
+                  // Extract from all applications
+                  if (nativeTitleData.nativeTitle.applications) {
+                    nativeTitleData.nativeTitle.applications.forEach((app: any) => {
+                      if (app.applicantName) {
+                        allTraditionalOwners.add(app.applicantName);
+                      }
+                      if (app.traditionalOwners && Array.isArray(app.traditionalOwners)) {
+                        app.traditionalOwners.forEach((owner: string) => allTraditionalOwners.add(owner));
+                      }
+                    });
+                  }
+                  
+                  const ownersList = Array.from(allTraditionalOwners).filter(owner => owner && owner.trim());
+                  
+                  if (ownersList.length > 0) {
+                    return (
+                      <div className="text-sm text-gray-700">
+                        <strong>Traditional Owners:</strong>{' '}
+                        {ownersList.length === 1 ? (
+                          ownersList[0]
+                        ) : (
+                          <div className="mt-1 space-y-1">
+                            {ownersList.map((owner, index) => (
+                              <div key={index} className="flex items-center gap-1">
+                                <span className="w-1 h-1 bg-gray-400 rounded-full flex-shrink-0"></span>
+                                <span>{owner}</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
                 {nativeTitleData.nativeTitle.applications && nativeTitleData.nativeTitle.applications.length > 0 && (
                   <div className="space-y-2">
                     <div className="text-xs text-gray-600">
