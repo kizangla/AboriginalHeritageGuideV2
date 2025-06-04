@@ -42,13 +42,24 @@ export default function SimpleMap({
   });
 
   useEffect(() => {
-    if (!mapRef.current || mapInstanceRef.current) return;
+    if (!mapRef.current) return;
+
+    // Clean up existing map instance if it exists
+    if (mapInstanceRef.current) {
+      console.log('SimpleMap: Cleaning up existing map instance');
+      mapInstanceRef.current.remove();
+      mapInstanceRef.current = null;
+    }
 
     console.log('SimpleMap: Creating map...');
     console.log('Map container dimensions:', mapRef.current.offsetWidth, 'x', mapRef.current.offsetHeight);
     
     try {
-      const map = L.map(mapRef.current).setView([-25.2744, 133.7751], 5);
+      const map = L.map(mapRef.current, {
+        preferCanvas: true,
+        zoomControl: true
+      }).setView([-25.2744, 133.7751], 5);
+      
       mapInstanceRef.current = map;
 
       console.log('SimpleMap: Map instance created');
@@ -57,7 +68,7 @@ export default function SimpleMap({
       const tileLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '© OpenStreetMap contributors',
         maxZoom: 19,
-        errorTileUrl: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg=='
+        minZoom: 3
       });
 
       tileLayer.on('load', () => {
@@ -70,13 +81,13 @@ export default function SimpleMap({
 
       tileLayer.addTo(map);
 
-      // Force map invalidateSize after a short delay
+      // Force map invalidateSize after DOM is ready
       setTimeout(() => {
         if (mapInstanceRef.current) {
           mapInstanceRef.current.invalidateSize();
           console.log('SimpleMap: Map size invalidated');
         }
-      }, 100);
+      }, 250);
 
       console.log('SimpleMap: Map created successfully');
       
@@ -90,20 +101,26 @@ export default function SimpleMap({
 
     return () => {
       if (mapInstanceRef.current) {
+        console.log('SimpleMap: Cleaning up map on unmount');
         mapInstanceRef.current.remove();
         mapInstanceRef.current = null;
       }
     };
-  }, [onMapReady]);
+  }, []);
 
   useEffect(() => {
-    if (!territoriesGeoJSON || !mapInstanceRef.current) return;
+    if (!territoriesGeoJSON || !mapInstanceRef.current) {
+      console.log('Waiting for territories data or map instance...');
+      return;
+    }
 
     console.log('Adding Aboriginal territories base layer...');
     console.log('Territories data received:', territoriesGeoJSON.features?.length);
+    console.log('Map instance exists:', !!mapInstanceRef.current);
 
     // Remove existing territory layer
     if (territoryLayerRef.current) {
+      console.log('Removing existing territory layer');
       mapInstanceRef.current.removeLayer(territoryLayerRef.current);
     }
 
@@ -381,6 +398,7 @@ export default function SimpleMap({
   }, [selectedTerritory]);
 
   if (isLoading) {
+    console.log('SimpleMap: Showing loading state');
     return (
       <div className="h-full flex items-center justify-center bg-gray-100">
         <div className="text-center">
@@ -391,5 +409,16 @@ export default function SimpleMap({
     );
   }
 
-  return <div ref={mapRef} className="h-full w-full" style={{ minHeight: '500px', position: 'relative' }} />;
+  console.log('SimpleMap: Rendering map container');
+  return (
+    <div 
+      ref={mapRef} 
+      className="h-full w-full" 
+      style={{ 
+        minHeight: '500px', 
+        position: 'relative',
+        backgroundColor: '#aad3df'
+      }} 
+    />
+  );
 }
