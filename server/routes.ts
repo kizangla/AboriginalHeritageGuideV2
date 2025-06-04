@@ -14,6 +14,7 @@ import {
 import { nativeTitleService } from "./native-title-service";
 import { nativeTitleTerritoryFilter, type NativeTitleStatusFilter } from "./native-title-territory-filter";
 import { fetchRATSIBBoundaries } from "./ratsib-service";
+import { miningService } from "./mining-service";
 
 // Australian postcode coordinate lookup for business positioning
 function getPostcodeCoordinates(postcode: string, stateCode: string): { lat: number; lng: number } | null {

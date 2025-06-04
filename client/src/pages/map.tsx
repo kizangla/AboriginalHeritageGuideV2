@@ -102,7 +102,7 @@ export default function MapPage() {
   };
 
   const handleSearch = (lat: number, lng: number) => {
-    if (mapInstance) {
+    if (mapInstance && lat && lng && !isNaN(lat) && !isNaN(lng)) {
       mapInstance.setView([lat, lng], 15);
     }
   };
