@@ -25,6 +25,7 @@ export default function SimpleMap({ onMapReady, onTerritorySelect, regionFilter,
   const territoryLayerRef = useRef<L.GeoJSON | null>(null);
   const overlayLayerRef = useRef<L.GeoJSON | null>(null);
   const nativeTitleLayerRef = useRef<L.GeoJSON | null>(null);
+  const ratsibLayerRef = useRef<L.GeoJSON | null>(null);
 
   const { data: territoriesGeoJSON, isLoading } = useQuery<any>({
     queryKey: ['/api/territories'],
@@ -430,7 +431,7 @@ export default function SimpleMap({ onMapReady, onTerritorySelect, regionFilter,
         }
       }).addTo(mapInstanceRef.current!);
 
-      nativeTitleLayerRef.current = ratsibLayer;
+      ratsibLayerRef.current = ratsibLayer;
       console.log(`Added ${data.ratsib.boundaries.length} RATSIB boundaries to map for ${territoryName}`);
     } catch (error) {
       console.warn('Failed to load RATSIB boundaries:', error);
@@ -460,9 +461,9 @@ export default function SimpleMap({ onMapReady, onTerritorySelect, regionFilter,
       }
 
       // Remove existing RATSIB layer
-      if (nativeTitleLayerRef.current) {
-        mapInstanceRef.current.removeLayer(nativeTitleLayerRef.current);
-        nativeTitleLayerRef.current = null;
+      if (ratsibLayerRef.current) {
+        mapInstanceRef.current.removeLayer(ratsibLayerRef.current);
+        ratsibLayerRef.current = null;
       }
 
       // Create GeoJSON features from RATSIB boundaries
@@ -533,7 +534,7 @@ export default function SimpleMap({ onMapReady, onTerritorySelect, regionFilter,
         }
       }).addTo(mapInstanceRef.current);
 
-      nativeTitleLayerRef.current = ratsibLayer;
+      ratsibLayerRef.current = ratsibLayer;
       console.log(`Added ${data.ratsib.boundaries.length} RATSIB boundaries to map view`);
     } catch (error) {
       console.warn('Failed to load RATSIB boundaries for map view:', error);
@@ -544,12 +545,12 @@ export default function SimpleMap({ onMapReady, onTerritorySelect, regionFilter,
   useEffect(() => {
     if (!mapInstanceRef.current) return;
 
-    if (!showRATSIBBoundaries && nativeTitleLayerRef.current) {
+    if (!showRATSIBBoundaries && ratsibLayerRef.current) {
       // Remove RATSIB layer when filter is disabled
-      mapInstanceRef.current.removeLayer(nativeTitleLayerRef.current);
-      nativeTitleLayerRef.current = null;
+      mapInstanceRef.current.removeLayer(ratsibLayerRef.current);
+      ratsibLayerRef.current = null;
       console.log('RATSIB boundaries hidden');
-    } else if (showRATSIBBoundaries && !nativeTitleLayerRef.current) {
+    } else if (showRATSIBBoundaries && !ratsibLayerRef.current) {
       // Load RATSIB boundaries when filter is enabled
       loadRATSIBForMapView();
     }
