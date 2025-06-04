@@ -82,26 +82,26 @@ class ComprehensiveNativeTitleService {
       const uniqueData = this.removeDuplicates(allData);
 
       // Separate applications and determinations based on actual data
-      const applications = uniqueData.filter(d => 
+      const applicationsFiltered = uniqueData.filter(d => 
         d.status === 'pending' || 
         d.outcome?.includes('application') || 
         d.outcome?.includes('Application') ||
-        !d.outcome?.includes('Native title exists') && !d.outcome?.includes('Native title does not exist')
+        (!d.outcome?.includes('Native title exists') && !d.outcome?.includes('Native title does not exist'))
       );
       
-      const determinations = uniqueData.filter(d => 
+      const determinationsFiltered = uniqueData.filter(d => 
         d.status === 'determined' || 
         d.outcome?.includes('Native title exists') || 
         d.outcome?.includes('Native title does not exist') ||
         d.outcome?.includes('determination')
       );
 
-      console.log(`Categorized data: ${applications.length} applications, ${determinations.length} determinations from ${uniqueData.length} total records`);
+      console.log(`Categorized data: ${applicationsFiltered.length} applications, ${determinationsFiltered.length} determinations from ${uniqueData.length} total records`);
 
       return {
         hasNativeTitle: uniqueData.length > 0,
-        applications: applications,
-        determinations: determinations,
+        applications: applicationsFiltered,
+        determinations: determinationsFiltered,
         registeredBodies: uniqueData.filter(d => d.status === 'registered'),
         totalRecords: uniqueData.length,
         overallStatus: this.determineOverallStatus(uniqueData),
@@ -235,19 +235,27 @@ class ComprehensiveNativeTitleService {
     const props = feature.properties;
     const applicantName = props.NAME || props.DET_NAME || props.RNTBC_NAME || props.Applicant_Name || 'Unknown';
     
+    // Determine actual status based on outcome text
+    let actualStatus = status;
+    const outcome = props.DETOUTCOME || props.OUTCOME || props.DET_OUTCOME || props.STATUS || 'Unknown';
+    
+    if (outcome.includes('Native title exists') || outcome.includes('Native title does not exist') || outcome.includes('determination')) {
+      actualStatus = 'determined';
+    } else if (outcome.includes('application') || outcome.includes('pending') || outcome.includes('Accepted for registration')) {
+      actualStatus = 'pending';
+    }
+    
     // Extract coordinates from geometry if available
-    console.log('Feature data:', JSON.stringify(feature, null, 2).substring(0, 500));
     const coordinates = this.extractCoordinatesFromGeometry(feature.geometry);
-    console.log('Final coordinates for', applicantName, ':', coordinates);
     
     return {
       applicationId: props.TRIBID || props.Application_ID || '',
       tribunalNumber: props.TRIBID || props.Tribunal_Number || '',
       determinationName: applicantName,
       applicantName: applicantName,
-      status: status,
-      outcome: props.OUTCOME || props.DET_OUTCOME || props.STATUS || 'Unknown',
-      determinationDate: props.DET_DATE || props.Determination_Date || props.DATELODGED,
+      status: actualStatus,
+      outcome: outcome,
+      determinationDate: props.DETDATE || props.DET_DATE || props.Determination_Date || props.DATELODGED,
       area: props.AREASQKM || props.Area_sqkm || 0,
       state: props.JURIS || props.State || '',
       traditionalOwners: this.extractTraditionalOwners(applicantName),

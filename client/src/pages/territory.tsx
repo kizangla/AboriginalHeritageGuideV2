@@ -49,13 +49,15 @@ export default function TerritoryPage() {
   console.log('Territory Details:', territoryDetails);
   console.log('Loading:', isLoading);
   console.log('Error:', error);
+  console.log('Native Title Data:', nativeTitleData);
+  console.log('RATSIB Data:', ratsibData);
 
-  const { data: nativeTitleData } = useQuery({
+  const { data: nativeTitleData, isLoading: nativeTitleLoading } = useQuery({
     queryKey: [`/api/territories/${territoryName}/native-title`],
     enabled: !!territoryName && !!territoryDetails?.geometry
   });
 
-  const { data: ratsibData } = useQuery({
+  const { data: ratsibData, isLoading: ratsibLoading } = useQuery({
     queryKey: [`/api/territories/${territoryName}/ratsib`],
     enabled: !!territoryName && !!territoryDetails?.geometry
   });
