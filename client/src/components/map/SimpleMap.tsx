@@ -356,15 +356,16 @@ export default function SimpleMap({ onMapReady, onTerritorySelect, regionFilter,
         return;
       }
 
-      // Create GeoJSON features from RATSIB boundaries
+      // Create GeoJSON features from RATSIB boundaries preserving all original properties
       const ratsibFeatures = data.ratsib.boundaries.map((boundary: any) => ({
         type: "Feature",
-        properties: {
+        properties: boundary.originalProperties || {
           id: boundary.id,
           name: boundary.name,
-          organizationName: boundary.organizationName,
-          corporationType: boundary.corporationType,
-          registrationDate: boundary.registrationDate,
+          org: boundary.organizationName,
+          ratsibtype: boundary.corporationType,
+          legisauth: boundary.legislativeAuthority,
+          ratsiblink: boundary.website,
           status: boundary.status,
           abn: boundary.abn,
           address: boundary.address,
@@ -398,16 +399,17 @@ export default function SimpleMap({ onMapReady, onTerritorySelect, regionFilter,
         onEachFeature: (feature, layer) => {
           const props = feature.properties;
           layer.bindPopup(`
-            <div class="p-3 min-w-[200px] border-l-4 border-purple-500">
-              <h3 class="font-bold text-lg mb-2 text-purple-700">RATSIB: ${props.name || 'Aboriginal Corporation'}</h3>
-              <div class="space-y-1 text-sm">
-                <p><strong>Organization:</strong> ${props.organizationName}</p>
-                <p><strong>Type:</strong> <span class="px-2 py-1 bg-purple-100 text-purple-700 rounded text-xs">${props.corporationType}</span></p>
-                <p><strong>Status:</strong> ${props.status}</p>
-                ${props.registrationDate ? `<p><strong>Registered:</strong> ${props.registrationDate}</p>` : ''}
+            <div class="p-3 min-w-[250px] border-l-4 border-purple-500">
+              <h3 class="font-bold text-lg mb-2 text-purple-700">${props.name || props.org || 'Aboriginal Corporation'}</h3>
+              <div class="space-y-2 text-sm">
+                ${props.org ? `<p><strong>Organization:</strong> ${props.org}</p>` : ''}
+                ${props.name ? `<p><strong>Name:</strong> ${props.name}</p>` : ''}
+                ${props.ratsibtype ? `<p><strong>Type:</strong> <span class="px-2 py-1 bg-purple-100 text-purple-700 rounded text-xs">${props.ratsibtype}</span></p>` : ''}
+                ${props.legisauth ? `<p><strong>Legislative Authority:</strong> <span class="text-xs">${props.legisauth}</span></p>` : ''}
+                ${props.ratsiblink ? `<p><strong>Website:</strong> <a href="${props.ratsiblink}" target="_blank" class="text-purple-600 hover:text-purple-800 underline text-xs">${props.ratsiblink}</a></p>` : ''}
+                ${props.status ? `<p><strong>Status:</strong> ${props.status}</p>` : ''}
                 ${props.abn ? `<p><strong>ABN:</strong> ${props.abn}</p>` : ''}
                 ${props.address ? `<p><strong>Address:</strong> ${props.address}</p>` : ''}
-                ${props.contact ? `<p><strong>Contact:</strong> ${props.contact}</p>` : ''}
               </div>
               <div class="mt-2 text-xs text-gray-500 border-t pt-2">
                 Source: Australian Government RATSIB Register

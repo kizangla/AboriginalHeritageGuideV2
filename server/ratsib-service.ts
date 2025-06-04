@@ -86,8 +86,8 @@ export async function fetchRATSIBBoundaries(
       return {
         id: props.id || props.objectid || props.icn || `ratsib_${index}`,
         name: props.name || props.organisation_name || props.corp_name || 'Aboriginal Corporation',
-        organizationName: props.organisation_name || props.corp_name || props.name || 'Unknown Organization',
-        corporationType: props.corporation_type || props.type || props.corp_type || 'Aboriginal Corporation',
+        organizationName: props.org || props.organisation_name || props.corp_name || props.name || 'Unknown Organization',
+        corporationType: props.ratsibtype || props.corporation_type || props.type || props.corp_type || 'Aboriginal Corporation',
         registrationDate: props.registration_date || props.reg_date || props.date_registered,
         status: props.status || props.corp_status || 'Active',
         abn: props.abn || props.australian_business_number,
@@ -96,7 +96,8 @@ export async function fetchRATSIBBoundaries(
         geometry: feature.geometry || {
           type: "Point",
           coordinates: [lng, lat] // Fallback to territory center
-        }
+        },
+        originalProperties: props // Preserve all original fields from government dataset
       };
     });
     
