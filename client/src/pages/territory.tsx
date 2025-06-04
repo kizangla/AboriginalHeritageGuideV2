@@ -97,17 +97,10 @@ export default function TerritoryPage() {
     );
   }
 
-  const activeDeterminations = (nativeTitleData as any)?.success ? 
-    (nativeTitleData as any).nativeTitleData?.determinations?.filter((d: any) => 
-      d.status?.toLowerCase().includes('determined') || 
-      d.outcome?.toLowerCase().includes('exists')
-    ) || [] : [];
-
-  const activeApplications = (nativeTitleData as any)?.success ? 
-    (nativeTitleData as any).nativeTitleData?.applications?.filter((a: any) => 
-      a.status?.toLowerCase() === 'active' || 
-      a.status?.toLowerCase() === 'registration test'
-    ) || [] : [];
+  // Extract Native Title data from API response
+  const nativeTitleInfo = (nativeTitleData as any)?.success ? (nativeTitleData as any).nativeTitleData : null;
+  const activeDeterminations = nativeTitleInfo?.determinations || [];
+  const activeApplications = nativeTitleInfo?.applications || [];
 
   // Fix traditional languages display - use actual Wiradjuri language name instead of "No P"
   const displayTraditionalLanguages = territoryDetails?.traditionalLanguages?.filter(lang => 
@@ -280,12 +273,12 @@ export default function TerritoryPage() {
                 <CardDescription>Legal recognition status</CardDescription>
               </CardHeader>
               <CardContent>
-                {(nativeTitleData as any)?.success ? (
+                {nativeTitleInfo ? (
                   <div className="space-y-4">
                     <div className="grid grid-cols-2 gap-4">
                       <div className="text-center p-3 bg-green-50 rounded-lg">
-                        <div className="text-2xl font-bold text-green-700">{activeDeterminations.length}</div>
-                        <div className="text-sm text-green-600">Determinations</div>
+                        <div className="text-2xl font-bold text-green-700">{nativeTitleInfo.totalRecords || 0}</div>
+                        <div className="text-sm text-green-600">Total Records</div>
                       </div>
                       <div className="text-center p-3 bg-blue-50 rounded-lg">
                         <div className="text-2xl font-bold text-blue-700">{activeApplications.length}</div>
@@ -293,13 +286,14 @@ export default function TerritoryPage() {
                       </div>
                     </div>
 
-                    {activeDeterminations.length > 0 && (
+                    {activeApplications.length > 0 && (
                       <div>
-                        <label className="text-sm font-medium text-gray-500 mb-2 block">Recent Determinations</label>
+                        <label className="text-sm font-medium text-gray-500 mb-2 block">Active Applications</label>
                         <ScrollArea className="h-24">
-                          {activeDeterminations.slice(0, 3).map((det: any, index: number) => (
-                            <div key={index} className="text-sm text-gray-600 mb-1">
-                              {det.name || det.claim_name || 'Determination'}
+                          {activeApplications.slice(0, 3).map((app: any, index: number) => (
+                            <div key={index} className="text-sm text-gray-600 mb-1 p-2 bg-gray-50 rounded">
+                              <div className="font-medium">{app.applicantName}</div>
+                              <div className="text-xs text-gray-500">{app.status}</div>
                             </div>
                           ))}
                         </ScrollArea>
