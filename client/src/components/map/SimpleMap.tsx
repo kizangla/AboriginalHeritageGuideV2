@@ -55,11 +55,28 @@ export default function SimpleMap({
     
     mapInstanceRef.current = map;
 
-    // Add OpenStreetMap tiles
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    // Add OpenStreetMap tiles with explicit loading verification
+    const tileLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '© OpenStreetMap contributors',
-      maxZoom: 18
-    }).addTo(map);
+      maxZoom: 18,
+      detectRetina: true,
+      crossOrigin: true
+    });
+
+    tileLayer.on('loading', () => console.log('Tiles loading started'));
+    tileLayer.on('load', () => console.log('All tiles loaded'));
+    tileLayer.on('tileloadstart', () => console.log('Individual tile loading'));
+    tileLayer.on('tileload', () => console.log('Individual tile loaded'));
+    tileLayer.on('tileerror', (e) => console.error('Tile error:', e));
+
+    tileLayer.addTo(map);
+
+    // Force immediate map refresh
+    setTimeout(() => {
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.invalidateSize();
+      }
+    }, 100);
 
     console.log('Map initialized successfully');
 
@@ -178,6 +195,21 @@ export default function SimpleMap({
     territoryLayerRef.current = territoryLayer;
 
     console.log('Territory layer added to map');
+    console.log('Map container DOM element:', mapRef.current);
+    console.log('Map instance bounds:', mapInstanceRef.current.getBounds());
+    console.log('Map zoom level:', mapInstanceRef.current.getZoom());
+    console.log('Territory layer feature count:', territoryLayer.getLayers().length);
+    
+    // Force DOM inspection
+    const mapContainer = mapRef.current;
+    if (mapContainer) {
+      console.log('Map container children:', mapContainer.children.length);
+      console.log('Map container innerHTML length:', mapContainer.innerHTML.length);
+      const leafletPanes = mapContainer.querySelectorAll('.leaflet-map-pane');
+      console.log('Leaflet map panes found:', leafletPanes.length);
+      const tileLayers = mapContainer.querySelectorAll('.leaflet-tile');
+      console.log('Tile elements found:', tileLayers.length);
+    }
   }, [territoriesGeoJSON, regionFilter, nativeTitleFilter, onTerritorySelect]);
 
   // Handle RATSIB boundaries
