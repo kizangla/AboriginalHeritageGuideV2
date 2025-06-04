@@ -101,6 +101,9 @@ export default function LeafletMap({
     if (!territoriesGeoJSON || !mapInstanceRef.current) return;
 
     console.log('Adding territories to Leaflet map:', territoriesGeoJSON.features?.length);
+    console.log('Sample territory data:', territoriesGeoJSON.features?.[0]);
+    console.log('Territory geometry type:', territoriesGeoJSON.features?.[0]?.geometry?.type);
+    console.log('Territory coordinates structure:', territoriesGeoJSON.features?.[0]?.geometry?.coordinates?.[0]?.length);
 
     // Remove existing layer
     if (territoryLayerRef.current) {
@@ -197,11 +200,44 @@ export default function LeafletMap({
       }
     });
 
+    // Debug layer creation
+    console.log('Created territory layer with features:', territoryLayer.getLayers().length);
+    
+    // Check if layer has valid geometries
+    let layerCount = 0;
+    territoryLayer.eachLayer((layer: any) => {
+      if (layerCount === 0) {
+        console.log('Layer bounds:', layer.getBounds());
+      }
+      layerCount++;
+    });
+
     // Add to map
     territoryLayer.addTo(mapInstanceRef.current);
     territoryLayerRef.current = territoryLayer;
 
+    // Force map view to Australia bounds
+    const australiaBounds = L.latLngBounds(
+      L.latLng(-43.64, 113.16), // Southwest
+      L.latLng(-10.68, 153.64)  // Northeast
+    );
+    mapInstanceRef.current.fitBounds(australiaBounds);
+
     console.log('Territory layer added to Leaflet map');
+    console.log('Map bounds set to Australia:', australiaBounds);
+    
+    // Additional debugging - check map state
+    setTimeout(() => {
+      if (mapInstanceRef.current) {
+        console.log('Map zoom after bounds:', mapInstanceRef.current.getZoom());
+        console.log('Map center after bounds:', mapInstanceRef.current.getCenter());
+        const container = mapRef.current;
+        console.log('Map container size:', {
+          width: container ? container.offsetWidth : 'unknown',
+          height: container ? container.offsetHeight : 'unknown'
+        });
+      }
+    }, 100);
 
   }, [territoriesGeoJSON, regionFilter, nativeTitleFilter, onTerritorySelect]);
 
