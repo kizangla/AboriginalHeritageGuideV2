@@ -3,12 +3,13 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { MapPin, Users, Globe, Calendar, Leaf, X, Shield, AlertCircle } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
+import { useLocation } from 'wouter';
 import type { Territory } from '@shared/schema';
 
 interface TerritoryInfoPanelProps {
   territory: Territory;
   onClose: () => void;
-  onViewDetails: () => void;
+  onViewDetails?: () => void;
 }
 
 export default function TerritoryInfoPanel({ 
@@ -16,6 +17,7 @@ export default function TerritoryInfoPanel({
   onClose, 
   onViewDetails 
 }: TerritoryInfoPanelProps) {
+  const [, setLocation] = useLocation();
   // Handle both new and existing data structures
   const territoryName = (territory as any).Name || territory.name;
   const region = (territory as any).Region || territory.region;
@@ -321,7 +323,10 @@ export default function TerritoryInfoPanel({
           </div>
           
           <Button
-            onClick={onViewDetails}
+            onClick={() => {
+              const encodedTerritoryName = encodeURIComponent(territoryName);
+              setLocation(`/territory/${encodedTerritoryName}`);
+            }}
             size="sm"
             className="bg-orange-600 hover:bg-orange-700 text-white px-4"
           >

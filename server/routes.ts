@@ -1385,6 +1385,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Territory details endpoint for dynamic content pages
+  app.get('/api/territories/:territoryName/details', async (req, res) => {
+    try {
+      const { territoryName } = req.params;
+      const decodedName = decodeURIComponent(territoryName);
+      
+      console.log(`Fetching territory details for: ${decodedName}`);
+      
+      // Get territory from storage
+      const territories = await storage.getIndigenousTerritories();
+      const territory = territories.find(t => 
+        t.name === decodedName || 
+        t.groupName === decodedName ||
+        t.name.toLowerCase() === decodedName.toLowerCase() ||
+        t.groupName.toLowerCase() === decodedName.toLowerCase()
+      );
+      
+      if (!territory) {
+        return res.status(404).json({ 
+          error: 'Territory not found',
+          searchedName: decodedName 
+        });
+      }
+      
+      // Get traditional languages for this territory
+      const languageGroups = await storage.getLanguageGroups();
+      const relatedLanguages = languageGroups
+        .filter(lg => 
+          lg.region === territory.region || 
+          lg.languageFamily === territory.languageFamily ||
+          lg.groupName === territory.groupName
+        )
+        .map(lg => lg.name)
+        .slice(0, 5);
+      
+      const territoryDetails = {
+        ...territory,
+        traditionalLanguages: relatedLanguages.length > 0 ? relatedLanguages : [territory.name]
+      };
+      
+      console.log(`Found territory details for ${territory.name}`);
+      res.json(territoryDetails);
+      
+    } catch (error) {
+      console.error('Territory details error:', error);
+      res.status(500).json({ 
+        error: 'Failed to fetch territory details',
+        message: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
