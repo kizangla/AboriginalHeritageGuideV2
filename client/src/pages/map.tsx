@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import SimpleMap from '@/components/map/SimpleMap';
+import BasicMap from '@/components/map/BasicMap';
 import TerritoryModal from '@/components/map/TerritoryModal';
 import TerritoryInfoPanel from '@/components/TerritoryInfoPanel';
 import FloatingMapControls from '@/components/FloatingMapControls';
@@ -137,8 +137,7 @@ export default function MapPage() {
 
       {/* Full Screen Map */}
       <main className="h-full pt-16">
-        <SimpleMap 
-          onMapReady={setMapInstance}
+        <BasicMap 
           onTerritorySelect={handleTerritorySelect}
           regionFilter={selectedRegion}
           nativeTitleFilter={nativeTitleFilters}
