@@ -100,6 +100,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Search territories (must be before parameterized route)
+  app.get("/api/search/territories", async (req, res) => {
+    try {
+      const query = req.query.q as string;
+      if (!query || query.trim().length === 0) {
+        return res.status(400).json({ message: "Search query is required" });
+      }
+
+      const territories = await storage.getTerritories();
+      const searchTerm = query.toLowerCase().trim();
+      
+      const filteredTerritories = territories.filter((territory: any) => 
+        territory.name.toLowerCase().includes(searchTerm) ||
+        territory.groupName.toLowerCase().includes(searchTerm) ||
+        territory.region.toLowerCase().includes(searchTerm) ||
+        territory.languageFamily.toLowerCase().includes(searchTerm) ||
+        (territory.traditionalLanguages && territory.traditionalLanguages.some((lang: string) => 
+          lang.toLowerCase().includes(searchTerm)
+        ))
+      );
+
+      res.json({
+        query: query,
+        results: filteredTerritories,
+        totalResults: filteredTerritories.length
+      });
+    } catch (error) {
+      console.error("Territory search error:", error);
+      res.status(500).json({ message: "Failed to search territories" });
+    }
+  });
+
   // Get territory by ID
   app.get("/api/territories/:id", async (req, res) => {
     try {

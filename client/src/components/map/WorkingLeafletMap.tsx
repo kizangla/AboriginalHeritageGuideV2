@@ -90,21 +90,28 @@ export default function WorkingLeafletMap({
 
     if (regionFilter && regionFilter !== 'all') {
       filteredFeatures = filteredFeatures.filter((feature: any) => 
-        feature.properties?.STATE === regionFilter
+        feature.properties?.region === regionFilter
       );
     }
 
-    if (nativeTitleFilter) {
+    if (nativeTitleFilter && Object.values(nativeTitleFilter).some(Boolean)) {
       filteredFeatures = filteredFeatures.filter((feature: any) => {
         const props = feature.properties;
-        if (!props) return true;
+        if (!props) return false;
 
-        if (nativeTitleFilter.exists && props.NTDA !== 'Yes') return false;
-        if (nativeTitleFilter.doesNotExist && props.NTDA === 'Yes') return false;
-        if (nativeTitleFilter.entireArea && props.OVERLAP !== 'Entire Area') return false;
-        if (nativeTitleFilter.partialArea && props.OVERLAP === 'Entire Area') return false;
-        if (nativeTitleFilter.discontinued && props.STATUS !== 'Discontinued') return false;
-        if (nativeTitleFilter.dismissed && props.STATUS !== 'Dismissed') return false;
+        // For this synthetic data, we'll simulate native title filtering
+        // based on region and cultural characteristics
+        const hasNativeTitle = props.culturalInfo?.includes('connection to country') || 
+                              props.historicalContext?.includes('traditional lands');
+        
+        const isEntireArea = props.estimatedPopulation > 3000;
+
+        if (nativeTitleFilter.exists && !hasNativeTitle) return false;
+        if (nativeTitleFilter.doesNotExist && hasNativeTitle) return false;
+        if (nativeTitleFilter.entireArea && !isEntireArea) return false;
+        if (nativeTitleFilter.partialArea && isEntireArea) return false;
+        if (nativeTitleFilter.determined && !hasNativeTitle) return false;
+        if (nativeTitleFilter.pending && hasNativeTitle) return false;
 
         return true;
       });
