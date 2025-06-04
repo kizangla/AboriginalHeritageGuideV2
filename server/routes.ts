@@ -868,10 +868,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Use optimized cache service for faster loading (reduces 16-19s to <2s)
       const cachedData = await nativeTitleCacheService.getNativeTitleForLocation(lat, lng);
       
+      // Separate applications from determinations based on authentic government data
+      const allRecords = [...cachedData.applications, ...cachedData.determinations];
+      
+      // Categorize based on DETOUTCOME field from Australian Government data
+      const applications = allRecords.filter((det: any) => {
+        const outcome = det.properties?.DETOUTCOME || '';
+        return !outcome.includes('Native title exists') && !outcome.includes('Native title does not exist');
+      });
+      
+      const determinations = allRecords.filter((det: any) => {
+        const outcome = det.properties?.DETOUTCOME || '';
+        return outcome.includes('Native title exists') || outcome.includes('Native title does not exist');
+      });
+      
       // Format data to match expected structure
       const nativeTitleInfo = {
-        hasNativeTitle: cachedData.determinations.length > 0 || cachedData.applications.length > 0,
-        applications: cachedData.applications.map((det: any) => ({
+        hasNativeTitle: allRecords.length > 0,
+        applications: allRecords.map((det: any) => ({
           applicationId: det.properties?.TRIBID || det.properties?.FCNO || `APP_${Math.random().toString(36).substr(2, 9)}`,
           tribunalNumber: det.properties?.FCNO || det.properties?.TRIBID || 'N/A',
           applicantName: det.properties?.NAME || det.properties?.FCNAME || 'Traditional Owners',
@@ -889,7 +903,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
             citation: `National Native Title Tribunal. (2025). Native Title Determinations Register. Tribunal File: ${det.properties?.FCNO || det.properties?.TRIBID || 'N/A'}. Retrieved from https://data.gov.au/data/dataset/native-title-determinations`
           }
         })),
-        status: cachedData.determinations.length > 0 ? 'determined' : 'pending'
+        // Add correct counts for UI display
+        totalRecords: allRecords.length,
+        applicationsCount: applications.length,
+        determinationsCount: determinations.length,
+        status: determinations.length > 0 ? 'determined' : 'pending'
       };
 
       res.json({

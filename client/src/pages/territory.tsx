@@ -102,14 +102,19 @@ export default function TerritoryPage() {
   // Extract Native Title data from API response - fix data structure access
   const nativeTitleInfo = (nativeTitleData as any)?.success ? (nativeTitleData as any).nativeTitleData : null;
   
-  // Categorize records based on status - determinations have "Determined" in status
+  // Use optimized backend categorization from Australian Government data
   const allRecords = nativeTitleInfo?.applications || [];
-  const activeDeterminations = allRecords.filter((record: any) => 
-    record.status && record.status.toLowerCase().includes('determined')
-  );
-  const activeApplications = allRecords.filter((record: any) => 
-    !record.status || !record.status.toLowerCase().includes('determined')
-  );
+  
+  // Categorize based on DETOUTCOME field from government data
+  const activeDeterminations = allRecords.filter((record: any) => {
+    const outcome = record.outcome || record.status || '';
+    return outcome.includes('Native title exists') || outcome.includes('Native title does not exist');
+  });
+  
+  const activeApplications = allRecords.filter((record: any) => {
+    const outcome = record.outcome || record.status || '';
+    return !outcome.includes('Native title exists') && !outcome.includes('Native title does not exist');
+  });
   
   // Extract RATSIB data from API response - fix data structure access
   const ratsibInfo = (ratsibData as any)?.success ? (ratsibData as any).ratsibData : null;
