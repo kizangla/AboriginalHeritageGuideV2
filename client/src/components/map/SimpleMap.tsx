@@ -5,6 +5,7 @@ import type { Territory } from '@shared/schema';
 import type { NativeTitleStatusFilter } from '@/components/NativeTitleFilter';
 import { dataOptimizationService } from '@/lib/data-optimization';
 import EnhancedBusinessMarkers from './EnhancedBusinessMarkers';
+import MiningOverlay from './MiningOverlay';
 
 interface SimpleMapProps {
   onMapReady?: (map: L.Map) => void;
@@ -15,9 +16,10 @@ interface SimpleMapProps {
   showRATSIBBoundaries?: boolean;
   businessSearchQuery?: string;
   onBusinessSelect?: (business: any) => void;
+  showMining?: boolean;
 }
 
-export default function SimpleMap({ onMapReady, onTerritorySelect, regionFilter, nativeTitleFilter, selectedTerritory, showRATSIBBoundaries = true, businessSearchQuery, onBusinessSelect }: SimpleMapProps) {
+export default function SimpleMap({ onMapReady, onTerritorySelect, regionFilter, nativeTitleFilter, selectedTerritory, showRATSIBBoundaries = true, businessSearchQuery, onBusinessSelect, showMining = false }: SimpleMapProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
   const territoryLayerRef = useRef<L.GeoJSON | null>(null);
