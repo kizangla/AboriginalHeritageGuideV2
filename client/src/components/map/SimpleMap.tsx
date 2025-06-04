@@ -84,8 +84,8 @@ export default function SimpleMap({
         const props = feature.properties;
         if (!props) return true;
 
-        if (nativeTitleFilter.withNativeTitle && props.NTDA !== 'Yes') return false;
-        if (nativeTitleFilter.withoutNativeTitle && props.NTDA === 'Yes') return false;
+        if (nativeTitleFilter.exists && props.NTDA !== 'Yes') return false;
+        if (nativeTitleFilter.doesNotExist && props.NTDA === 'Yes') return false;
         if (nativeTitleFilter.entireArea && props.OVERLAP !== 'Entire Area') return false;
         if (nativeTitleFilter.partialArea && props.OVERLAP === 'Entire Area') return false;
         if (nativeTitleFilter.discontinued && props.STATUS !== 'Discontinued') return false;
@@ -146,16 +146,24 @@ export default function SimpleMap({
             const territory: Territory = {
               id: props.FID || Date.now(),
               name: props.NAME || 'Unknown Territory',
-              state: props.STATE || 'Unknown',
-              region: props.REGION || 'Unknown',
               groupName: props.GROUP_NAME || 'Unknown',
-              ntda: props.NTDA || 'Unknown',
-              overlap: props.OVERLAP || 'Unknown',
-              status: props.STATUS || 'Unknown',
-              coordinates: {
-                lat: feature.geometry?.type === 'Point' ? feature.geometry.coordinates[1] : 0,
-                lng: feature.geometry?.type === 'Point' ? feature.geometry.coordinates[0] : 0
-              }
+              languageFamily: 'Unknown',
+              region: props.REGION || 'Unknown',
+              regionType: 'Unknown',
+              estimatedPopulation: null,
+              culturalInfo: null,
+              historicalContext: null,
+              traditionalLanguages: [],
+              geometry: feature.geometry,
+              color: '#8B4513',
+              centerLat: feature.geometry?.type === 'Point' ? feature.geometry.coordinates[1] : 0,
+              centerLng: feature.geometry?.type === 'Point' ? feature.geometry.coordinates[0] : 0,
+              seasonalCalendar: null,
+              traditionalFoods: [],
+              medicinalPlants: [],
+              culturalProtocols: null,
+              connectionToCountry: null,
+              artStyles: []
             };
             onTerritorySelect(territory);
           }
@@ -325,9 +333,9 @@ export default function SimpleMap({
         });
         
         // Center map on selected territory if coordinates are available
-        if (selectedTerritory.coordinates?.lat && selectedTerritory.coordinates?.lng) {
+        if (selectedTerritory.centerLat && selectedTerritory.centerLng) {
           mapInstanceRef.current?.setView(
-            [selectedTerritory.coordinates.lat, selectedTerritory.coordinates.lng],
+            [selectedTerritory.centerLat, selectedTerritory.centerLng],
             8
           );
         }
