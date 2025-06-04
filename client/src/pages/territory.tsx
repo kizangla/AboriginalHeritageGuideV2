@@ -339,10 +339,10 @@ export default function TerritoryPage() {
                         {activeDeterminations.length > 0 && (
                           <div>
                             <label className="text-sm font-medium text-gray-500 mb-2 block">
-                              Determinations
+                              Determinations ({activeDeterminations.length} records)
                             </label>
-                            <ScrollArea className="h-32">
-                              {activeDeterminations.slice(0, 5).map((det: any, index: number) => (
+                            <ScrollArea className="h-96">
+                              {activeDeterminations.map((det: any, index: number) => (
                                 <div key={index} className="text-sm text-gray-600 mb-2 p-3 bg-green-50 rounded-lg border-l-3 border-green-400">
                                   <div className="font-semibold text-gray-800">
                                     {det.name || det.applicantName || det.claim_name || 'Native Title Determination'}
