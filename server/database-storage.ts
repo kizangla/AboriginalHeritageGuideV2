@@ -288,10 +288,9 @@ export class DatabaseStorage implements IStorage {
   }
 
   private getLanguageFamily(lat: number, lng: number): string {
-    if (lng > 145) return "Pama-Nyungan";
-    if (lat < -30) return "Kulin";
-    if (lat > -20) return "Non-Pama-Nyungan";
-    return "Pama-Nyungan";
+    // Language family data requires authentic linguistic mapping from AIATSIS
+    // Cannot provide accurate language family classification without access to official AIATSIS language boundaries
+    return "Requires AIATSIS language data";
   }
 
   private getRegion(lat: number, lng: number): string {
@@ -325,11 +324,9 @@ export class DatabaseStorage implements IStorage {
   }
 
   private getTraditionalLanguages(lat: number, lng: number): string[] {
-    const family = this.getLanguageFamily(lat, lng);
-    if (family === "Pama-Nyungan") {
-      return ["Wiradjuri", "Yolngu", "Arrernte"];
-    }
-    return ["Tiwi", "Kunwinjku", "Yiriman"];
+    // Traditional language data requires authentic linguistic mapping from AIATSIS
+    // Cannot provide accurate language names without access to official AIATSIS language boundaries
+    return [];
   }
 
   private getSeasonalCalendar(lat: number, lng: number): string {

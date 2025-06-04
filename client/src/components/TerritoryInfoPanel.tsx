@@ -119,15 +119,13 @@ export default function TerritoryInfoPanel({
       <CardContent className="p-3 sm:p-4 space-y-3 sm:space-y-4 max-h-[70vh] overflow-y-auto">
         {/* Cultural Information Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
-          {languageFamily && (
-            <div className="flex items-center gap-2 p-2 bg-blue-50 rounded-lg">
-              <Globe className="w-4 h-4 text-blue-600" />
-              <div>
-                <div className="text-xs text-blue-600 font-medium">Language Family</div>
-                <div className="text-sm text-gray-800">{languageFamily}</div>
-              </div>
+          <div className="flex items-center gap-2 p-2 bg-purple-50 rounded-lg border border-purple-200">
+            <Globe className="w-4 h-4 text-purple-600" />
+            <div>
+              <div className="text-xs text-purple-600 font-medium">Language Data</div>
+              <div className="text-sm text-gray-800">Requires AIATSIS credentials</div>
             </div>
-          )}
+          </div>
           
           <div className="flex items-center gap-2 p-2 bg-amber-50 rounded-lg border border-amber-200">
             <AlertCircle className="w-4 h-4 text-amber-600" />
