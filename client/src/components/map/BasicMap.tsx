@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import type { Territory } from '@shared/schema';
 import type { NativeTitleStatusFilter } from '@/components/NativeTitleFilter';
+import { dataOptimizationService } from '@/lib/data-optimization';
 
 interface BasicMapProps {
   onTerritorySelect?: (territory: Territory) => void;
@@ -114,6 +115,11 @@ export default function BasicMap({
 
     ctx.globalAlpha = 1;
 
+    // Draw RATSIB boundaries if enabled
+    if (showRATSIBBoundaries) {
+      loadAndDrawRATSIB(ctx, project, canvas);
+    }
+
     // Add territory count text
     ctx.fillStyle = '#333';
     ctx.font = '16px Arial';
@@ -122,7 +128,45 @@ export default function BasicMap({
     setMapLoaded(true);
     console.log('Canvas map rendered successfully');
 
-  }, [territoriesGeoJSON, regionFilter, nativeTitleFilter]);
+  }, [territoriesGeoJSON, regionFilter, nativeTitleFilter, showRATSIBBoundaries]);
+
+  const loadAndDrawRATSIB = async (ctx: CanvasRenderingContext2D, project: Function, canvas: HTMLCanvasElement) => {
+    try {
+      console.log('Loading RATSIB boundaries for canvas...');
+      
+      const data = await dataOptimizationService.optimizedFetch(
+        '/api/territories/map-view/ratsib?lat=-25.2744&lng=133.7751'
+      );
+      
+      if (!data.success || !data.ratsibBoundaries || data.ratsibBoundaries.length === 0) {
+        console.log('No RATSIB boundaries found for canvas');
+        return;
+      }
+
+      // Draw RATSIB boundaries as purple overlays
+      ctx.strokeStyle = '#8B5CF6';
+      ctx.lineWidth = 2;
+      ctx.globalAlpha = 0.8;
+
+      data.ratsibBoundaries.forEach((boundary: any) => {
+        if (!boundary.geometry || !boundary.geometry.coordinates) return;
+
+        if (boundary.geometry.type === 'Polygon') {
+          drawPolygon(ctx, boundary.geometry.coordinates[0], project);
+        } else if (boundary.geometry.type === 'MultiPolygon') {
+          boundary.geometry.coordinates.forEach((polygon: any) => {
+            drawPolygon(ctx, polygon[0], project);
+          });
+        }
+      });
+
+      ctx.globalAlpha = 1;
+      console.log(`Drew ${data.ratsibBoundaries.length} RATSIB boundaries on canvas`);
+
+    } catch (error) {
+      console.error('Error loading RATSIB boundaries for canvas:', error);
+    }
+  };
 
   const drawPolygon = (ctx: CanvasRenderingContext2D, coordinates: number[][], project: Function) => {
     if (coordinates.length < 3) return;
