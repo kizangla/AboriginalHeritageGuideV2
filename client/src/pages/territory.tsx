@@ -45,6 +45,11 @@ export default function TerritoryPage() {
     enabled: !!territoryName
   });
 
+  // Debug log to check data
+  console.log('Territory Details:', territoryDetails);
+  console.log('Loading:', isLoading);
+  console.log('Error:', error);
+
   const { data: nativeTitleData } = useQuery({
     queryKey: ['/api/territories', territoryName, 'native-title'],
     enabled: !!territoryName
