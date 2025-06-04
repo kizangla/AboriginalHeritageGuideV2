@@ -25,7 +25,7 @@ interface FloatingMapControlsProps {
   nativeTitleFilters: NativeTitleStatusFilter;
 }
 
-export default function FloatingMapControls({
+function FloatingMapControls({
   onRegionFilter,
   selectedRegion,
   territoryStats,
@@ -60,9 +60,10 @@ export default function FloatingMapControls({
   ];
 
   return (
-    <div className="absolute bottom-4 sm:bottom-6 left-1/2 transform -translate-x-1/2 z-[1000] flex items-center gap-1 sm:gap-2">
-      {/* Floating Control Bar */}
-      <div className="bg-white/95 backdrop-blur-sm rounded-full shadow-lg border border-gray-200 px-2 sm:px-4 py-1.5 sm:py-2 flex items-center gap-1 sm:gap-2 max-w-[95vw] overflow-x-auto">
+    <>
+      <div className="absolute bottom-4 sm:bottom-6 left-1/2 transform -translate-x-1/2 z-[1000] flex items-center gap-1 sm:gap-2">
+        {/* Floating Control Bar */}
+        <div className="bg-white/95 backdrop-blur-sm rounded-full shadow-lg border border-gray-200 px-2 sm:px-4 py-1.5 sm:py-2 flex items-center gap-1 sm:gap-2 max-w-[95vw] overflow-x-auto">
         
         {/* Reset View */}
         <Button
@@ -113,70 +114,6 @@ export default function FloatingMapControls({
             )}
             <ChevronDown className="w-3 h-3 ml-1" />
           </Button>
-          
-          {showRegionFilter && (
-            <div className="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 w-96 max-w-[90vw] p-4 bg-white shadow-xl border border-gray-300 rounded-lg z-[9999]">
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <h4 className="font-medium text-sm">Aboriginal Regions</h4>
-                  <Badge variant="outline" className="text-xs">
-                    {territoryStats.total} total
-                  </Badge>
-                </div>
-
-                {/* Show All Territories - Always Visible */}
-                <Button
-                  onClick={() => {
-                    onRegionFilter(null);
-                    setShowRegionFilter(false);
-                  }}
-                  size="sm"
-                  variant={!selectedRegion ? "default" : "outline"}
-                  className="w-full h-8 text-xs"
-                >
-                  <Layers className="w-3 h-3 mr-1" />
-                  Show All Territories
-                  {!selectedRegion && (
-                    <Badge variant="secondary" className="ml-1 text-xs">
-                      {territoryStats.total}
-                    </Badge>
-                  )}
-                </Button>
-
-                {/* Quick Region Filters */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-60 overflow-y-auto">
-                  {quickRegions.map((region) => (
-                    <Button
-                      key={region.key}
-                      onClick={() => {
-                        onRegionFilter(region.key);
-                        setShowRegionFilter(false);
-                      }}
-                      size="sm"
-                      variant={selectedRegion === region.key ? "default" : "outline"}
-                      className="h-9 text-xs justify-between w-full px-3"
-                    >
-                      <span className="text-left">{region.name}</span>
-                      <Badge 
-                        variant="secondary" 
-                        className="text-xs px-1.5 ml-2"
-                        style={{ backgroundColor: `${region.color}20`, color: region.color }}
-                      >
-                        {region.count}
-                      </Badge>
-                    </Button>
-                  ))}
-                </div>
-
-                {/* More Regions Link */}
-                <div className="pt-2 border-t border-gray-200">
-                  <p className="text-xs text-gray-500 text-center">
-                    {quickRegions.reduce((sum, r) => sum + r.count, 0)} of {territoryStats.total} territories shown
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
         </div>
 
         {/* Native Title Filter */}
@@ -201,81 +138,6 @@ export default function FloatingMapControls({
             )}
             <ChevronDown className="w-3 h-3 ml-1" />
           </Button>
-          
-          {showNativeTitleFilter && (
-            <div className="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 w-80 max-w-[95vw] bg-white shadow-xl border border-gray-300 rounded-lg z-[9999] max-h-[80vh] overflow-y-auto">
-              <div className="p-4 space-y-4">
-                <div className="flex items-center justify-between">
-                  <h4 className="font-medium text-sm">Native Title Status</h4>
-                  <button 
-                    onClick={() => setShowNativeTitleFilter(false)}
-                    className="text-gray-400 hover:text-gray-600"
-                  >
-                    ×
-                  </button>
-                </div>
-                
-                <div className="space-y-3">
-                  <div>
-                    <h5 className="text-xs font-medium text-gray-600 mb-2">Status</h5>
-                    <label className="flex items-center space-x-2 text-sm cursor-pointer">
-                      <input 
-                        type="checkbox" 
-                        checked={nativeTitleFilters.determined}
-                        onChange={() => onNativeTitleFilter({...nativeTitleFilters, determined: !nativeTitleFilters.determined})}
-                        className="rounded"
-                      />
-                      <span>Determined (648)</span>
-                    </label>
-                    <label className="flex items-center space-x-2 text-sm cursor-pointer">
-                      <input 
-                        type="checkbox" 
-                        checked={nativeTitleFilters.pending}
-                        onChange={() => onNativeTitleFilter({...nativeTitleFilters, pending: !nativeTitleFilters.pending})}
-                        className="rounded"
-                      />
-                      <span>Pending Applications (102)</span>
-                    </label>
-                  </div>
-                  
-                  <div>
-                    <h5 className="text-xs font-medium text-gray-600 mb-2">Outcomes</h5>
-                    <label className="flex items-center space-x-2 text-sm cursor-pointer">
-                      <input 
-                        type="checkbox" 
-                        checked={nativeTitleFilters.exists}
-                        onChange={() => onNativeTitleFilter({...nativeTitleFilters, exists: !nativeTitleFilters.exists})}
-                        className="rounded"
-                      />
-                      <span>Native Title Exists (425)</span>
-                    </label>
-                    <label className="flex items-center space-x-2 text-sm cursor-pointer">
-                      <input 
-                        type="checkbox" 
-                        checked={nativeTitleFilters.entireArea}
-                        onChange={() => onNativeTitleFilter({...nativeTitleFilters, entireArea: !nativeTitleFilters.entireArea})}
-                        className="rounded"
-                      />
-                      <span>Exists in Entire Area (291)</span>
-                    </label>
-                    <label className="flex items-center space-x-2 text-sm cursor-pointer">
-                      <input 
-                        type="checkbox" 
-                        checked={nativeTitleFilters.partialArea}
-                        onChange={() => onNativeTitleFilter({...nativeTitleFilters, partialArea: !nativeTitleFilters.partialArea})}
-                        className="rounded"
-                      />
-                      <span>Exists in Part (134)</span>
-                    </label>
-                  </div>
-                </div>
-                
-                <div className="pt-2 border-t text-xs text-gray-500">
-                  Data from National Native Title Tribunal
-                </div>
-              </div>
-            </div>
-          )}
         </div>
 
         {/* Divider */}
@@ -287,7 +149,144 @@ export default function FloatingMapControls({
           <span className="font-medium">{territoryStats.total}</span>
           <span className="text-xs">territories</span>
         </div>
+        </div>
       </div>
-    </div>
+
+      {/* Region Filter Popup - Outside control bar */}
+      {showRegionFilter && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/20">
+          <div className="bg-white rounded-lg shadow-xl border border-gray-300 w-96 max-w-[95vw] max-h-[80vh] overflow-y-auto m-4">
+            <div className="p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <h4 className="font-medium text-sm">Aboriginal Regions</h4>
+                <button 
+                  onClick={() => setShowRegionFilter(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  ×
+                </button>
+              </div>
+
+              <Button
+                onClick={() => {
+                  onRegionFilter(null);
+                  setShowRegionFilter(false);
+                }}
+                size="sm"
+                variant={!selectedRegion ? "default" : "outline"}
+                className="w-full h-8 text-xs"
+              >
+                <Layers className="w-3 h-3 mr-1" />
+                Show All Territories ({territoryStats.total})
+              </Button>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-60 overflow-y-auto">
+                {quickRegions.map((region) => (
+                  <Button
+                    key={region.key}
+                    onClick={() => {
+                      onRegionFilter(region.key);
+                      setShowRegionFilter(false);
+                    }}
+                    size="sm"
+                    variant={selectedRegion === region.key ? "default" : "outline"}
+                    className="h-9 text-xs justify-between w-full px-3"
+                  >
+                    <span className="text-left">{region.name}</span>
+                    <Badge 
+                      variant="secondary" 
+                      className="text-xs px-1.5 ml-2"
+                      style={{ backgroundColor: `${region.color}20`, color: region.color }}
+                    >
+                      {region.count}
+                    </Badge>
+                  </Button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Native Title Filter Popup - Outside control bar */}
+      {showNativeTitleFilter && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/20">
+          <div className="bg-white rounded-lg shadow-xl border border-gray-300 w-80 max-w-[95vw] max-h-[80vh] overflow-y-auto m-4">
+            <div className="p-4 space-y-4">
+              <div className="flex items-center justify-between">
+                <h4 className="font-medium text-sm">Native Title Status</h4>
+                <button 
+                  onClick={() => setShowNativeTitleFilter(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  ×
+                </button>
+              </div>
+              
+              <div className="space-y-3">
+                <div>
+                  <h5 className="text-xs font-medium text-gray-600 mb-2">Status</h5>
+                  <label className="flex items-center space-x-2 text-sm cursor-pointer">
+                    <input 
+                      type="checkbox" 
+                      checked={nativeTitleFilters.determined}
+                      onChange={() => onNativeTitleFilter({...nativeTitleFilters, determined: !nativeTitleFilters.determined})}
+                      className="rounded"
+                    />
+                    <span>Determined (648)</span>
+                  </label>
+                  <label className="flex items-center space-x-2 text-sm cursor-pointer">
+                    <input 
+                      type="checkbox" 
+                      checked={nativeTitleFilters.pending}
+                      onChange={() => onNativeTitleFilter({...nativeTitleFilters, pending: !nativeTitleFilters.pending})}
+                      className="rounded"
+                    />
+                    <span>Pending Applications (102)</span>
+                  </label>
+                </div>
+                
+                <div>
+                  <h5 className="text-xs font-medium text-gray-600 mb-2">Outcomes</h5>
+                  <label className="flex items-center space-x-2 text-sm cursor-pointer">
+                    <input 
+                      type="checkbox" 
+                      checked={nativeTitleFilters.exists}
+                      onChange={() => onNativeTitleFilter({...nativeTitleFilters, exists: !nativeTitleFilters.exists})}
+                      className="rounded"
+                    />
+                    <span>Native Title Exists (425)</span>
+                  </label>
+                  <label className="flex items-center space-x-2 text-sm cursor-pointer">
+                    <input 
+                      type="checkbox" 
+                      checked={nativeTitleFilters.entireArea}
+                      onChange={() => onNativeTitleFilter({...nativeTitleFilters, entireArea: !nativeTitleFilters.entireArea})}
+                      className="rounded"
+                    />
+                    <span>Exists in Entire Area (291)</span>
+                  </label>
+                  <label className="flex items-center space-x-2 text-sm cursor-pointer">
+                    <input 
+                      type="checkbox" 
+                      checked={nativeTitleFilters.partialArea}
+                      onChange={() => onNativeTitleFilter({...nativeTitleFilters, partialArea: !nativeTitleFilters.partialArea})}
+                      className="rounded"
+                    />
+                    <span>Exists in Part (134)</span>
+                  </label>
+                </div>
+              </div>
+              
+              <div className="pt-2 border-t text-xs text-gray-500">
+                Data from National Native Title Tribunal
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
+
+export default FloatingMapControls;
