@@ -115,7 +115,7 @@ export default function FloatingMapControls({
           </Button>
           
           {showRegionFilter && (
-            <div className="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 w-96 max-w-[90vw] p-4 bg-white shadow-xl border rounded-lg z-[1002]">
+            <div className="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 w-96 max-w-[90vw] p-4 bg-white shadow-xl border border-gray-300 rounded-lg z-[9999]">
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <h4 className="font-medium text-sm">Aboriginal Regions</h4>
