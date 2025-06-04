@@ -203,11 +203,13 @@ export default function FloatingMapControls({
           </Button>
           
           {showNativeTitleFilter && (
-            <div className="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 w-96 max-w-[95vw] sm:max-w-[90vw] md:max-w-[80vw] lg:max-w-[70vw] bg-white shadow-xl border rounded-lg z-[1002] max-h-[80vh] overflow-y-auto">
-              <NativeTitleFilter
-                onFilterChange={onNativeTitleFilter}
-                activeFilters={nativeTitleFilters}
-              />
+            <div className="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 w-96 max-w-[95vw] sm:max-w-[90vw] md:max-w-[80vw] lg:max-w-[70vw] bg-white shadow-xl border border-gray-300 rounded-lg z-[9999] max-h-[80vh] overflow-y-auto">
+              <div className="p-4">
+                <NativeTitleFilter
+                  onFilterChange={onNativeTitleFilter}
+                  activeFilters={nativeTitleFilters}
+                />
+              </div>
             </div>
           )}
         </div>
