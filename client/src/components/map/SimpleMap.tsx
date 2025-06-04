@@ -342,9 +342,13 @@ export default function SimpleMap({ onMapReady, onTerritorySelect, regionFilter,
         ...(data.nativeTitle.registeredBodies || [])
       ];
 
-      for (const record of allRecords) {
+      allRecords.forEach((record, index) => {
         // Create point markers for Native Title records using territory coordinates as reference
         if (record.applicantName || record.determinationName) {
+          // Create a small offset for each marker to avoid complete overlap
+          const offsetLat = lat + (Math.random() - 0.5) * 0.1; // Small random offset within ~5km
+          const offsetLng = lng + (Math.random() - 0.5) * 0.1;
+          
           nativeTitleFeatures.push({
             type: "Feature",
             properties: {
@@ -356,11 +360,11 @@ export default function SimpleMap({ onMapReady, onTerritorySelect, regionFilter,
             },
             geometry: {
               type: "Point",
-              coordinates: [lng, lat] // Use territory coordinates as reference point
+              coordinates: [offsetLng, offsetLat] // Use offset coordinates to spread markers
             }
           });
         }
-      }
+      });
 
       if (nativeTitleFeatures.length > 0) {
         // Create Native Title layer with point markers
