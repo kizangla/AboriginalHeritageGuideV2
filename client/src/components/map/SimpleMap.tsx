@@ -195,21 +195,48 @@ export default function SimpleMap({
     territoryLayerRef.current = territoryLayer;
 
     console.log('Territory layer added to map');
-    console.log('Map container DOM element:', mapRef.current);
-    console.log('Map instance bounds:', mapInstanceRef.current.getBounds());
-    console.log('Map zoom level:', mapInstanceRef.current.getZoom());
-    console.log('Territory layer feature count:', territoryLayer.getLayers().length);
     
-    // Force DOM inspection
-    const mapContainer = mapRef.current;
-    if (mapContainer) {
-      console.log('Map container children:', mapContainer.children.length);
-      console.log('Map container innerHTML length:', mapContainer.innerHTML.length);
-      const leafletPanes = mapContainer.querySelectorAll('.leaflet-map-pane');
-      console.log('Leaflet map panes found:', leafletPanes.length);
-      const tileLayers = mapContainer.querySelectorAll('.leaflet-tile');
-      console.log('Tile elements found:', tileLayers.length);
-    }
+    // Force DOM visibility and styling
+    setTimeout(() => {
+      const mapContainer = mapRef.current;
+      if (mapContainer) {
+        // Force all Leaflet elements to be visible
+        const leafletElements = mapContainer.querySelectorAll('*[class*="leaflet"]');
+        leafletElements.forEach((element: any) => {
+          element.style.display = 'block';
+          element.style.visibility = 'visible';
+          element.style.opacity = '1';
+        });
+        
+        // Specifically target tile elements
+        const tiles = mapContainer.querySelectorAll('.leaflet-tile');
+        tiles.forEach((tile: any) => {
+          tile.style.display = 'block';
+          tile.style.visibility = 'visible';
+          tile.style.opacity = '1';
+          tile.style.position = 'absolute';
+        });
+        
+        // Force map pane visibility
+        const mapPane = mapContainer.querySelector('.leaflet-map-pane');
+        if (mapPane) {
+          (mapPane as any).style.display = 'block';
+          (mapPane as any).style.visibility = 'visible';
+          (mapPane as any).style.position = 'absolute';
+          (mapPane as any).style.left = '0px';
+          (mapPane as any).style.top = '0px';
+          (mapPane as any).style.width = '100%';
+          (mapPane as any).style.height = '100%';
+        }
+        
+        console.log('Forced DOM element visibility');
+        
+        // Force map refresh
+        if (mapInstanceRef.current) {
+          mapInstanceRef.current.invalidateSize(true);
+        }
+      }
+    }, 100);
   }, [territoriesGeoJSON, regionFilter, nativeTitleFilter, onTerritorySelect]);
 
   // Handle RATSIB boundaries
