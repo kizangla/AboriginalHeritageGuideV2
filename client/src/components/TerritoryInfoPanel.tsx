@@ -174,7 +174,7 @@ export default function TerritoryInfoPanel({
                         {ownersList.length === 1 ? (
                           ownersList[0]
                         ) : (
-                          <div className="mt-1 space-y-1 mb-3">
+                          <div className="mt-1 space-y-1 mb-6 pb-3">
                             {ownersList.map((owner, index) => (
                               <div key={index} className="flex items-center gap-1">
                                 <span className="w-1 h-1 bg-gray-400 rounded-full flex-shrink-0"></span>
@@ -189,7 +189,7 @@ export default function TerritoryInfoPanel({
                   return null;
                 })()}
                 {nativeTitleData.nativeTitle.applications && nativeTitleData.nativeTitle.applications.length > 0 && (
-                  <div className="space-y-2 mt-6 pt-4 border-t border-orange-200">
+                  <div className="space-y-3 mt-8 pt-6 border-t-2 border-orange-300 bg-orange-25">
                     <div className="text-xs text-gray-600 font-medium">
                       {nativeTitleData.nativeTitle.applications.length} Native Title application(s) recorded
                     </div>
