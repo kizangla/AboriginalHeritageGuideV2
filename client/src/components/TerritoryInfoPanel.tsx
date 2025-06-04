@@ -129,15 +129,13 @@ export default function TerritoryInfoPanel({
             </div>
           )}
           
-          {estimatedPopulation && (
-            <div className="flex items-center gap-2 p-2 bg-green-50 rounded-lg">
-              <Users className="w-4 h-4 text-green-600" />
-              <div>
-                <div className="text-xs text-green-600 font-medium">Population</div>
-                <div className="text-sm text-gray-800">{estimatedPopulation.toLocaleString()}</div>
-              </div>
+          <div className="flex items-center gap-2 p-2 bg-amber-50 rounded-lg border border-amber-200">
+            <AlertCircle className="w-4 h-4 text-amber-600" />
+            <div>
+              <div className="text-xs text-amber-600 font-medium">Population Data</div>
+              <div className="text-sm text-gray-800">Requires ABS credentials</div>
             </div>
-          )}
+          </div>
         </div>
 
         {/* Native Title Information - Australian Government Data */}
