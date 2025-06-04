@@ -41,7 +41,7 @@ export default function TerritoryPage() {
   const [, setLocation] = useLocation();
 
   const { data: territoryDetails, isLoading, error } = useQuery<TerritoryDetails>({
-    queryKey: ['/api/territories', territoryName, 'details'],
+    queryKey: [`/api/territories/${territoryName}/details`],
     enabled: !!territoryName
   });
 
@@ -51,12 +51,12 @@ export default function TerritoryPage() {
   console.log('Error:', error);
 
   const { data: nativeTitleData } = useQuery({
-    queryKey: ['/api/territories', territoryName, 'native-title'],
+    queryKey: [`/api/territories/${territoryName}/native-title`],
     enabled: !!territoryName
   });
 
   const { data: ratsibData } = useQuery({
-    queryKey: ['/api/territories', territoryName, 'ratsib'],
+    queryKey: [`/api/territories/${territoryName}/ratsib`],
     enabled: !!territoryName
   });
 
