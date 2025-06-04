@@ -12,14 +12,27 @@ interface SimpleMapProps {
   nativeTitleFilter?: NativeTitleStatusFilter;
   selectedTerritory?: Territory | null;
   showRATSIBBoundaries?: boolean;
+  showABSRegions?: boolean;
+  showAIATSISLanguages?: boolean;
 }
 
-export default function SimpleMap({ onMapReady, onTerritorySelect, regionFilter, nativeTitleFilter, selectedTerritory, showRATSIBBoundaries = true }: SimpleMapProps) {
+export default function SimpleMap({ 
+  onMapReady, 
+  onTerritorySelect, 
+  regionFilter, 
+  nativeTitleFilter, 
+  selectedTerritory, 
+  showRATSIBBoundaries = true,
+  showABSRegions = false,
+  showAIATSISLanguages = false 
+}: SimpleMapProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
   const territoryLayerRef = useRef<L.GeoJSON | null>(null);
   const overlayLayerRef = useRef<L.GeoJSON | null>(null);
   const nativeTitleLayerRef = useRef<L.GeoJSON | null>(null);
+  const absRegionsLayerRef = useRef<L.GeoJSON | null>(null);
+  const aiatsisLanguagesLayerRef = useRef<L.GeoJSON | null>(null);
 
   const { data: territoriesGeoJSON, isLoading } = useQuery<any>({
     queryKey: ['/api/territories'],
@@ -549,6 +562,198 @@ export default function SimpleMap({ onMapReady, onTerritorySelect, regionFilter,
       loadRATSIBForMapView();
     }
   }, [showRATSIBBoundaries]);
+
+  // Load ABS Indigenous Regions for current map view
+  const loadABSRegionsForMapView = async () => {
+    if (!mapInstanceRef.current || !showABSRegions) return;
+
+    const center = mapInstanceRef.current.getCenter();
+    
+    try {
+      console.log('Loading ABS Indigenous Regions for map view...');
+      
+      const data = await dataOptimizationService.optimizedFetch(
+        `/api/territories/map-view/abs-regions?lat=${center.lat}&lng=${center.lng}`
+      );
+      
+      if (!data.success || !data.absRegions.regions || data.absRegions.regions.length === 0) {
+        console.log('No ABS Indigenous Regions found for current map view');
+        return;
+      }
+
+      // Remove existing ABS layer
+      if (absRegionsLayerRef.current) {
+        mapInstanceRef.current.removeLayer(absRegionsLayerRef.current);
+        absRegionsLayerRef.current = null;
+      }
+
+      // Create GeoJSON features from ABS regions
+      const absFeatures = data.absRegions.regions.map((region: any) => ({
+        type: "Feature",
+        properties: {
+          id: region.id,
+          regionCode: region.regionCode,
+          regionName: region.regionName,
+          state: region.state,
+          area: region.area,
+          population: region.population,
+          ...region.originalProperties
+        },
+        geometry: region.geometry || {
+          type: "Point",
+          coordinates: [center.lng, center.lat]
+        }
+      }));
+
+      // Create ABS Indigenous Regions layer
+      const absLayer = L.geoJSON({ type: "FeatureCollection", features: absFeatures } as any, {
+        style: (feature) => ({
+          color: '#3B82F6',
+          weight: 2,
+          opacity: 0.8,
+          fillColor: '#3B82F6',
+          fillOpacity: 0.1
+        }),
+        onEachFeature: (feature, layer) => {
+          const props = feature.properties;
+          layer.bindPopup(`
+            <div class="p-3 min-w-[280px] border-l-4 border-blue-500">
+              <h3 class="font-bold text-lg mb-2 text-blue-700">${props.regionName || 'Indigenous Region'}</h3>
+              <div class="space-y-2 text-sm">
+                <p><strong>Region Code:</strong> ${props.regionCode || 'Unknown'}</p>
+                <p><strong>State:</strong> <span class="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs">${props.state || 'Unknown'}</span></p>
+                ${props.area ? `<p><strong>Area:</strong> ${props.area.toLocaleString()} km²</p>` : ''}
+                ${props.population ? `<p><strong>Population:</strong> ${props.population.toLocaleString()}</p>` : ''}
+              </div>
+              <div class="mt-3 text-xs text-gray-500 border-t pt-2">
+                <strong>Source:</strong> Australian Bureau of Statistics<br>
+                <span class="text-xs">Indigenous Regions (IREG) 2021</span>
+              </div>
+            </div>
+          `, {
+            className: 'custom-popup abs-popup',
+            maxWidth: 320
+          });
+        }
+      }).addTo(mapInstanceRef.current);
+
+      absRegionsLayerRef.current = absLayer;
+      console.log(`Added ${data.absRegions.regions.length} ABS Indigenous Regions to map view`);
+    } catch (error) {
+      console.warn('Failed to load ABS Indigenous Regions for map view:', error);
+    }
+  };
+
+  // Load AIATSIS Language Boundaries for current map view
+  const loadAIATSISLanguagesForMapView = async () => {
+    if (!mapInstanceRef.current || !showAIATSISLanguages) return;
+
+    const center = mapInstanceRef.current.getCenter();
+    
+    try {
+      console.log('Loading AIATSIS Language Boundaries for map view...');
+      
+      const data = await dataOptimizationService.optimizedFetch(
+        `/api/territories/map-view/aiatsis-languages?lat=${center.lat}&lng=${center.lng}`
+      );
+      
+      if (!data.success || !data.aiatsisLanguages.languageGroups || data.aiatsisLanguages.languageGroups.length === 0) {
+        console.log('No AIATSIS Language Groups found for current map view');
+        return;
+      }
+
+      // Remove existing AIATSIS layer
+      if (aiatsisLanguagesLayerRef.current) {
+        mapInstanceRef.current.removeLayer(aiatsisLanguagesLayerRef.current);
+        aiatsisLanguagesLayerRef.current = null;
+      }
+
+      // Create GeoJSON features from AIATSIS language groups
+      const aiatsisFeatures = data.aiatsisLanguages.languageGroups.map((language: any) => ({
+        type: "Feature",
+        properties: {
+          id: language.id,
+          languageName: language.languageName,
+          languageCode: language.languageCode,
+          alternativeNames: language.alternativeNames,
+          languageFamily: language.languageFamily,
+          state: language.state,
+          status: language.status,
+          speakers: language.speakers,
+          ...language.originalProperties
+        },
+        geometry: language.geometry || {
+          type: "Point",
+          coordinates: [center.lng, center.lat]
+        }
+      }));
+
+      // Create AIATSIS Language Boundaries layer
+      const aiatsisLayer = L.geoJSON({ type: "FeatureCollection", features: aiatsisFeatures } as any, {
+        style: (feature) => ({
+          color: '#10B981',
+          weight: 2,
+          opacity: 0.8,
+          fillColor: '#10B981',
+          fillOpacity: 0.1
+        }),
+        onEachFeature: (feature, layer) => {
+          const props = feature.properties;
+          layer.bindPopup(`
+            <div class="p-3 min-w-[280px] border-l-4 border-green-500">
+              <h3 class="font-bold text-lg mb-2 text-green-700">${props.languageName || 'Indigenous Language'}</h3>
+              <div class="space-y-2 text-sm">
+                <p><strong>Language Code:</strong> ${props.languageCode || 'Unknown'}</p>
+                ${props.alternativeNames && props.alternativeNames.length > 0 ? `<p><strong>Alternative Names:</strong> ${props.alternativeNames.join(', ')}</p>` : ''}
+                <p><strong>Language Family:</strong> <span class="px-2 py-1 bg-green-100 text-green-700 rounded text-xs">${props.languageFamily || 'Unknown'}</span></p>
+                <p><strong>State:</strong> ${props.state || 'Unknown'}</p>
+                ${props.status ? `<p><strong>Status:</strong> ${props.status}</p>` : ''}
+                ${props.speakers ? `<p><strong>Speakers:</strong> ${props.speakers.toLocaleString()}</p>` : ''}
+              </div>
+              <div class="mt-3 text-xs text-gray-500 border-t pt-2">
+                <strong>Source:</strong> Australian Institute of Aboriginal and Torres Strait Islander Studies<br>
+                <span class="text-xs">AIATSIS Indigenous Language Boundaries</span>
+              </div>
+            </div>
+          `, {
+            className: 'custom-popup aiatsis-popup',
+            maxWidth: 320
+          });
+        }
+      }).addTo(mapInstanceRef.current);
+
+      aiatsisLanguagesLayerRef.current = aiatsisLayer;
+      console.log(`Added ${data.aiatsisLanguages.languageGroups.length} AIATSIS Language Groups to map view`);
+    } catch (error) {
+      console.warn('Failed to load AIATSIS Language Boundaries for map view:', error);
+    }
+  };
+
+  // Effect to handle ABS Indigenous Regions toggle
+  useEffect(() => {
+    if (!mapInstanceRef.current) return;
+
+    if (!showABSRegions && absRegionsLayerRef.current) {
+      mapInstanceRef.current.removeLayer(absRegionsLayerRef.current);
+      absRegionsLayerRef.current = null;
+      console.log('ABS Indigenous Regions hidden');
+    } else if (showABSRegions && !absRegionsLayerRef.current) {
+      loadABSRegionsForMapView();
+    }
+  }, [showABSRegions]);
+
+  // Effect to handle AIATSIS Language Boundaries toggle
+  useEffect(() => {
+    if (!mapInstanceRef.current) return;
+
+    if (!showAIATSISLanguages && aiatsisLanguagesLayerRef.current) {
+      mapInstanceRef.current.removeLayer(aiatsisLanguagesLayerRef.current);
+      aiatsisLanguagesLayerRef.current = null;
+      console.log('AIATSIS Language Boundaries hidden');
+    } else if (showAIATSISLanguages && !aiatsisLanguagesLayerRef.current) {
+      loadAIATSISLanguagesForMapView();
+    }
+  }, [showAIATSISLanguages]);
 
   return (
     <div className="relative w-full h-[calc(100vh-80px)]">
