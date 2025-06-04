@@ -892,6 +892,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get RATSIB boundaries for map view (general area)
+  app.get("/api/territories/map-view/ratsib", async (req, res) => {
+    try {
+      const { lat, lng } = req.query;
+      
+      if (!lat || !lng) {
+        return res.status(400).json({ 
+          error: 'Coordinates required',
+          message: 'lat and lng query parameters are required'
+        });
+      }
+      
+      const latitude = parseFloat(lat as string);
+      const longitude = parseFloat(lng as string);
+      
+      if (isNaN(latitude) || isNaN(longitude)) {
+        return res.status(400).json({ 
+          error: 'Invalid coordinates',
+          message: 'lat and lng must be valid numbers'
+        });
+      }
+      
+      const ratsibData = await fetchRATSIBBoundaries(latitude, longitude, 'Map View');
+      
+      res.json({
+        success: true,
+        coordinates: { lat: latitude, lng: longitude },
+        ratsib: ratsibData,
+        timestamp: new Date().toISOString()
+      });
+      
+    } catch (error) {
+      console.error('Map view RATSIB boundaries error:', error);
+      res.status(500).json({ 
+        error: 'Failed to fetch RATSIB boundaries for map view',
+        message: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
   // Refresh Supply Nation session endpoint
   app.post("/api/dynamic-search/refresh-session", async (req, res) => {
     try {

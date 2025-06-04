@@ -431,6 +431,107 @@ export default function SimpleMap({ onMapReady, onTerritorySelect, regionFilter,
     }
   };
 
+  // Load RATSIB boundaries for current map view
+  const loadRATSIBForMapView = async () => {
+    if (!mapInstanceRef.current || !showRATSIBBoundaries) return;
+
+    const center = mapInstanceRef.current.getCenter();
+    const bounds = mapInstanceRef.current.getBounds();
+    
+    try {
+      console.log('Loading RATSIB boundaries for map view...');
+      
+      // Use map center coordinates to fetch nearby RATSIB boundaries
+      const response = await fetch(`/api/territories/map-view/ratsib?lat=${center.lat}&lng=${center.lng}`);
+      if (!response.ok) {
+        console.warn('Failed to fetch RATSIB boundaries for map view:', response.status);
+        return;
+      }
+      
+      const data = await response.json();
+      if (!data.success || !data.ratsib.boundaries || data.ratsib.boundaries.length === 0) {
+        console.log('No RATSIB boundaries found for current map view');
+        return;
+      }
+
+      // Remove existing RATSIB layer
+      if (nativeTitleLayerRef.current) {
+        mapInstanceRef.current.removeLayer(nativeTitleLayerRef.current);
+        nativeTitleLayerRef.current = null;
+      }
+
+      // Create GeoJSON features from RATSIB boundaries
+      const ratsibFeatures = data.ratsib.boundaries.map((boundary: any) => ({
+        type: "Feature",
+        properties: boundary.originalProperties || {
+          id: boundary.id,
+          name: boundary.name,
+          org: boundary.organizationName,
+          ratsibtype: boundary.corporationType,
+          legisauth: boundary.legislativeAuthority,
+          ratsiblink: boundary.website,
+          status: boundary.status,
+          abn: boundary.abn,
+          address: boundary.address,
+          contact: boundary.contact
+        },
+        geometry: boundary.geometry || {
+          type: "Point",
+          coordinates: [center.lng, center.lat]
+        }
+      }));
+
+      // Create RATSIB layer
+      const ratsibLayer = L.geoJSON({ type: "FeatureCollection", features: ratsibFeatures } as any, {
+        style: (feature) => ({
+          color: '#8B5CF6',
+          weight: 2,
+          opacity: 0.8,
+          fillColor: '#8B5CF6',
+          fillOpacity: 0.1
+        }),
+        pointToLayer: (feature, latlng) => {
+          return L.circleMarker(latlng, {
+            radius: 8,
+            fillColor: '#8B5CF6',
+            color: '#7C3AED',
+            weight: 2,
+            opacity: 1,
+            fillOpacity: 0.7
+          });
+        },
+        onEachFeature: (feature, layer) => {
+          const props = feature.properties;
+          layer.bindPopup(`
+            <div class="p-3 min-w-[250px] border-l-4 border-purple-500">
+              <h3 class="font-bold text-lg mb-2 text-purple-700">${props.name || props.org || 'Aboriginal Corporation'}</h3>
+              <div class="space-y-2 text-sm">
+                ${props.org ? `<p><strong>Organization:</strong> ${props.org}</p>` : ''}
+                ${props.name ? `<p><strong>Name:</strong> ${props.name}</p>` : ''}
+                ${props.ratsibtype ? `<p><strong>Type:</strong> <span class="px-2 py-1 bg-purple-100 text-purple-700 rounded text-xs">${props.ratsibtype}</span></p>` : ''}
+                ${props.legisauth ? `<p><strong>Legislative Authority:</strong> <span class="text-xs">${props.legisauth}</span></p>` : ''}
+                ${props.ratsiblink ? `<p><strong>Website:</strong> <a href="${props.ratsiblink}" target="_blank" class="text-purple-600 hover:text-purple-800 underline text-xs">${props.ratsiblink}</a></p>` : ''}
+                ${props.status ? `<p><strong>Status:</strong> ${props.status}</p>` : ''}
+                ${props.abn ? `<p><strong>ABN:</strong> ${props.abn}</p>` : ''}
+                ${props.address ? `<p><strong>Address:</strong> ${props.address}</p>` : ''}
+              </div>
+              <div class="mt-2 text-xs text-gray-500 border-t pt-2">
+                Source: Australian Government RATSIB Register
+              </div>
+            </div>
+          `, {
+            className: 'custom-popup ratsib-popup'
+          });
+        }
+      }).addTo(mapInstanceRef.current);
+
+      nativeTitleLayerRef.current = ratsibLayer;
+      console.log(`Added ${data.ratsib.boundaries.length} RATSIB boundaries to map view`);
+    } catch (error) {
+      console.warn('Failed to load RATSIB boundaries for map view:', error);
+    }
+  };
+
   // Effect to handle RATSIB boundaries toggle
   useEffect(() => {
     if (!mapInstanceRef.current) return;
@@ -440,6 +541,9 @@ export default function SimpleMap({ onMapReady, onTerritorySelect, regionFilter,
       mapInstanceRef.current.removeLayer(nativeTitleLayerRef.current);
       nativeTitleLayerRef.current = null;
       console.log('RATSIB boundaries hidden');
+    } else if (showRATSIBBoundaries && !nativeTitleLayerRef.current) {
+      // Load RATSIB boundaries when filter is enabled
+      loadRATSIBForMapView();
     }
   }, [showRATSIBBoundaries]);
 
