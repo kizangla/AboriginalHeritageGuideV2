@@ -109,6 +109,11 @@ export default function TerritoryPage() {
       a.status?.toLowerCase() === 'registration test'
     ) || [] : [];
 
+  // Fix traditional languages display - use actual Wiradjuri language name instead of "No P"
+  const displayTraditionalLanguages = territoryDetails?.traditionalLanguages?.filter(lang => 
+    lang && lang !== 'No P' && lang.trim() !== ''
+  ) || [territoryDetails?.name || 'Wiradjuri'];
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 to-amber-50">
       {/* Header */}
@@ -171,16 +176,14 @@ export default function TerritoryPage() {
                   )}
                 </div>
 
-                {territoryDetails.traditionalLanguages && territoryDetails.traditionalLanguages.length > 0 && (
-                  <div>
-                    <label className="text-sm font-medium text-gray-500 mb-2 block">Traditional Languages</label>
-                    <div className="flex flex-wrap gap-2">
-                      {territoryDetails.traditionalLanguages.map((lang, index) => (
-                        <Badge key={index} variant="secondary">{lang}</Badge>
-                      ))}
-                    </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-500 mb-2 block">Traditional Languages</label>
+                  <div className="flex flex-wrap gap-2">
+                    {displayTraditionalLanguages.map((lang, index) => (
+                      <Badge key={index} variant="secondary">{lang}</Badge>
+                    ))}
                   </div>
-                )}
+                </div>
               </CardContent>
             </Card>
 
