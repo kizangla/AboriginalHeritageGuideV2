@@ -345,9 +345,9 @@ export default function SimpleMap({ onMapReady, onTerritorySelect, regionFilter,
       allRecords.forEach((record, index) => {
         // Create point markers for Native Title records using territory coordinates as reference
         if (record.applicantName || record.determinationName) {
-          // Create a small offset for each marker to avoid complete overlap
-          const offsetLat = lat + (Math.random() - 0.5) * 0.1; // Small random offset within ~5km
-          const offsetLng = lng + (Math.random() - 0.5) * 0.1;
+          // Create a larger offset for each marker to spread them more visibly
+          const offsetLat = lat + (Math.random() - 0.5) * 0.3; // Larger offset within ~15km
+          const offsetLng = lng + (Math.random() - 0.5) * 0.3;
           
           nativeTitleFeatures.push({
             type: "Feature",
