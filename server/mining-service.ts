@@ -4,6 +4,7 @@
  */
 
 import fetch from 'node-fetch';
+import { alternativeWAMiningService } from './wa-demirs-alternative-access.js';
 
 export interface MiningTenement {
   id: string;
@@ -41,51 +42,35 @@ class MiningService {
     west: number;
   }): Promise<MiningSearchResult> {
     try {
-      console.log('Fetching mining tenements from WA DEMIRS...');
+      console.log('Fetching mining tenements from WA Government sources...');
 
-      // Build WFS request for mining tenements
-      let wfsUrl = `${this.WFS_BASE_URL}?service=WFS&version=2.0.0&request=GetFeature&typeName=SLIP_Public_Services:Mining_Tenements&outputFormat=application/json`;
-
-      if (bounds) {
-        const bbox = `${bounds.west},${bounds.south},${bounds.east},${bounds.north}`;
-        wfsUrl += `&bbox=${bbox}`;
-      }
-
-      const response = await fetch(wfsUrl, {
-        headers: {
-          'Accept': 'application/json',
-          'User-Agent': 'Aboriginal-Australia-Map/1.0'
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error(`Mining data request failed: ${response.status}`);
-      }
-
-      const data = await response.json() as any;
+      // Try alternative authentic WA Government endpoints
+      const result = await alternativeWAMiningService.fetchMiningData(bounds);
       
-      if (!data.features || !Array.isArray(data.features)) {
-        console.warn('No mining features found in response');
-        return {
-          tenements: [],
-          totalResults: 0,
-          source: 'wa_demirs',
-          overlappingCount: 0
-        };
-      }
-
-      console.log(`Found ${data.features.length} mining tenements from WA DEMIRS`);
-
       // Transform to our format
-      const tenements = data.features.map((feature: any) => this.transformMiningFeature(feature));
+      const tenements = result.tenements.map((tenement: any) => ({
+        id: tenement.id,
+        tenementType: tenement.tenementType,
+        tenementNumber: tenement.tenementNumber,
+        holder: tenement.holder,
+        status: tenement.status,
+        area: tenement.area,
+        grantDate: tenement.grantDate,
+        expiryDate: tenement.expiryDate,
+        commodities: tenement.commodities,
+        geometry: tenement.geometry,
+        overlapsAboriginalTerritory: tenement.overlapsAboriginalTerritory || false,
+        aboriginalTerritoryNames: tenement.aboriginalTerritoryNames || []
+      }));
 
-      // TODO: Analyze Aboriginal territory overlaps when territory data is available
       const overlappingCount = tenements.filter(t => t.overlapsAboriginalTerritory).length;
+
+      console.log(`Found ${tenements.length} mining tenements from ${result.source}`);
 
       return {
         tenements,
         totalResults: tenements.length,
-        source: 'wa_demirs',
+        source: result.source,
         overlappingCount
       };
 
