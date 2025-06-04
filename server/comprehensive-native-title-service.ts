@@ -82,18 +82,16 @@ class ComprehensiveNativeTitleService {
       const uniqueData = this.removeDuplicates(allData);
 
       // Separate applications and determinations based on actual data
-      const applicationsFiltered = uniqueData.filter(d => 
-        d.status === 'pending' || 
-        d.outcome?.includes('application') || 
-        d.outcome?.includes('Application') ||
-        (!d.outcome?.includes('Native title exists') && !d.outcome?.includes('Native title does not exist'))
-      );
-      
+      // Determinations are records with outcome containing "Native title exists" or "Native title does not exist"
       const determinationsFiltered = uniqueData.filter(d => 
         d.status === 'determined' || 
         d.outcome?.includes('Native title exists') || 
-        d.outcome?.includes('Native title does not exist') ||
-        d.outcome?.includes('determination')
+        d.outcome?.includes('Native title does not exist')
+      );
+      
+      // Applications are all other records (pending applications, registrations, etc.)
+      const applicationsFiltered = uniqueData.filter(d => 
+        !determinationsFiltered.includes(d)
       );
 
       console.log(`Categorized data: ${applicationsFiltered.length} applications, ${determinationsFiltered.length} determinations from ${uniqueData.length} total records`);

@@ -81,17 +81,38 @@ export async function fetchRATSIBBoundaries(
       };
     }
     
-    // Filter features by proximity to territory coordinates
+    // Filter features by geographic coverage area and jurisdiction
     const relevantFeatures = data.features.filter((feature: any) => {
+      const props = feature.properties || {};
+      
+      // Filter by jurisdiction based on territory coordinates
+      if (lat >= -35 && lat <= -13 && lng >= 113 && lng <= 129) { // Western Australia
+        return props.JURIS === 'WA';
+      } else if (lat >= -29 && lat <= -9 && lng >= 138 && lng <= 154) { // Queensland
+        return props.JURIS === 'QLD';
+      } else if (lat >= -37 && lat <= -28 && lng >= 141 && lng <= 154) { // New South Wales
+        return props.JURIS === 'NSW';
+      } else if (lat >= -39 && lat <= -34 && lng >= 141 && lng <= 150) { // Victoria
+        return props.JURIS === 'VIC';
+      } else if (lat >= -38 && lat <= -26 && lng >= 129 && lng <= 141) { // South Australia
+        return props.JURIS === 'SA';
+      } else if (lat >= -43 && lat <= -39 && lng >= 144 && lng <= 149) { // Tasmania
+        return props.JURIS === 'TAS';
+      } else if (lat >= -26 && lat <= -10 && lng >= 129 && lng <= 138) { // Northern Territory
+        return props.JURIS === 'NT';
+      }
+      
+      // For coordinates that don't clearly fall in a state, use proximity
       if (feature.geometry && feature.geometry.coordinates) {
         const coords = feature.geometry.coordinates;
         if (feature.geometry.type === 'Point') {
           const [fLng, fLat] = coords;
           const distance = Math.sqrt(Math.pow(fLat - lat, 2) + Math.pow(fLng - lng, 2));
-          return distance <= 1.0; // Within approximately 100km
+          return distance <= 2.0; // Within approximately 200km
         }
       }
-      return true; // Include features without coordinates for processing
+      
+      return false; // Exclude features that don't match geographic criteria
     });
     
     const boundaries: RATSIBBoundary[] = relevantFeatures.map((feature: any, index: number) => {
