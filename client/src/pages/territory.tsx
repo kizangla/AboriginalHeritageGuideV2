@@ -101,8 +101,15 @@ export default function TerritoryPage() {
 
   // Extract Native Title data from API response - fix data structure access
   const nativeTitleInfo = (nativeTitleData as any)?.success ? (nativeTitleData as any).nativeTitleData : null;
-  const activeDeterminations = nativeTitleInfo?.determinations || [];
-  const activeApplications = nativeTitleInfo?.applications || [];
+  
+  // Categorize records based on status - determinations have "Determined" in status
+  const allRecords = nativeTitleInfo?.applications || [];
+  const activeDeterminations = allRecords.filter((record: any) => 
+    record.status && record.status.toLowerCase().includes('determined')
+  );
+  const activeApplications = allRecords.filter((record: any) => 
+    !record.status || !record.status.toLowerCase().includes('determined')
+  );
   
   // Extract RATSIB data from API response - fix data structure access
   const ratsibInfo = (ratsibData as any)?.success ? (ratsibData as any).ratsibData : null;
