@@ -4,7 +4,7 @@ import TerritoryModal from '@/components/map/TerritoryModal';
 import TerritoryInfoPanel from '@/components/TerritoryInfoPanel';
 import FloatingMapControls from '@/components/FloatingMapControls';
 import CollapsibleSearch from '@/components/CollapsibleSearch';
-import { AdvancedLayerControls } from '@/components/AdvancedLayerControls';
+
 import { Button } from '@/components/ui/button';
 import { Building2 } from 'lucide-react';
 import { Link } from 'wouter';
@@ -29,8 +29,6 @@ export default function MapPage() {
     dismissed: false
   });
   const [showRATSIBBoundaries, setShowRATSIBBoundaries] = useState(true);
-  const [showABSRegions, setShowABSRegions] = useState(false);
-  const [showAIATSISLanguages, setShowAIATSISLanguages] = useState(false);
 
   const { data: territoriesGeoJSON } = useQuery<any>({
     queryKey: ['/api/territories'],
@@ -146,8 +144,6 @@ export default function MapPage() {
           nativeTitleFilter={nativeTitleFilters}
           selectedTerritory={selectedTerritory}
           showRATSIBBoundaries={showRATSIBBoundaries}
-          showABSRegions={showABSRegions}
-          showAIATSISLanguages={showAIATSISLanguages}
         />
         
         {/* Floating Map Controls */}
@@ -162,16 +158,6 @@ export default function MapPage() {
           nativeTitleFilters={nativeTitleFilters}
           onToggleRATSIB={setShowRATSIBBoundaries}
           showRATSIBBoundaries={showRATSIBBoundaries}
-        />
-        
-        {/* Advanced Layer Controls */}
-        <AdvancedLayerControls
-          showRATSIBBoundaries={showRATSIBBoundaries}
-          showABSRegions={showABSRegions}
-          showAIATSISLanguages={showAIATSISLanguages}
-          onRATSIBToggle={setShowRATSIBBoundaries}
-          onABSRegionsToggle={setShowABSRegions}
-          onAIATSISLanguagesToggle={setShowAIATSISLanguages}
         />
         
         {/* Collapsible Search Panel */}

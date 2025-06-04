@@ -12,8 +12,6 @@ interface SimpleMapProps {
   nativeTitleFilter?: NativeTitleStatusFilter;
   selectedTerritory?: Territory | null;
   showRATSIBBoundaries?: boolean;
-  showABSRegions?: boolean;
-  showAIATSISLanguages?: boolean;
 }
 
 export default function SimpleMap({ 
