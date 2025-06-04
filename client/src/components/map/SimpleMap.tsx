@@ -1,9 +1,18 @@
 import { useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 import type { Territory } from '@shared/schema';
 import type { NativeTitleStatusFilter } from '@/components/NativeTitleFilter';
 import { dataOptimizationService } from '@/lib/data-optimization';
+
+// Fix for default markers in Leaflet with Vite
+delete (L.Icon.Default.prototype as any)._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
+  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+});
 
 interface SimpleMapProps {
   onMapReady?: (map: L.Map) => void;
@@ -36,19 +45,47 @@ export default function SimpleMap({
     if (!mapRef.current || mapInstanceRef.current) return;
 
     console.log('SimpleMap: Creating map...');
+    console.log('Map container dimensions:', mapRef.current.offsetWidth, 'x', mapRef.current.offsetHeight);
     
-    const map = L.map(mapRef.current).setView([-25.2744, 133.7751], 5);
-    mapInstanceRef.current = map;
+    try {
+      const map = L.map(mapRef.current).setView([-25.2744, 133.7751], 5);
+      mapInstanceRef.current = map;
 
-    // Add basic tile layer
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© OpenStreetMap contributors'
-    }).addTo(map);
+      console.log('SimpleMap: Map instance created');
 
-    console.log('SimpleMap: Map created successfully');
-    
-    if (onMapReady) {
-      onMapReady(map);
+      // Add basic tile layer with error handling
+      const tileLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors',
+        maxZoom: 19,
+        errorTileUrl: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg=='
+      });
+
+      tileLayer.on('load', () => {
+        console.log('SimpleMap: Tiles loaded successfully');
+      });
+
+      tileLayer.on('tileerror', (e) => {
+        console.warn('SimpleMap: Tile loading error:', e);
+      });
+
+      tileLayer.addTo(map);
+
+      // Force map invalidateSize after a short delay
+      setTimeout(() => {
+        if (mapInstanceRef.current) {
+          mapInstanceRef.current.invalidateSize();
+          console.log('SimpleMap: Map size invalidated');
+        }
+      }, 100);
+
+      console.log('SimpleMap: Map created successfully');
+      
+      if (onMapReady) {
+        onMapReady(map);
+      }
+
+    } catch (error) {
+      console.error('SimpleMap: Error creating map:', error);
     }
 
     return () => {
@@ -354,5 +391,5 @@ export default function SimpleMap({
     );
   }
 
-  return <div ref={mapRef} className="h-full w-full" />;
+  return <div ref={mapRef} className="h-full w-full" style={{ minHeight: '500px', position: 'relative' }} />;
 }
