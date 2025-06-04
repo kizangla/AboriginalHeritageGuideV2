@@ -13,7 +13,7 @@ interface SimpleMapProps {
   showRATSIBBoundaries?: boolean;
 }
 
-export default function SimpleMap({ onMapReady, onTerritorySelect, regionFilter, nativeTitleFilter, selectedTerritory }: SimpleMapProps) {
+export default function SimpleMap({ onMapReady, onTerritorySelect, regionFilter, nativeTitleFilter, selectedTerritory, showRATSIBBoundaries = true }: SimpleMapProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
   const territoryLayerRef = useRef<L.GeoJSON | null>(null);
@@ -333,8 +333,10 @@ export default function SimpleMap({ onMapReady, onTerritorySelect, regionFilter,
       const data = await response.json();
       if (!data.success || !data.nativeTitle.hasNativeTitle) return;
 
-      // Load RATSIB boundaries from Australian Government data
-      await loadRATSIBBoundaries(lat, lng, territoryName);
+      // Load RATSIB boundaries from Australian Government data if filter is enabled
+      if (showRATSIBBoundaries) {
+        await loadRATSIBBoundaries(lat, lng, territoryName);
+      }
     } catch (error) {
       console.warn('Failed to load Native Title boundaries:', error);
     }
