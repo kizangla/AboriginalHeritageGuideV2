@@ -63,10 +63,18 @@ export class DatabaseStorage implements IStorage {
       
       console.log(`Found ${geojsonData.features.length} authentic Indigenous territories in GeoJSON data`);
       
-      // Process all authentic GeoJSON features
+      // Process only authentic GeoJSON features (filter out placeholders)
       let colorIndex = 0;
+      let processedCount = 0;
       for (let i = 0; i < geojsonData.features.length; i++) {
         const feature = geojsonData.features[i];
+        
+        // Skip placeholder entries without authentic Aboriginal territory names
+        const territoryName = feature.properties?.Name || '';
+        if (!territoryName || territoryName === 'No P' || territoryName.trim() === '') {
+          continue;
+        }
+        
         if (feature.geometry && feature.geometry.coordinates && feature.geometry.coordinates[0]) {
           const coords = feature.geometry.coordinates[0];
           
@@ -101,14 +109,15 @@ export class DatabaseStorage implements IStorage {
           
           await db.insert(territories).values(territoryData);
           colorIndex++;
+          processedCount++;
           
-          if (i % 50 === 0) {
-            console.log(`Loaded ${i + 1}/${geojsonData.features.length} Indigenous territories...`);
+          if (processedCount % 50 === 0) {
+            console.log(`Loaded ${processedCount} authentic Indigenous territories (skipped ${i + 1 - processedCount} placeholders)...`);
           }
         }
       }
       
-      console.log(`Successfully loaded all ${geojsonData.features.length} authentic Indigenous territories into database`);
+      console.log(`Successfully loaded ${processedCount} authentic Indigenous territories into database (filtered out ${geojsonData.features.length - processedCount} placeholders)`);
       
       // Add sample Indigenous businesses and cultural sites
       await this.initializeSampleData();
