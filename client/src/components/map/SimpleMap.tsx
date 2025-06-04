@@ -20,17 +20,13 @@ export default function SimpleMap({
   regionFilter, 
   nativeTitleFilter, 
   selectedTerritory, 
-  showRATSIBBoundaries = true,
-  showABSRegions = false,
-  showAIATSISLanguages = false 
+  showRATSIBBoundaries = true
 }: SimpleMapProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
   const territoryLayerRef = useRef<L.GeoJSON | null>(null);
   const overlayLayerRef = useRef<L.GeoJSON | null>(null);
   const nativeTitleLayerRef = useRef<L.GeoJSON | null>(null);
-  const absRegionsLayerRef = useRef<L.GeoJSON | null>(null);
-  const aiatsisLanguagesLayerRef = useRef<L.GeoJSON | null>(null);
 
   const { data: territoriesGeoJSON, isLoading } = useQuery<any>({
     queryKey: ['/api/territories'],
@@ -46,15 +42,14 @@ export default function SimpleMap({
 
     // Add basic tile layer
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© OpenStreetMap contributors',
-      maxZoom: 18,
+      attribution: '© OpenStreetMap contributors'
     }).addTo(map);
 
+    console.log('SimpleMap: Map created successfully');
+    
     if (onMapReady) {
       onMapReady(map);
     }
-
-    console.log('SimpleMap: Map created successfully');
 
     return () => {
       if (mapInstanceRef.current) {
@@ -64,403 +59,131 @@ export default function SimpleMap({
     };
   }, [onMapReady]);
 
-  // Add Aboriginal territories layer with filtering
   useEffect(() => {
-    if (!mapInstanceRef.current || !territoriesGeoJSON || isLoading) return;
+    if (!territoriesGeoJSON || !mapInstanceRef.current) return;
+
+    console.log('Adding Aboriginal territories base layer...');
+    console.log('Territories data received:', territoriesGeoJSON.features?.length);
 
     // Remove existing territory layer
     if (territoryLayerRef.current) {
       mapInstanceRef.current.removeLayer(territoryLayerRef.current);
     }
 
-    console.log('Adding Aboriginal territories base layer...');
-    console.log('Territories data received:', territoriesGeoJSON?.features?.length || 0);
+    // Filter territories based on region and native title filters
+    let filteredFeatures = territoriesGeoJSON.features || [];
 
-    // Filter territories based on region and Native Title status
-    let filteredTerritories = territoriesGeoJSON.features;
-
-    // Apply region filter
-    if (regionFilter) {
-      filteredTerritories = filteredTerritories.filter((feature: any) => 
-        feature.properties?.region === regionFilter || feature.properties?.Region === regionFilter
+    if (regionFilter && regionFilter !== 'all') {
+      filteredFeatures = filteredFeatures.filter((feature: any) => 
+        feature.properties?.STATE === regionFilter
       );
     }
 
-    // Apply Native Title status filter with comprehensive outcome mapping
-    if (nativeTitleFilter && Object.values(nativeTitleFilter).some(Boolean)) {
-      const activeFilters = Object.entries(nativeTitleFilter).filter(([key, value]) => value);
-      
-      filteredTerritories = filteredTerritories.filter((feature: any) => {
-        const region = feature.properties?.region || feature.properties?.Region || '';
-        const name = feature.properties?.Name || feature.properties?.name || '';
+    if (nativeTitleFilter) {
+      filteredFeatures = filteredFeatures.filter((feature: any) => {
+        const props = feature.properties;
+        if (!props) return true;
+
+        if (nativeTitleFilter.withNativeTitle && props.NTDA !== 'Yes') return false;
+        if (nativeTitleFilter.withoutNativeTitle && props.NTDA === 'Yes') return false;
+        if (nativeTitleFilter.entireArea && props.OVERLAP !== 'Entire Area') return false;
+        if (nativeTitleFilter.partialArea && props.OVERLAP === 'Entire Area') return false;
+        if (nativeTitleFilter.discontinued && props.STATUS !== 'Discontinued') return false;
+        if (nativeTitleFilter.dismissed && props.STATUS !== 'Dismissed') return false;
+
+        return true;
+      });
+    }
+
+    console.log(`Displaying ${filteredFeatures.length} territories after filtering`);
+
+    const filteredGeoJSON = {
+      type: 'FeatureCollection',
+      features: filteredFeatures
+    };
+
+    const territoryLayer = L.geoJSON(filteredGeoJSON as any, {
+      style: (feature) => {
+        const props = feature?.properties;
+        let color = '#8B4513';
+        let fillOpacity = 0.3;
+
+        if (props?.NTDA === 'Yes') {
+          color = '#2E8B57';
+          fillOpacity = 0.4;
+        }
+
+        return {
+          color: color,
+          weight: 1,
+          opacity: 0.8,
+          fillColor: color,
+          fillOpacity: fillOpacity
+        };
+      },
+      onEachFeature: (feature, layer) => {
+        const props = feature.properties;
         
-        // Check if territory matches any of the active filters
-        return activeFilters.some(([filterType]) => {
-          switch (filterType) {
-            case 'pending':
-              // Regions with significant pending applications (WA, NT, QLD focus)
-              return region.includes('Desert') || 
-                     region.includes('Kimberley') || 
-                     region.includes('Northwest') ||
-                     region.includes('Gulf') ||
-                     region.includes('Arnhem') ||
-                     region.includes('North') ||
-                     name.includes('Pintupi') ||
-                     name.includes('Warlpiri') ||
-                     name.includes('Yolngu');
+        layer.bindPopup(`
+          <div class="p-3 min-w-[280px]">
+            <h3 class="font-bold text-lg mb-2">${props.NAME || 'Aboriginal Territory'}</h3>
+            <div class="space-y-2 text-sm">
+              <p><strong>State:</strong> <span class="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs">${props.STATE || 'Unknown'}</span></p>
+              ${props.REGION ? `<p><strong>Region:</strong> ${props.REGION}</p>` : ''}
+              ${props.NTDA ? `<p><strong>Native Title:</strong> <span class="px-2 py-1 ${props.NTDA === 'Yes' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'} rounded text-xs">${props.NTDA}</span></p>` : ''}
+              ${props.OVERLAP ? `<p><strong>Overlap Type:</strong> ${props.OVERLAP}</p>` : ''}
+              ${props.STATUS ? `<p><strong>Status:</strong> <span class="px-2 py-1 bg-orange-100 text-orange-700 rounded text-xs">${props.STATUS}</span></p>` : ''}
+              ${props.GROUP_NAME ? `<p><strong>Language Group:</strong> ${props.GROUP_NAME}</p>` : ''}
+            </div>
+            <div class="mt-3 text-xs text-gray-500">
+              <p>Click to view detailed information</p>
+            </div>
+          </div>
+        `);
 
-            case 'determined':
-              // Regions with high determination rates (coastal and settled areas)
-              return region.includes('Southeast') || 
-                     region.includes('Southwest') || 
-                     region.includes('Riverine') ||
-                     region.includes('East Cape') ||
-                     region.includes('Spencer');
-
-            case 'exists':
-              // Mainland territories where Native Title typically exists
-              return !region.includes('Tasmania') && 
-                     (region.includes('Desert') || 
-                      region.includes('Kimberley') || 
-                      region.includes('Arnhem') ||
-                      region.includes('Gulf') ||
-                      region.includes('Rainforest'));
-
-            case 'doesNotExist':
-              // Urban and heavily settled regions
-              return region.includes('Southeast') || 
-                     region.includes('Tasmania') ||
-                     name.includes('urban') ||
-                     name.includes('city');
-
-            case 'entireArea':
-              // Remote regions where entire area determinations are common
-              return region.includes('Desert') || 
-                     region.includes('Kimberley') || 
-                     region.includes('Arnhem') ||
-                     region.includes('Northwest') ||
-                     name.includes('Pintupi') ||
-                     name.includes('Yolngu');
-
-            case 'partialArea':
-              // Mixed-use regions with partial determinations
-              return region.includes('Gulf') || 
-                     region.includes('Riverine') ||
-                     region.includes('Southwest') ||
-                     region.includes('Northeast');
-
-            case 'discontinued':
-              // Regions with historical claim withdrawals
-              return region.includes('Southeast') || 
-                     region.includes('Southwest') ||
-                     region.includes('Spencer');
-
-            case 'dismissed':
-              // Urban and contested regions
-              return region.includes('Southeast') || 
-                     region.includes('Tasmania') ||
-                     region.includes('East Cape');
-
-            default:
-              return false;
+        layer.on('click', () => {
+          if (onTerritorySelect) {
+            const territory: Territory = {
+              id: props.FID || Date.now(),
+              name: props.NAME || 'Unknown Territory',
+              state: props.STATE || 'Unknown',
+              region: props.REGION || 'Unknown',
+              groupName: props.GROUP_NAME || 'Unknown',
+              ntda: props.NTDA || 'Unknown',
+              overlap: props.OVERLAP || 'Unknown',
+              status: props.STATUS || 'Unknown',
+              coordinates: {
+                lat: feature.geometry?.type === 'Point' ? feature.geometry.coordinates[1] : 0,
+                lng: feature.geometry?.type === 'Point' ? feature.geometry.coordinates[0] : 0
+              }
+            };
+            onTerritorySelect(territory);
           }
         });
-      });
-    }
-
-    console.log(`Displaying ${filteredTerritories.length} territories after filtering`);
-
-    // Add filtered territory layer with styling
-    if (filteredTerritories.length > 0) {
-      const territoryLayer = L.geoJSON(filteredTerritories as any, {
-        style: (feature) => ({
-          color: '#654321', // Darker earth brown border
-          weight: 2,
-          opacity: 0.9,
-          fillColor: '#CD853F', // Peru/darker earth tone
-          fillOpacity: 0.6,
-        }),
-        onEachFeature: (feature, layer) => {
-          const territory = feature.properties;
-          
-          // Enhanced popup with new data structure
-          layer.bindPopup(`
-            <div class="p-3 min-w-[200px]">
-              <h3 class="font-bold text-lg text-earth-brown mb-2">${territory.Name || territory.name}</h3>
-              <div class="space-y-1 text-sm">
-                <p><strong>Region:</strong> ${territory.Region || territory.region || 'Unknown'}</p>
-                ${territory.groupName ? `<p><strong>Group:</strong> ${territory.groupName}</p>` : ''}
-                ${territory.languageFamily ? `<p><strong>Language Family:</strong> ${territory.languageFamily}</p>` : ''}
-                ${territory.regionType ? `<p><strong>Type:</strong> ${territory.regionType}</p>` : ''}
-              </div>
-            </div>
-          `, {
-            className: 'custom-popup'
-          });
-          
-          layer.on('click', () => {
-            if (onTerritorySelect) {
-              // Pass complete feature with geometry for coordinate extraction
-              const completeTerritory = {
-                ...territory,
-                geometry: feature.geometry
-              };
-              onTerritorySelect(completeTerritory);
-            }
-          });
-
-          layer.on('mouseover', () => {
-            (layer as any).setStyle({
-              fillOpacity: 0.85,
-              weight: 3,
-              color: '#4A2C2A', // Even darker brown on hover
-            });
-          });
-
-          layer.on('mouseout', () => {
-            if (territoryLayerRef.current) {
-              territoryLayerRef.current.resetStyle(layer as any);
-            }
-          });
-        },
-      });
-
-      territoryLayerRef.current = territoryLayer;
-      territoryLayer.addTo(mapInstanceRef.current);
-      
-      console.log(`Added ${territoriesGeoJSON.features.length} Aboriginal territories base layer`);
-    }
-  }, [territoriesGeoJSON, isLoading, onTerritorySelect]);
-
-  // Add dynamic overlay layer for region filtering
-  useEffect(() => {
-    if (!mapInstanceRef.current || !territoriesGeoJSON) return;
-
-    // Remove existing overlay layer
-    if (overlayLayerRef.current) {
-      mapInstanceRef.current.removeLayer(overlayLayerRef.current);
-      overlayLayerRef.current = null;
-    }
-
-    // Add overlay layer only when filtering is active
-    if (regionFilter) {
-      const filteredFeatures = territoriesGeoJSON.features.filter((feature: any) => {
-        const featureRegion = feature.properties?.region;
-        return featureRegion === regionFilter;
-      });
-
-      console.log(`Adding ${regionFilter} overlay with ${filteredFeatures.length} territories`);
-
-      const getRegionColor = (region: string) => {
-        switch (region) {
-          case 'Kimberley': return '#FF6B35'; // Orange for Kimberley
-          case 'Southeast': return '#2ECC71'; // Green for Southeast
-          case 'Riverine': return '#3498DB'; // Blue for Riverine
-          case 'Southwest': return '#9B59B6'; // Purple for Southwest
-          case 'Northwest': return '#F39C12'; // Yellow for Northwest
-          default: return '#E74C3C'; // Red default
-        }
-      };
-
-      if (filteredFeatures.length > 0) {
-        const overlayLayer = L.geoJSON(filteredFeatures as any, {
-          style: (feature) => {
-            const region = feature?.properties?.Region || feature?.properties?.region;
-            return {
-              color: getRegionColor(region),
-              weight: 3,
-              opacity: 1,
-              fillColor: getRegionColor(region),
-              fillOpacity: 0.7,
-              dashArray: '5,5', // Dashed border for overlay
-            };
-          },
-          onEachFeature: (feature, layer) => {
-            const territory = feature.properties;
-            
-            // Enhanced popup for overlay
-            layer.bindPopup(`
-              <div class="p-3 min-w-[200px] border-l-4" style="border-left-color: ${getRegionColor(regionFilter)}">
-                <h3 class="font-bold text-lg mb-2">${territory.Name || territory.name}</h3>
-                <div class="space-y-1 text-sm">
-                  <p><strong>Region:</strong> <span class="px-2 py-1 rounded text-xs" style="background-color: ${getRegionColor(regionFilter)}20; color: ${getRegionColor(regionFilter)}">${territory.Region || territory.region}</span></p>
-                  ${territory.groupName ? `<p><strong>Group:</strong> ${territory.groupName}</p>` : ''}
-                  ${territory.languageFamily ? `<p><strong>Language Family:</strong> ${territory.languageFamily}</p>` : ''}
-                </div>
-              </div>
-            `, {
-              className: 'custom-popup region-overlay-popup'
-            });
-            
-            layer.on('click', () => {
-              if (onTerritorySelect) {
-                onTerritorySelect(territory);
-              }
-            });
-
-            layer.on('mouseover', () => {
-              (layer as any).setStyle({
-                fillOpacity: 0.9,
-                weight: 4,
-              });
-            });
-
-            layer.on('mouseout', () => {
-              if (overlayLayerRef.current) {
-                overlayLayerRef.current.resetStyle(layer as any);
-              }
-            });
-          },
-        });
-
-        overlayLayerRef.current = overlayLayer;
-        overlayLayer.addTo(mapInstanceRef.current);
-        
-        // Bring overlay to front
-        overlayLayer.bringToFront();
       }
-    }
+    });
 
-    // Add Native Title boundaries when a territory is selected
-    if (selectedTerritory && selectedTerritory.centerLat && selectedTerritory.centerLng) {
-      addNativeTitleOverlay(selectedTerritory.name, selectedTerritory.centerLat, selectedTerritory.centerLng);
-    }
-  }, [regionFilter, territoriesGeoJSON, onTerritorySelect, selectedTerritory]);
+    territoryLayer.addTo(mapInstanceRef.current);
+    territoryLayerRef.current = territoryLayer;
 
-  // Function to add Native Title boundary overlays
-  const addNativeTitleOverlay = async (territoryName: string, lat: number, lng: number) => {
+    console.log(`Added ${filteredFeatures.length} Aboriginal territories base layer`);
+
+  }, [territoriesGeoJSON, regionFilter, nativeTitleFilter, onTerritorySelect]);
+
+  // Load RATSIB boundaries for current map view
+  const loadRATSIBForMapView = async () => {
     if (!mapInstanceRef.current) return;
 
-    // Remove existing Native Title layer
-    if (nativeTitleLayerRef.current) {
-      mapInstanceRef.current.removeLayer(nativeTitleLayerRef.current);
-      nativeTitleLayerRef.current = null;
-    }
-
-    try {
-      // Fetch Native Title data for the territory
-      const response = await fetch(`/api/territories/${encodeURIComponent(territoryName)}/native-title?lat=${lat}&lng=${lng}`);
-      if (!response.ok) return;
-      
-      const data = await response.json();
-      if (!data.success || !data.nativeTitle.hasNativeTitle) return;
-
-      // Load RATSIB boundaries from Australian Government data if filter is enabled
-      if (showRATSIBBoundaries) {
-        await loadRATSIBBoundaries(lat, lng, territoryName);
-      }
-    } catch (error) {
-      console.warn('Failed to load Native Title boundaries:', error);
-    }
-  };
-
-  const loadRATSIBBoundaries = async (lat: number, lng: number, territoryName: string) => {
-    try {
-      console.log(`Fetching RATSIB boundaries for ${territoryName} from Australian Government...`);
-      
-      // Use our backend API to fetch RATSIB boundaries
-      const response = await fetch(`/api/territories/${encodeURIComponent(territoryName)}/ratsib?lat=${lat}&lng=${lng}`);
-      if (!response.ok) {
-        console.warn('Failed to fetch RATSIB boundaries:', response.status);
-        return;
-      }
-      
-      const data = await response.json();
-      if (!data.success || !data.ratsib.boundaries || data.ratsib.boundaries.length === 0) {
-        console.log('No RATSIB boundaries found for this region');
-        return;
-      }
-
-      // Create GeoJSON features from RATSIB boundaries preserving all original properties
-      const ratsibFeatures = data.ratsib.boundaries.map((boundary: any) => ({
-        type: "Feature",
-        properties: boundary.originalProperties || {
-          id: boundary.id,
-          name: boundary.name,
-          org: boundary.organizationName,
-          ratsibtype: boundary.corporationType,
-          legisauth: boundary.legislativeAuthority,
-          ratsiblink: boundary.website,
-          status: boundary.status,
-          abn: boundary.abn,
-          address: boundary.address,
-          contact: boundary.contact
-        },
-        geometry: boundary.geometry || {
-          type: "Point",
-          coordinates: [lng, lat] // Fallback to territory center if no geometry
-        }
-      }));
-
-      // Create RATSIB layer with boundary polygons
-      const ratsibLayer = L.geoJSON({ type: "FeatureCollection", features: ratsibFeatures }, {
-        style: (feature) => ({
-          color: '#8B5CF6',
-          weight: 2,
-          opacity: 0.8,
-          fillColor: '#8B5CF6',
-          fillOpacity: 0.1
-        }),
-        pointToLayer: (feature, latlng) => {
-          return L.circleMarker(latlng, {
-            radius: 8,
-            fillColor: '#8B5CF6',
-            color: '#7C3AED',
-            weight: 2,
-            opacity: 1,
-            fillOpacity: 0.7
-          });
-        },
-        onEachFeature: (feature, layer) => {
-          const props = feature.properties;
-          layer.bindPopup(`
-            <div class="p-3 min-w-[250px] border-l-4 border-purple-500">
-              <h3 class="font-bold text-lg mb-2 text-purple-700">${props.name || props.org || 'Aboriginal Corporation'}</h3>
-              <div class="space-y-2 text-sm">
-                ${props.org ? `<p><strong>Organization:</strong> ${props.org}</p>` : ''}
-                ${props.name ? `<p><strong>Name:</strong> ${props.name}</p>` : ''}
-                ${props.ratsibtype ? `<p><strong>Type:</strong> <span class="px-2 py-1 bg-purple-100 text-purple-700 rounded text-xs">${props.ratsibtype}</span></p>` : ''}
-                ${props.legisauth ? `<p><strong>Legislative Authority:</strong> <span class="text-xs">${props.legisauth}</span></p>` : ''}
-                ${props.ratsiblink ? `<p><strong>Website:</strong> <a href="${props.ratsiblink}" target="_blank" class="text-purple-600 hover:text-purple-800 underline text-xs">${props.ratsiblink}</a></p>` : ''}
-                ${props.status ? `<p><strong>Status:</strong> ${props.status}</p>` : ''}
-                ${props.abn ? `<p><strong>ABN:</strong> ${props.abn}</p>` : ''}
-                ${props.address ? `<p><strong>Address:</strong> ${props.address}</p>` : ''}
-              </div>
-              <div class="mt-2 text-xs text-gray-500 border-t pt-2">
-                Source: Australian Government RATSIB Register
-              </div>
-            </div>
-          `, {
-            className: 'custom-popup ratsib-popup'
-          });
-        }
-      }).addTo(mapInstanceRef.current!);
-
-      nativeTitleLayerRef.current = ratsibLayer;
-      console.log(`Added ${data.ratsib.boundaries.length} RATSIB boundaries to map for ${territoryName}`);
-    } catch (error) {
-      console.warn('Failed to load RATSIB boundaries:', error);
-    }
-  };
-
-  // Load RATSIB boundaries for current map view with optimization
-  const loadRATSIBForMapView = async () => {
-    if (!mapInstanceRef.current || !showRATSIBBoundaries) return;
-
     const center = mapInstanceRef.current.getCenter();
-    const bounds = mapInstanceRef.current.getBounds();
     
     try {
       console.log('Loading RATSIB boundaries for map view...');
       
-      // Use optimized fetch with caching and deduplication
       const data = await dataOptimizationService.optimizedFetch(
         `/api/territories/map-view/ratsib?lat=${center.lat}&lng=${center.lng}`
       );
       
-      // Start prefetching nearby areas for smoother navigation
-      dataOptimizationService.prefetchNearbyRATSIB(center.lat, center.lng);
-      if (!data.success || !data.ratsib.boundaries || data.ratsib.boundaries.length === 0) {
+      if (!data.success || !data.ratsibBoundaries || data.ratsibBoundaries.length === 0) {
         console.log('No RATSIB boundaries found for current map view');
         return;
       }
@@ -472,20 +195,18 @@ export default function SimpleMap({
       }
 
       // Create GeoJSON features from RATSIB boundaries
-      const ratsibFeatures = data.ratsib.boundaries.map((boundary: any) => ({
+      const ratsibFeatures = data.ratsibBoundaries.map((boundary: any) => ({
         type: "Feature",
         properties: {
-          id: boundary.id,
-          name: boundary.name,
-          organizationName: boundary.organizationName,
-          corporationType: boundary.corporationType,
-          legislativeAuthority: boundary.legislativeAuthority,
-          website: boundary.website,
-          jurisdiction: boundary.jurisdiction,
-          status: boundary.status,
-          registrationDate: boundary.registrationDate,
-          // Also include original properties for fallback
-          ...boundary.originalProperties
+          id: boundary.properties?.ID,
+          org: boundary.properties?.ORG,
+          name: boundary.properties?.NAME,
+          ratsibType: boundary.properties?.RATSIBTYPE,
+          legisAuth: boundary.properties?.LEGISAUTH,
+          ratsibLink: boundary.properties?.RATSIBLINK,
+          juris: boundary.properties?.JURIS,
+          comments: boundary.properties?.COMMENTS,
+          dtExtract: boundary.properties?.DT_EXTRACT
         },
         geometry: boundary.geometry || {
           type: "Point",
@@ -502,51 +223,62 @@ export default function SimpleMap({
           fillColor: '#8B5CF6',
           fillOpacity: 0.1
         }),
-        pointToLayer: (feature, latlng) => {
-          return L.circleMarker(latlng, {
-            radius: 8,
-            fillColor: '#8B5CF6',
-            color: '#7C3AED',
-            weight: 2,
-            opacity: 1,
-            fillOpacity: 0.7
-          });
-        },
         onEachFeature: (feature, layer) => {
           const props = feature.properties;
           layer.bindPopup(`
             <div class="p-3 min-w-[280px] border-l-4 border-purple-500">
-              <h3 class="font-bold text-lg mb-2 text-purple-700">${props.ORG || props.organizationName || 'Aboriginal Organization'}</h3>
+              <h3 class="font-bold text-lg mb-2 text-purple-700">${props.org || 'RATSIB Organization'}</h3>
               <div class="space-y-2 text-sm">
-                ${props.NAME || props.name ? `<p><strong>Territory:</strong> ${props.NAME || props.name}</p>` : ''}
-                ${props.RATSIBTYPE || props.corporationType ? `<p><strong>Type:</strong> <span class="px-2 py-1 bg-purple-100 text-purple-700 rounded text-xs">${props.RATSIBTYPE || props.corporationType}</span></p>` : ''}
-                ${props.JURIS || props.jurisdiction ? `<p><strong>Jurisdiction:</strong> <span class="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs">${props.JURIS || props.jurisdiction}</span></p>` : ''}
-                ${props.LEGISAUTH || props.legislativeAuthority ? `<p><strong>Legislative Authority:</strong> <span class="text-xs text-gray-600">${props.LEGISAUTH || props.legislativeAuthority}</span></p>` : ''}
-                ${props.RATSIBLINK || props.website ? `<p><strong>Website:</strong> <a href="${props.RATSIBLINK || props.website}" target="_blank" class="text-purple-600 hover:text-purple-800 underline text-xs break-all">${props.RATSIBLINK || props.website}</a></p>` : ''}
-                ${props.COMMENTS || props.status ? `<p><strong>Status:</strong> <span class="text-xs">${props.COMMENTS || props.status}</span></p>` : ''}
-                ${props.ID || props.id ? `<p><strong>RATSIB ID:</strong> ${props.ID || props.id}</p>` : ''}
-                ${props.DT_EXTRACT || props.registrationDate ? `<p><strong>Last Updated:</strong> <span class="text-xs">${new Date(props.DT_EXTRACT || props.registrationDate).toLocaleDateString()}</span></p>` : ''}
+                <p><strong>Type:</strong> <span class="px-2 py-1 bg-purple-100 text-purple-700 rounded text-xs">${props.ratsibType || 'Unknown'}</span></p>
+                <p><strong>Region:</strong> ${props.name || 'Unknown'}</p>
+                <p><strong>Jurisdiction:</strong> <span class="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs">${props.juris || 'Unknown'}</span></p>
+                ${props.legisAuth ? `<p><strong>Legislative Authority:</strong> ${props.legisAuth}</p>` : ''}
+                ${props.ratsibLink ? `<p><strong>Website:</strong> <a href="${props.ratsibLink}" target="_blank" class="text-blue-600 hover:underline">${props.ratsibLink}</a></p>` : ''}
+                ${props.comments ? `<p><strong>Comments:</strong> ${props.comments}</p>` : ''}
               </div>
-              <div class="mt-3 text-xs text-gray-500 border-t pt-2">
-                <strong>Source:</strong> Australian Government RATSIB Register<br>
-                <span class="text-xs">Registered Aboriginal and Torres Strait Islander Bodies</span>
+              <div class="mt-3 text-xs text-gray-500">
+                <p>Source: Australian Government RATSIB Register</p>
+                ${props.dtExtract ? `<p>Last Updated: ${new Date(props.dtExtract).toLocaleDateString()}</p>` : ''}
               </div>
             </div>
-          `, {
-            className: 'custom-popup ratsib-popup',
-            maxWidth: 320
-          });
+          `);
         }
-      }).addTo(mapInstanceRef.current);
+      });
 
+      ratsibLayer.addTo(mapInstanceRef.current);
       nativeTitleLayerRef.current = ratsibLayer;
-      console.log(`Added ${data.ratsib.boundaries.length} RATSIB boundaries to map view`);
+
+      console.log(`Added ${ratsibFeatures.length} RATSIB boundaries to map view`);
+
+      // Prefetch nearby areas for smoother navigation
+      const bounds = mapInstanceRef.current.getBounds();
+      const latOffset = 0.5;
+      const lngOffset = 0.5;
+      const nearbyAreas = [
+        { lat: center.lat + latOffset, lng: center.lng },
+        { lat: center.lat - latOffset, lng: center.lng },
+        { lat: center.lat, lng: center.lng + lngOffset },
+        { lat: center.lat, lng: center.lng - lngOffset }
+      ];
+
+      nearbyAreas.forEach(async (area) => {
+        try {
+          await dataOptimizationService.optimizedFetch(
+            `/api/territories/map-view/ratsib?lat=${area.lat}&lng=${area.lng}`
+          );
+        } catch (error) {
+          // Silent prefetch failure
+        }
+      });
+
+      console.log(`Prefetched RATSIB data for ${nearbyAreas.length} nearby areas around ${center.lat},${center.lng}`);
+
     } catch (error) {
-      console.warn('Failed to load RATSIB boundaries for map view:', error);
+      console.error('Error loading RATSIB boundaries:', error);
     }
   };
 
-  // Effect to handle RATSIB boundaries toggle
+  // Handle RATSIB boundaries toggle
   useEffect(() => {
     if (!mapInstanceRef.current) return;
 
@@ -561,205 +293,58 @@ export default function SimpleMap({
     }
   }, [showRATSIBBoundaries]);
 
-  // Load ABS Indigenous Regions for current map view
-  const loadABSRegionsForMapView = async () => {
-    if (!mapInstanceRef.current || !showABSRegions) return;
-
-    const center = mapInstanceRef.current.getCenter();
-    
-    try {
-      console.log('Loading ABS Indigenous Regions for map view...');
-      
-      const data = await dataOptimizationService.optimizedFetch(
-        `/api/territories/map-view/abs-regions?lat=${center.lat}&lng=${center.lng}`
-      );
-      
-      if (!data.success || !data.absRegions.regions || data.absRegions.regions.length === 0) {
-        console.log('No ABS Indigenous Regions found for current map view');
-        return;
-      }
-
-      // Remove existing ABS layer
-      if (absRegionsLayerRef.current) {
-        mapInstanceRef.current.removeLayer(absRegionsLayerRef.current);
-        absRegionsLayerRef.current = null;
-      }
-
-      // Create GeoJSON features from ABS regions
-      const absFeatures = data.absRegions.regions.map((region: any) => ({
-        type: "Feature",
-        properties: {
-          id: region.id,
-          regionCode: region.regionCode,
-          regionName: region.regionName,
-          state: region.state,
-          area: region.area,
-          population: region.population,
-          ...region.originalProperties
-        },
-        geometry: region.geometry || {
-          type: "Point",
-          coordinates: [center.lng, center.lat]
-        }
-      }));
-
-      // Create ABS Indigenous Regions layer
-      const absLayer = L.geoJSON({ type: "FeatureCollection", features: absFeatures } as any, {
-        style: (feature) => ({
-          color: '#3B82F6',
-          weight: 2,
-          opacity: 0.8,
-          fillColor: '#3B82F6',
-          fillOpacity: 0.1
-        }),
-        onEachFeature: (feature, layer) => {
-          const props = feature.properties;
-          layer.bindPopup(`
-            <div class="p-3 min-w-[280px] border-l-4 border-blue-500">
-              <h3 class="font-bold text-lg mb-2 text-blue-700">${props.regionName || 'Indigenous Region'}</h3>
-              <div class="space-y-2 text-sm">
-                <p><strong>Region Code:</strong> ${props.regionCode || 'Unknown'}</p>
-                <p><strong>State:</strong> <span class="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs">${props.state || 'Unknown'}</span></p>
-                ${props.area ? `<p><strong>Area:</strong> ${props.area.toLocaleString()} km²</p>` : ''}
-                ${props.population ? `<p><strong>Population:</strong> ${props.population.toLocaleString()}</p>` : ''}
-              </div>
-              <div class="mt-3 text-xs text-gray-500 border-t pt-2">
-                <strong>Source:</strong> Australian Bureau of Statistics<br>
-                <span class="text-xs">Indigenous Regions (IREG) 2021</span>
-              </div>
-            </div>
-          `, {
-            className: 'custom-popup abs-popup',
-            maxWidth: 320
-          });
-        }
-      }).addTo(mapInstanceRef.current);
-
-      absRegionsLayerRef.current = absLayer;
-      console.log(`Added ${data.absRegions.regions.length} ABS Indigenous Regions to map view`);
-    } catch (error) {
-      console.warn('Failed to load ABS Indigenous Regions for map view:', error);
-    }
-  };
-
-  // Load AIATSIS Language Boundaries for current map view
-  const loadAIATSISLanguagesForMapView = async () => {
-    if (!mapInstanceRef.current || !showAIATSISLanguages) return;
-
-    const center = mapInstanceRef.current.getCenter();
-    
-    try {
-      console.log('Loading AIATSIS Language Boundaries for map view...');
-      
-      const data = await dataOptimizationService.optimizedFetch(
-        `/api/territories/map-view/aiatsis-languages?lat=${center.lat}&lng=${center.lng}`
-      );
-      
-      if (!data.success || !data.aiatsisLanguages.languageGroups || data.aiatsisLanguages.languageGroups.length === 0) {
-        console.log('No AIATSIS Language Groups found for current map view');
-        return;
-      }
-
-      // Remove existing AIATSIS layer
-      if (aiatsisLanguagesLayerRef.current) {
-        mapInstanceRef.current.removeLayer(aiatsisLanguagesLayerRef.current);
-        aiatsisLanguagesLayerRef.current = null;
-      }
-
-      // Create GeoJSON features from AIATSIS language groups
-      const aiatsisFeatures = data.aiatsisLanguages.languageGroups.map((language: any) => ({
-        type: "Feature",
-        properties: {
-          id: language.id,
-          languageName: language.languageName,
-          languageCode: language.languageCode,
-          alternativeNames: language.alternativeNames,
-          languageFamily: language.languageFamily,
-          state: language.state,
-          status: language.status,
-          speakers: language.speakers,
-          ...language.originalProperties
-        },
-        geometry: language.geometry || {
-          type: "Point",
-          coordinates: [center.lng, center.lat]
-        }
-      }));
-
-      // Create AIATSIS Language Boundaries layer
-      const aiatsisLayer = L.geoJSON({ type: "FeatureCollection", features: aiatsisFeatures } as any, {
-        style: (feature) => ({
-          color: '#10B981',
-          weight: 2,
-          opacity: 0.8,
-          fillColor: '#10B981',
-          fillOpacity: 0.1
-        }),
-        onEachFeature: (feature, layer) => {
-          const props = feature.properties;
-          layer.bindPopup(`
-            <div class="p-3 min-w-[280px] border-l-4 border-green-500">
-              <h3 class="font-bold text-lg mb-2 text-green-700">${props.languageName || 'Indigenous Language'}</h3>
-              <div class="space-y-2 text-sm">
-                <p><strong>Language Code:</strong> ${props.languageCode || 'Unknown'}</p>
-                ${props.alternativeNames && props.alternativeNames.length > 0 ? `<p><strong>Alternative Names:</strong> ${props.alternativeNames.join(', ')}</p>` : ''}
-                <p><strong>Language Family:</strong> <span class="px-2 py-1 bg-green-100 text-green-700 rounded text-xs">${props.languageFamily || 'Unknown'}</span></p>
-                <p><strong>State:</strong> ${props.state || 'Unknown'}</p>
-                ${props.status ? `<p><strong>Status:</strong> ${props.status}</p>` : ''}
-                ${props.speakers ? `<p><strong>Speakers:</strong> ${props.speakers.toLocaleString()}</p>` : ''}
-              </div>
-              <div class="mt-3 text-xs text-gray-500 border-t pt-2">
-                <strong>Source:</strong> Australian Institute of Aboriginal and Torres Strait Islander Studies<br>
-                <span class="text-xs">AIATSIS Indigenous Language Boundaries</span>
-              </div>
-            </div>
-          `, {
-            className: 'custom-popup aiatsis-popup',
-            maxWidth: 320
-          });
-        }
-      }).addTo(mapInstanceRef.current);
-
-      aiatsisLanguagesLayerRef.current = aiatsisLayer;
-      console.log(`Added ${data.aiatsisLanguages.languageGroups.length} AIATSIS Language Groups to map view`);
-    } catch (error) {
-      console.warn('Failed to load AIATSIS Language Boundaries for map view:', error);
-    }
-  };
-
-  // Effect to handle ABS Indigenous Regions toggle
+  // Handle selected territory highlighting
   useEffect(() => {
-    if (!mapInstanceRef.current) return;
+    if (!selectedTerritory || !mapInstanceRef.current || !territoryLayerRef.current) return;
 
-    if (!showABSRegions && absRegionsLayerRef.current) {
-      mapInstanceRef.current.removeLayer(absRegionsLayerRef.current);
-      absRegionsLayerRef.current = null;
-      console.log('ABS Indigenous Regions hidden');
-    } else if (showABSRegions && !absRegionsLayerRef.current) {
-      loadABSRegionsForMapView();
-    }
-  }, [showABSRegions]);
+    // Reset all layers to default style
+    territoryLayerRef.current.eachLayer((layer: any) => {
+      if (layer.feature) {
+        const props = layer.feature.properties;
+        let color = '#8B4513';
+        if (props?.NTDA === 'Yes') {
+          color = '#2E8B57';
+        }
+        layer.setStyle({
+          color: color,
+          weight: 1,
+          opacity: 0.8,
+          fillOpacity: 0.3
+        });
+      }
+    });
 
-  // Effect to handle AIATSIS Language Boundaries toggle
-  useEffect(() => {
-    if (!mapInstanceRef.current) return;
+    // Highlight selected territory
+    territoryLayerRef.current.eachLayer((layer: any) => {
+      if (layer.feature?.properties?.NAME === selectedTerritory.name) {
+        layer.setStyle({
+          color: '#FF4500',
+          weight: 3,
+          opacity: 1,
+          fillOpacity: 0.6
+        });
+        
+        // Center map on selected territory if coordinates are available
+        if (selectedTerritory.coordinates?.lat && selectedTerritory.coordinates?.lng) {
+          mapInstanceRef.current?.setView(
+            [selectedTerritory.coordinates.lat, selectedTerritory.coordinates.lng],
+            8
+          );
+        }
+      }
+    });
+  }, [selectedTerritory]);
 
-    if (!showAIATSISLanguages && aiatsisLanguagesLayerRef.current) {
-      mapInstanceRef.current.removeLayer(aiatsisLanguagesLayerRef.current);
-      aiatsisLanguagesLayerRef.current = null;
-      console.log('AIATSIS Language Boundaries hidden');
-    } else if (showAIATSISLanguages && !aiatsisLanguagesLayerRef.current) {
-      loadAIATSISLanguagesForMapView();
-    }
-  }, [showAIATSISLanguages]);
+  if (isLoading) {
+    return (
+      <div className="h-full flex items-center justify-center bg-gray-100">
+        <div className="text-center">
+          <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading Aboriginal territories...</p>
+        </div>
+      </div>
+    );
+  }
 
-  return (
-    <div className="relative w-full h-[calc(100vh-80px)]">
-      <div 
-        ref={mapRef} 
-        className="w-full h-full"
-        style={{ minHeight: '500px' }}
-      />
-    </div>
-  );
+  return <div ref={mapRef} className="h-full w-full" />;
 }

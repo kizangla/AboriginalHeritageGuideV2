@@ -940,51 +940,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // ABS Indigenous Regions endpoint
-  app.get("/api/territories/map-view/abs-regions", async (req, res) => {
-    try {
-      const { lat, lng } = req.query;
-      
-      if (!lat || !lng) {
-        return res.status(400).json({ 
-          error: 'Coordinates required',
-          message: 'lat and lng query parameters are required'
-        });
-      }
-      
-      const latitude = parseFloat(lat as string);
-      const longitude = parseFloat(lng as string);
-      
-      if (isNaN(latitude) || isNaN(longitude)) {
-        return res.status(400).json({ 
-          error: 'Invalid coordinates',
-          message: 'lat and lng must be valid numbers'
-        });
-      }
-      
-      const { fetchABSIndigenousRegions } = await import('./abs-indigenous-regions-service');
-      const absData = await fetchABSIndigenousRegions(latitude, longitude, 'Map View');
-      
-      res.set({
-        'Cache-Control': 'public, max-age=1800', // 30 minutes
-        'ETag': `"abs-ireg-${latitude.toFixed(1)}-${longitude.toFixed(1)}-${absData.totalFound}"`
-      });
-      
-      res.json({
-        success: true,
-        coordinates: { lat: latitude, lng: longitude },
-        absRegions: absData,
-        timestamp: new Date().toISOString()
-      });
-      
-    } catch (error) {
-      console.error('ABS Indigenous Regions error:', error);
-      res.status(500).json({ 
-        error: 'Failed to fetch ABS Indigenous Regions',
-        message: error instanceof Error ? error.message : 'Unknown error'
-      });
-    }
-  });
+
 
   // AIATSIS Language Boundaries endpoint
   app.get("/api/territories/map-view/aiatsis-languages", async (req, res) => {
