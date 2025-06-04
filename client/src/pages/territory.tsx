@@ -294,18 +294,72 @@ export default function TerritoryPage() {
                       </div>
                     </div>
 
-                    {activeApplications.length > 0 && (
-                      <div>
-                        <label className="text-sm font-medium text-gray-500 mb-2 block">Active Applications</label>
-                        <ScrollArea className="h-32">
-                          {activeApplications.map((app: any, index: number) => (
-                            <div key={index} className="text-sm text-gray-600 mb-2 p-2 bg-gray-50 rounded">
-                              <div className="font-medium">{app.applicantName}</div>
-                              <div className="text-xs text-gray-500">{app.status}</div>
-                              {app.outcome && <div className="text-xs text-blue-600">{app.outcome}</div>}
-                            </div>
-                          ))}
-                        </ScrollArea>
+                    {(activeApplications.length > 0 || activeDeterminations.length > 0) && (
+                      <div className="space-y-4">
+                        {activeApplications.length > 0 && (
+                          <div>
+                            <label className="text-sm font-medium text-gray-500 mb-2 block">
+                              Active Applications
+                            </label>
+                            <ScrollArea className="h-32">
+                              {activeApplications.map((app: any, index: number) => (
+                                <div key={index} className="text-sm text-gray-600 mb-2 p-3 bg-blue-50 rounded-lg border-l-3 border-blue-400">
+                                  <div className="font-semibold text-gray-800">{app.applicantName}</div>
+                                  <div className="text-xs text-gray-600 mt-1">
+                                    <span className="font-medium">File:</span> {app.tribunalNumber || app.applicationId}
+                                  </div>
+                                  <div className="text-xs mt-1">
+                                    <span className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded text-xs">
+                                      {app.status}
+                                    </span>
+                                  </div>
+                                  {app.outcome && (
+                                    <div className="text-xs text-green-600 mt-1 font-medium">{app.outcome}</div>
+                                  )}
+                                  {app.area && (
+                                    <div className="text-xs text-gray-500 mt-1">
+                                      Area: {app.area} km²
+                                    </div>
+                                  )}
+                                </div>
+                              ))}
+                            </ScrollArea>
+                          </div>
+                        )}
+
+                        {activeDeterminations.length > 0 && (
+                          <div>
+                            <label className="text-sm font-medium text-gray-500 mb-2 block">
+                              Determinations
+                            </label>
+                            <ScrollArea className="h-32">
+                              {activeDeterminations.slice(0, 5).map((det: any, index: number) => (
+                                <div key={index} className="text-sm text-gray-600 mb-2 p-3 bg-green-50 rounded-lg border-l-3 border-green-400">
+                                  <div className="font-semibold text-gray-800">
+                                    {det.name || det.applicantName || det.claim_name || 'Native Title Determination'}
+                                  </div>
+                                  {det.tribunalNumber && (
+                                    <div className="text-xs text-gray-600 mt-1">
+                                      <span className="font-medium">File:</span> {det.tribunalNumber}
+                                    </div>
+                                  )}
+                                  {det.outcome && (
+                                    <div className="text-xs mt-1">
+                                      <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded text-xs">
+                                        {det.outcome}
+                                      </span>
+                                    </div>
+                                  )}
+                                  {det.area && (
+                                    <div className="text-xs text-gray-500 mt-1">
+                                      Area: {det.area} km²
+                                    </div>
+                                  )}
+                                </div>
+                              ))}
+                            </ScrollArea>
+                          </div>
+                        )}
                       </div>
                     )}
 
@@ -340,21 +394,69 @@ export default function TerritoryPage() {
 
                     {ratsibBoundaries.length > 0 && (
                       <div>
-                        <label className="text-sm font-medium text-gray-500 mb-2 block">Service Providers</label>
-                        <ScrollArea className="h-32">
-                          {ratsibBoundaries.map((boundary: any, index: number) => (
-                            <div key={index} className="text-sm text-gray-600 mb-2 p-2 bg-gray-50 rounded">
-                              <div className="font-medium">
-                                {boundary.properties?.ORG || boundary.properties?.NAME || 'Service Provider'}
+                        <label className="text-sm font-medium text-gray-500 mb-2 block">
+                          Service Providers Covering This Region
+                        </label>
+                        <ScrollArea className="h-40">
+                          {ratsibBoundaries.map((boundary: any, index: number) => {
+                            const props = boundary.properties || {};
+                            return (
+                              <div key={index} className="text-sm text-gray-600 mb-3 p-3 bg-gray-50 rounded-lg border-l-3 border-orange-400">
+                                <div className="font-semibold text-gray-800 mb-1">
+                                  {props.ORG || props.organizationName || 'Aboriginal Organization'}
+                                </div>
+                                
+                                <div className="space-y-1">
+                                  {props.NAME && (
+                                    <div className="text-xs">
+                                      <span className="font-medium">Coverage:</span> {props.NAME}
+                                    </div>
+                                  )}
+                                  
+                                  <div className="text-xs">
+                                    <span className="font-medium">Type:</span> 
+                                    <span className="ml-1 px-2 py-0.5 bg-orange-100 text-orange-700 rounded text-xs">
+                                      {props.RATSIBTYPE || props.corporationType || 'Native Title Service Provider'}
+                                    </span>
+                                  </div>
+                                  
+                                  {props.JURIS && (
+                                    <div className="text-xs">
+                                      <span className="font-medium">Jurisdiction:</span> 
+                                      <span className="ml-1 px-2 py-0.5 bg-blue-100 text-blue-700 rounded text-xs">
+                                        {props.JURIS}
+                                      </span>
+                                    </div>
+                                  )}
+                                  
+                                  {props.LEGISAUTH && (
+                                    <div className="text-xs text-gray-600 mt-1">
+                                      <span className="font-medium">Authority:</span> {props.LEGISAUTH}
+                                    </div>
+                                  )}
+                                  
+                                  {props.RATSIBLINK && (
+                                    <div className="text-xs mt-1">
+                                      <a 
+                                        href={props.RATSIBLINK} 
+                                        target="_blank" 
+                                        rel="noopener noreferrer"
+                                        className="text-blue-600 hover:text-blue-800 underline"
+                                      >
+                                        Visit Website
+                                      </a>
+                                    </div>
+                                  )}
+                                  
+                                  {props.COMMENTS && (
+                                    <div className="text-xs text-amber-600 mt-1 italic">
+                                      {props.COMMENTS}
+                                    </div>
+                                  )}
+                                </div>
                               </div>
-                              <div className="text-xs text-gray-500">
-                                {boundary.properties?.RATSIBTYPE || 'Native Title Service Provider'}
-                              </div>
-                              {boundary.properties?.JURIS && (
-                                <div className="text-xs text-blue-600">{boundary.properties.JURIS}</div>
-                              )}
-                            </div>
-                          ))}
+                            );
+                          })}
                         </ScrollArea>
                       </div>
                     )}
