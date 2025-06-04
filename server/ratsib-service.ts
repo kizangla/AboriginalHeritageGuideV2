@@ -83,6 +83,12 @@ export async function fetchRATSIBBoundaries(
     const boundaries: RATSIBBoundary[] = relevantFeatures.map((feature: any, index: number) => {
       const props = feature.properties || {};
       
+      // Debug: Log actual property names from government dataset
+      if (index === 0) {
+        console.log('RATSIB property keys from Australian Government:', Object.keys(props));
+        console.log('Sample RATSIB properties:', props);
+      }
+      
       return {
         id: props.id || props.objectid || props.icn || `ratsib_${index}`,
         name: props.name || props.organisation_name || props.corp_name || 'Aboriginal Corporation',
