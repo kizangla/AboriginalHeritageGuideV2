@@ -958,6 +958,78 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get all RATSIB boundaries across Australia for map reset view
+  app.get("/api/ratsib/all-boundaries", async (req, res) => {
+    try {
+      console.log('Fetching all RATSIB boundaries across Australia...');
+      
+      // Fetch authentic RATSIB data from Australian Government WFS service
+      const wfsUrl = 'https://data.gov.au/geoserver/ratsib-boundaries/wfs?request=GetFeature&typeName=ckan_0d32262b_e13b_4475_adc6_3618811c029a&outputFormat=json';
+      
+      const response = await fetch(wfsUrl);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch RATSIB data from Australian Government: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      
+      if (!data.features || !Array.isArray(data.features)) {
+        throw new Error('Invalid RATSIB data format from Australian Government');
+      }
+      
+      console.log(`Successfully fetched all RATSIB data from Australian Government`);
+      console.log(`RATSIB property keys from Australian Government: [${Object.keys(data.features[0]?.properties || {}).map(k => `'${k}'`).join(', ')}]`);
+      console.log(`Sample RATSIB properties:`, data.features[0]?.properties);
+      
+      // Process all RATSIB boundaries with proper data structure
+      const allBoundaries = data.features.map((feature: any) => {
+        const props = feature.properties || {};
+        
+        return {
+          id: props.ID || `ratsib_${Math.random().toString(36).substr(2, 9)}`,
+          name: props.NAME || props.org || 'Aboriginal Organization',
+          organizationName: props.ORG || props.organizationName || props.NAME || 'Aboriginal Organization',
+          corporationType: props.RATSIBTYPE || props.corporationType || 'Aboriginal Corporation',
+          registrationDate: props.DT_EXTRACT || new Date().toISOString(),
+          status: props.COMMENTS || props.status || 'Active',
+          legislativeAuthority: props.LEGISAUTH || props.legislativeAuthority || 'Native Title Act 1993',
+          website: props.RATSIBLINK || props.website || null,
+          jurisdiction: props.JURIS || props.jurisdiction || 'Australia',
+          geometry: feature.geometry,
+          originalProperties: props
+        };
+      });
+      
+      console.log(`Found ${allBoundaries.length} RATSIB boundaries across Australia`);
+      
+      const result = {
+        success: true,
+        ratsib: {
+          boundaries: allBoundaries,
+          totalFound: allBoundaries.length,
+          bbox: 'australia_wide',
+          source: 'australian_government_wfs'
+        },
+        timestamp: new Date().toISOString()
+      };
+      
+      // Add cache headers for better client-side caching
+      res.set({
+        'Cache-Control': 'public, max-age=1800', // 30 minutes
+        'ETag': `"ratsib-all-${allBoundaries.length}"`
+      });
+      
+      res.json(result);
+      
+    } catch (error) {
+      console.error('All RATSIB boundaries error:', error);
+      res.status(500).json({ 
+        error: 'Failed to fetch all RATSIB boundaries',
+        message: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
   // ABS Indigenous Regions endpoint
   app.get("/api/territories/map-view/abs-regions", async (req, res) => {
     try {

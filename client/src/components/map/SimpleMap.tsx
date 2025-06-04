@@ -541,6 +541,100 @@ export default function SimpleMap({ onMapReady, onTerritorySelect, regionFilter,
     }
   };
 
+  // Load all RATSIB boundaries across Australia
+  const loadAllRATSIBBoundaries = async () => {
+    if (!mapInstanceRef.current || !showRATSIBBoundaries) return;
+
+    try {
+      console.log('Loading all RATSIB boundaries across Australia...');
+      
+      // Remove existing RATSIB layer
+      if (ratsibLayerRef.current) {
+        mapInstanceRef.current.removeLayer(ratsibLayerRef.current);
+        ratsibLayerRef.current = null;
+      }
+
+      // Fetch all RATSIB boundaries from Australian Government
+      const response = await fetch('/api/ratsib/all-boundaries');
+      if (!response.ok) {
+        console.warn('Failed to fetch all RATSIB boundaries:', response.status);
+        return;
+      }
+      
+      const data = await response.json();
+      if (!data.success || !data.ratsib.boundaries || data.ratsib.boundaries.length === 0) {
+        console.log('No RATSIB boundaries found');
+        return;
+      }
+
+      // Create GeoJSON features from all RATSIB boundaries
+      const ratsibFeatures = data.ratsib.boundaries.map((boundary: any) => ({
+        type: "Feature",
+        properties: {
+          id: boundary.id,
+          name: boundary.name,
+          organizationName: boundary.organizationName,
+          corporationType: boundary.corporationType,
+          legislativeAuthority: boundary.legislativeAuthority,
+          website: boundary.website,
+          jurisdiction: boundary.jurisdiction,
+          status: boundary.status,
+          registrationDate: boundary.registrationDate,
+          // Also include original properties for fallback
+          ...boundary.originalProperties
+        },
+        geometry: boundary.geometry
+      }));
+
+      // Create RATSIB layer for all boundaries
+      const ratsibLayer = L.geoJSON({ type: "FeatureCollection", features: ratsibFeatures } as any, {
+        style: (feature) => ({
+          color: '#8B5CF6',
+          weight: 2,
+          opacity: 0.8,
+          fillColor: '#8B5CF6',
+          fillOpacity: 0.1
+        }),
+        pointToLayer: (feature, latlng) => {
+          return L.circleMarker(latlng, {
+            radius: 8,
+            fillColor: '#8B5CF6',
+            color: '#7C3AED',
+            weight: 2,
+            opacity: 1,
+            fillOpacity: 0.7
+          });
+        },
+        onEachFeature: (feature, layer) => {
+          const props = feature.properties;
+          layer.bindPopup(`
+            <div class="p-3 min-w-[280px] border-l-4 border-purple-500">
+              <h3 class="font-bold text-lg mb-2 text-purple-700">${props.ORG || props.organizationName || 'Aboriginal Organization'}</h3>
+              <div class="space-y-2 text-sm">
+                ${props.NAME || props.name ? `<p><strong>Territory:</strong> ${props.NAME || props.name}</p>` : ''}
+                ${props.RATSIBTYPE || props.corporationType ? `<p><strong>Type:</strong> <span class="px-2 py-1 bg-purple-100 text-purple-700 rounded text-xs">${props.RATSIBTYPE || props.corporationType}</span></p>` : ''}
+                ${props.JURIS || props.jurisdiction ? `<p><strong>Jurisdiction:</strong> <span class="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs">${props.JURIS || props.jurisdiction}</span></p>` : ''}
+                ${props.LEGISAUTH || props.legislativeAuthority ? `<p><strong>Authority:</strong> <span class="text-xs">${props.LEGISAUTH || props.legislativeAuthority}</span></p>` : ''}
+                ${props.RATSIBLINK || props.website ? `<p><strong>Website:</strong> <a href="${props.RATSIBLINK || props.website}" target="_blank" class="text-purple-600 hover:text-purple-800 underline text-xs">${props.RATSIBLINK || props.website}</a></p>` : ''}
+              </div>
+              <div class="mt-2 text-xs text-gray-500 border-t pt-2">
+                Source: Australian Government RATSIB Register
+              </div>
+            </div>
+          `, {
+            className: 'custom-popup ratsib-popup',
+            maxWidth: 320
+          });
+        }
+      }).addTo(mapInstanceRef.current);
+
+      ratsibLayerRef.current = ratsibLayer;
+      console.log(`Added ${data.ratsib.boundaries.length} RATSIB boundaries across Australia`);
+    } catch (error) {
+      console.warn('Failed to load all RATSIB boundaries:', error);
+    }
+  };
+
   // Effect to handle RATSIB boundaries toggle
   useEffect(() => {
     if (!mapInstanceRef.current) return;
@@ -551,8 +645,17 @@ export default function SimpleMap({ onMapReady, onTerritorySelect, regionFilter,
       ratsibLayerRef.current = null;
       console.log('RATSIB boundaries hidden');
     } else if (showRATSIBBoundaries && !ratsibLayerRef.current) {
-      // Load RATSIB boundaries when filter is enabled
-      loadRATSIBForMapView();
+      // Check if we're at the default map view (Australia-wide)
+      const center = mapInstanceRef.current.getCenter();
+      const zoom = mapInstanceRef.current.getZoom();
+      
+      // If at default Australia view (zoom <= 6), show all RATSIB boundaries
+      if (zoom <= 6) {
+        loadAllRATSIBBoundaries();
+      } else {
+        // Otherwise show regional RATSIB boundaries
+        loadRATSIBForMapView();
+      }
     }
   }, [showRATSIBBoundaries]);
 
