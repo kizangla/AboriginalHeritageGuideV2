@@ -942,51 +942,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
 
 
-  // AIATSIS Language Boundaries endpoint
-  app.get("/api/territories/map-view/aiatsis-languages", async (req, res) => {
-    try {
-      const { lat, lng } = req.query;
-      
-      if (!lat || !lng) {
-        return res.status(400).json({ 
-          error: 'Coordinates required',
-          message: 'lat and lng query parameters are required'
-        });
-      }
-      
-      const latitude = parseFloat(lat as string);
-      const longitude = parseFloat(lng as string);
-      
-      if (isNaN(latitude) || isNaN(longitude)) {
-        return res.status(400).json({ 
-          error: 'Invalid coordinates',
-          message: 'lat and lng must be valid numbers'
-        });
-      }
-      
-      const { fetchAIATSISLanguageBoundaries } = await import('./aiatsis-language-service');
-      const aiatsisData = await fetchAIATSISLanguageBoundaries(latitude, longitude, 'Map View');
-      
-      res.set({
-        'Cache-Control': 'public, max-age=1800', // 30 minutes
-        'ETag': `"aiatsis-lang-${latitude.toFixed(1)}-${longitude.toFixed(1)}-${aiatsisData.totalFound}"`
-      });
-      
-      res.json({
-        success: true,
-        coordinates: { lat: latitude, lng: longitude },
-        aiatsisLanguages: aiatsisData,
-        timestamp: new Date().toISOString()
-      });
-      
-    } catch (error) {
-      console.error('AIATSIS Language Boundaries error:', error);
-      res.status(500).json({ 
-        error: 'Failed to fetch AIATSIS Language Boundaries',
-        message: error instanceof Error ? error.message : 'Unknown error'
-      });
-    }
-  });
+
 
   // Performance monitoring endpoint
   app.get("/api/performance/cache-stats", async (req, res) => {
