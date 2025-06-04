@@ -164,6 +164,16 @@ export default function MapPage() {
           showRATSIBBoundaries={showRATSIBBoundaries}
         />
         
+        {/* Advanced Layer Controls */}
+        <AdvancedLayerControls
+          showRATSIBBoundaries={showRATSIBBoundaries}
+          showABSRegions={showABSRegions}
+          showAIATSISLanguages={showAIATSISLanguages}
+          onRATSIBToggle={setShowRATSIBBoundaries}
+          onABSRegionsToggle={setShowABSRegions}
+          onAIATSISLanguagesToggle={setShowAIATSISLanguages}
+        />
+        
         {/* Collapsible Search Panel */}
         <CollapsibleSearch
           map={mapInstance}
