@@ -431,6 +431,18 @@ export default function SimpleMap({ onMapReady, onTerritorySelect, regionFilter,
     }
   };
 
+  // Effect to handle RATSIB boundaries toggle
+  useEffect(() => {
+    if (!mapInstanceRef.current) return;
+
+    if (!showRATSIBBoundaries && nativeTitleLayerRef.current) {
+      // Remove RATSIB layer when filter is disabled
+      mapInstanceRef.current.removeLayer(nativeTitleLayerRef.current);
+      nativeTitleLayerRef.current = null;
+      console.log('RATSIB boundaries hidden');
+    }
+  }, [showRATSIBBoundaries]);
+
   return (
     <div className="relative w-full h-[calc(100vh-80px)]">
       <div 
