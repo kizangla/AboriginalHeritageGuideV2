@@ -101,6 +101,10 @@ export default function TerritoryPage() {
   const nativeTitleInfo = (nativeTitleData as any)?.success ? (nativeTitleData as any).nativeTitleData : null;
   const activeDeterminations = nativeTitleInfo?.determinations || [];
   const activeApplications = nativeTitleInfo?.applications || [];
+  
+  // Extract RATSIB data from API response
+  const ratsibInfo = (ratsibData as any)?.success ? (ratsibData as any).ratsibData : null;
+  const ratsibBoundaries = ratsibInfo?.boundaries || [];
 
   // Fix traditional languages display - use actual Wiradjuri language name instead of "No P"
   const displayTraditionalLanguages = territoryDetails?.traditionalLanguages?.filter(lang => 
@@ -275,25 +279,30 @@ export default function TerritoryPage() {
               <CardContent>
                 {nativeTitleInfo ? (
                   <div className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-3 gap-3">
                       <div className="text-center p-3 bg-green-50 rounded-lg">
-                        <div className="text-2xl font-bold text-green-700">{nativeTitleInfo.totalRecords || 0}</div>
+                        <div className="text-2xl font-bold text-green-700">{nativeTitleInfo.totalRecords || (activeApplications.length + activeDeterminations.length)}</div>
                         <div className="text-sm text-green-600">Total Records</div>
                       </div>
                       <div className="text-center p-3 bg-blue-50 rounded-lg">
                         <div className="text-2xl font-bold text-blue-700">{activeApplications.length}</div>
                         <div className="text-sm text-blue-600">Applications</div>
                       </div>
+                      <div className="text-center p-3 bg-purple-50 rounded-lg">
+                        <div className="text-2xl font-bold text-purple-700">{activeDeterminations.length}</div>
+                        <div className="text-sm text-purple-600">Determinations</div>
+                      </div>
                     </div>
 
                     {activeApplications.length > 0 && (
                       <div>
                         <label className="text-sm font-medium text-gray-500 mb-2 block">Active Applications</label>
-                        <ScrollArea className="h-24">
-                          {activeApplications.slice(0, 3).map((app: any, index: number) => (
-                            <div key={index} className="text-sm text-gray-600 mb-1 p-2 bg-gray-50 rounded">
+                        <ScrollArea className="h-32">
+                          {activeApplications.map((app: any, index: number) => (
+                            <div key={index} className="text-sm text-gray-600 mb-2 p-2 bg-gray-50 rounded">
                               <div className="font-medium">{app.applicantName}</div>
                               <div className="text-xs text-gray-500">{app.status}</div>
+                              {app.outcome && <div className="text-xs text-blue-600">{app.outcome}</div>}
                             </div>
                           ))}
                         </ScrollArea>
@@ -320,22 +329,30 @@ export default function TerritoryPage() {
                 <CardDescription>Representative bodies and services</CardDescription>
               </CardHeader>
               <CardContent>
-                {(ratsibData as any)?.success ? (
+                {ratsibInfo ? (
                   <div className="space-y-4">
                     <div className="text-center p-3 bg-orange-50 rounded-lg">
                       <div className="text-2xl font-bold text-orange-700">
-                        {(ratsibData as any).ratsibData?.totalBoundaries || 0}
+                        {ratsibInfo.totalBoundaries || ratsibBoundaries.length}
                       </div>
                       <div className="text-sm text-orange-600">Service Areas</div>
                     </div>
 
-                    {(ratsibData as any).ratsibData?.boundaries && (ratsibData as any).ratsibData.boundaries.length > 0 && (
+                    {ratsibBoundaries.length > 0 && (
                       <div>
                         <label className="text-sm font-medium text-gray-500 mb-2 block">Service Providers</label>
-                        <ScrollArea className="h-24">
-                          {(ratsibData as any).ratsibData.boundaries.slice(0, 3).map((boundary: any, index: number) => (
-                            <div key={index} className="text-sm text-gray-600 mb-1">
-                              {boundary.properties?.ORG || boundary.properties?.NAME || 'Service Provider'}
+                        <ScrollArea className="h-32">
+                          {ratsibBoundaries.map((boundary: any, index: number) => (
+                            <div key={index} className="text-sm text-gray-600 mb-2 p-2 bg-gray-50 rounded">
+                              <div className="font-medium">
+                                {boundary.properties?.ORG || boundary.properties?.NAME || 'Service Provider'}
+                              </div>
+                              <div className="text-xs text-gray-500">
+                                {boundary.properties?.RATSIBTYPE || 'Native Title Service Provider'}
+                              </div>
+                              {boundary.properties?.JURIS && (
+                                <div className="text-xs text-blue-600">{boundary.properties.JURIS}</div>
+                              )}
                             </div>
                           ))}
                         </ScrollArea>
