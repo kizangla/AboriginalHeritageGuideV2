@@ -44,6 +44,12 @@ export default function CollapsibleSearch({
   const [searchType, setSearchType] = useState<SearchType>('places');
   const [shouldSearch, setShouldSearch] = useState(false);
 
+  // Territory search query
+  const { data: territoryResults, isLoading: isLoadingTerritories } = useQuery({
+    queryKey: ['/api/search/territories', searchQuery],
+    enabled: shouldSearch && searchQuery.length > 2 && searchType === 'places',
+  });
+
   // Place search query
   const { data: placeResults, isLoading: isLoadingPlaces } = useQuery({
     queryKey: ['/api/geocode', searchQuery],
