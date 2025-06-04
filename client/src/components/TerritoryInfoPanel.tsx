@@ -151,11 +151,11 @@ export default function TerritoryInfoPanel({
               </Badge>
             </div>
             
-            {nativeTitleData.nativeTitle.hasNativeTitle ? (
+            {nativeTitleData?.nativeTitle?.hasNativeTitle ? (
               <div className="space-y-4">
                 {/* Status */}
                 <div className="text-sm text-gray-700">
-                  <strong>Status:</strong> {nativeTitleData.nativeTitle.status}
+                  <strong>Status:</strong> {nativeTitleData?.nativeTitle?.status}
                 </div>
                 
                 {/* Traditional Owners Section */}
@@ -164,12 +164,12 @@ export default function TerritoryInfoPanel({
                   const allTraditionalOwners = new Set<string>();
                   
                   // Add primary applicant if available
-                  if (nativeTitleData.nativeTitle.primaryApplicant) {
+                  if (nativeTitleData?.nativeTitle?.primaryApplicant) {
                     allTraditionalOwners.add(nativeTitleData.nativeTitle.primaryApplicant);
                   }
                   
                   // Extract from all applications
-                  if (nativeTitleData.nativeTitle.applications) {
+                  if (nativeTitleData?.nativeTitle?.applications) {
                     nativeTitleData.nativeTitle.applications.forEach((app: any) => {
                       if (app.applicantName) {
                         allTraditionalOwners.add(app.applicantName);

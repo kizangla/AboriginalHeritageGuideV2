@@ -910,65 +910,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get RATSIB boundaries for territory
-  app.get("/api/territories/:territoryName/ratsib", async (req, res) => {
-    try {
-      const { territoryName } = req.params;
-      const decodedName = decodeURIComponent(territoryName);
-      
-      // Get territory from database to extract coordinates
-      const allTerritories = await storage.getTerritories();
-      const territory = allTerritories.find(t => 
-        t.name === decodedName || 
-        t.groupName === decodedName ||
-        t.name.toLowerCase() === decodedName.toLowerCase() ||
-        t.groupName.toLowerCase() === decodedName.toLowerCase()
-      );
-      
-      if (!territory) {
-        return res.status(404).json({ 
-          error: 'Territory not found',
-          searchedName: decodedName
-        });
-      }
-
-      // Extract coordinates from territory geometry or center point
-      let lat, lng;
-      if (territory.geometry && (territory.geometry as any).coordinates) {
-        const coords = (territory.geometry as any).coordinates[0][0]; // First coordinate of polygon
-        lng = coords[0];
-        lat = coords[1];
-      } else {
-        // Fallback to center coordinates if available
-        lat = (territory as any).centerLat || (territory as any).lat;
-        lng = (territory as any).centerLng || (territory as any).lng;
-      }
-
-      if (!lat || !lng) {
-        return res.status(400).json({ 
-          error: 'Territory coordinates not available' 
-        });
-      }
-      
-      const ratsibData = await fetchRATSIBBoundaries(lat, lng, decodedName);
-      
-      res.json({
-        success: true,
-        territoryName: decodedName,
-        coordinates: { lat, lng },
-        ratsibData,
-        timestamp: new Date().toISOString()
-      });
-      
-    } catch (error) {
-      console.error('RATSIB boundaries error:', error);
-      res.status(500).json({ 
-        error: 'Failed to fetch RATSIB boundaries',
-        message: error instanceof Error ? error.message : 'Unknown error'
-      });
-    }
-  });
-
   // Get RATSIB boundaries for map view (general area) with compression
   app.get("/api/territories/map-view/ratsib", async (req, res) => {
     try {
@@ -1104,6 +1045,65 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error('AIATSIS Language Boundaries error:', error);
       res.status(500).json({ 
         error: 'Failed to fetch AIATSIS Language Boundaries',
+        message: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
+  // Get RATSIB boundaries for territory
+  app.get("/api/territories/:territoryName/ratsib", async (req, res) => {
+    try {
+      const { territoryName } = req.params;
+      const decodedName = decodeURIComponent(territoryName);
+      
+      // Get territory from database to extract coordinates
+      const allTerritories = await storage.getTerritories();
+      const territory = allTerritories.find(t => 
+        t.name === decodedName || 
+        t.groupName === decodedName ||
+        t.name.toLowerCase() === decodedName.toLowerCase() ||
+        t.groupName.toLowerCase() === decodedName.toLowerCase()
+      );
+      
+      if (!territory) {
+        return res.status(404).json({ 
+          error: 'Territory not found',
+          searchedName: decodedName
+        });
+      }
+
+      // Extract coordinates from territory geometry or center point
+      let lat, lng;
+      if (territory.geometry && (territory.geometry as any).coordinates) {
+        const coords = (territory.geometry as any).coordinates[0][0]; // First coordinate of polygon
+        lng = coords[0];
+        lat = coords[1];
+      } else {
+        // Fallback to center coordinates if available
+        lat = (territory as any).centerLat || (territory as any).lat;
+        lng = (territory as any).centerLng || (territory as any).lng;
+      }
+
+      if (!lat || !lng) {
+        return res.status(400).json({ 
+          error: 'Territory coordinates not available' 
+        });
+      }
+      
+      const ratsibData = await fetchRATSIBBoundaries(lat, lng, decodedName);
+      
+      res.json({
+        success: true,
+        territoryName: decodedName,
+        coordinates: { lat, lng },
+        ratsibData,
+        timestamp: new Date().toISOString()
+      });
+      
+    } catch (error) {
+      console.error('RATSIB boundaries error:', error);
+      res.status(500).json({ 
+        error: 'Failed to fetch RATSIB boundaries',
         message: error instanceof Error ? error.message : 'Unknown error'
       });
     }
