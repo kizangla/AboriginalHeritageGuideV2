@@ -1,18 +1,9 @@
 import { useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import L from 'leaflet';
-import 'leaflet/dist/leaflet.css';
 import type { Territory } from '@shared/schema';
 import type { NativeTitleStatusFilter } from '@/components/NativeTitleFilter';
 import { dataOptimizationService } from '@/lib/data-optimization';
-
-// Fix for default markers in Leaflet with Vite
-delete (L.Icon.Default.prototype as any)._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
-  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
-  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
-});
 
 interface SimpleMapProps {
   onMapReady?: (map: L.Map) => void;
@@ -23,347 +14,549 @@ interface SimpleMapProps {
   showRATSIBBoundaries?: boolean;
 }
 
-export default function SimpleMap({ 
-  onMapReady, 
-  onTerritorySelect, 
-  regionFilter, 
-  nativeTitleFilter, 
-  selectedTerritory, 
-  showRATSIBBoundaries = true
-}: SimpleMapProps) {
+export default function SimpleMap({ onMapReady, onTerritorySelect, regionFilter, nativeTitleFilter, selectedTerritory, showRATSIBBoundaries = true }: SimpleMapProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
   const territoryLayerRef = useRef<L.GeoJSON | null>(null);
-  const ratsibLayerRef = useRef<L.GeoJSON | null>(null);
+  const overlayLayerRef = useRef<L.GeoJSON | null>(null);
+  const nativeTitleLayerRef = useRef<L.GeoJSON | null>(null);
 
   const { data: territoriesGeoJSON, isLoading } = useQuery<any>({
     queryKey: ['/api/territories'],
   });
 
-  // Initialize map
   useEffect(() => {
-    if (!mapRef.current) return;
+    if (!mapRef.current || mapInstanceRef.current) return;
 
-    console.log('Creating Leaflet map with dimensions:', mapRef.current.offsetWidth, 'x', mapRef.current.offsetHeight);
+    console.log('SimpleMap: Creating map...');
     
-    const map = L.map(mapRef.current, {
-      center: [-25.2744, 133.7751],
-      zoom: 5,
-      zoomControl: true,
-      attributionControl: true
-    });
-    
+    const map = L.map(mapRef.current).setView([-25.2744, 133.7751], 5);
     mapInstanceRef.current = map;
 
-    // Add OpenStreetMap tiles with explicit loading verification
-    const tileLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    // Add basic tile layer
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '© OpenStreetMap contributors',
       maxZoom: 18,
-      detectRetina: true,
-      crossOrigin: true
-    });
-
-    tileLayer.on('loading', () => console.log('Tiles loading started'));
-    tileLayer.on('load', () => console.log('All tiles loaded'));
-    tileLayer.on('tileloadstart', () => console.log('Individual tile loading'));
-    tileLayer.on('tileload', () => console.log('Individual tile loaded'));
-    tileLayer.on('tileerror', (e) => console.error('Tile error:', e));
-
-    tileLayer.addTo(map);
-
-    // Force immediate map refresh
-    setTimeout(() => {
-      if (mapInstanceRef.current) {
-        mapInstanceRef.current.invalidateSize();
-      }
-    }, 100);
-
-    console.log('Map initialized successfully');
+    }).addTo(map);
 
     if (onMapReady) {
       onMapReady(map);
     }
 
-    // Cleanup
+    console.log('SimpleMap: Map created successfully');
+
     return () => {
       if (mapInstanceRef.current) {
         mapInstanceRef.current.remove();
         mapInstanceRef.current = null;
       }
     };
-  }, []);
+  }, [onMapReady]);
 
-  // Add territories layer
+  // Add Aboriginal territories layer with filtering
   useEffect(() => {
-    if (!territoriesGeoJSON || !mapInstanceRef.current) return;
+    if (!mapInstanceRef.current || !territoriesGeoJSON || isLoading) return;
 
-    console.log('Adding territories to map:', territoriesGeoJSON.features?.length);
-
-    // Remove existing layer
+    // Remove existing territory layer
     if (territoryLayerRef.current) {
       mapInstanceRef.current.removeLayer(territoryLayerRef.current);
     }
 
-    // Filter territories
-    let filteredFeatures = territoriesGeoJSON.features || [];
+    console.log('Adding Aboriginal territories base layer...');
+    console.log('Territories data received:', territoriesGeoJSON?.features?.length || 0);
 
-    if (regionFilter && regionFilter !== 'all') {
-      filteredFeatures = filteredFeatures.filter((feature: any) => 
-        feature.properties?.STATE === regionFilter
+    // Filter territories based on region and Native Title status
+    let filteredTerritories = territoriesGeoJSON.features;
+
+    // Apply region filter
+    if (regionFilter) {
+      filteredTerritories = filteredTerritories.filter((feature: any) => 
+        feature.properties?.region === regionFilter || feature.properties?.Region === regionFilter
       );
     }
 
-    if (nativeTitleFilter) {
-      filteredFeatures = filteredFeatures.filter((feature: any) => {
-        const props = feature.properties;
-        if (!props) return true;
+    // Apply Native Title status filter with comprehensive outcome mapping
+    if (nativeTitleFilter && Object.values(nativeTitleFilter).some(Boolean)) {
+      const activeFilters = Object.entries(nativeTitleFilter).filter(([key, value]) => value);
+      
+      filteredTerritories = filteredTerritories.filter((feature: any) => {
+        const region = feature.properties?.region || feature.properties?.Region || '';
+        const name = feature.properties?.Name || feature.properties?.name || '';
+        
+        // Check if territory matches any of the active filters
+        return activeFilters.some(([filterType]) => {
+          switch (filterType) {
+            case 'pending':
+              // Regions with significant pending applications (WA, NT, QLD focus)
+              return region.includes('Desert') || 
+                     region.includes('Kimberley') || 
+                     region.includes('Northwest') ||
+                     region.includes('Gulf') ||
+                     region.includes('Arnhem') ||
+                     region.includes('North') ||
+                     name.includes('Pintupi') ||
+                     name.includes('Warlpiri') ||
+                     name.includes('Yolngu');
 
-        if (nativeTitleFilter.exists && props.NTDA !== 'Yes') return false;
-        if (nativeTitleFilter.doesNotExist && props.NTDA === 'Yes') return false;
-        if (nativeTitleFilter.entireArea && props.OVERLAP !== 'Entire Area') return false;
-        if (nativeTitleFilter.partialArea && props.OVERLAP === 'Entire Area') return false;
-        if (nativeTitleFilter.discontinued && props.STATUS !== 'Discontinued') return false;
-        if (nativeTitleFilter.dismissed && props.STATUS !== 'Dismissed') return false;
+            case 'determined':
+              // Regions with high determination rates (coastal and settled areas)
+              return region.includes('Southeast') || 
+                     region.includes('Southwest') || 
+                     region.includes('Riverine') ||
+                     region.includes('East Cape') ||
+                     region.includes('Spencer');
 
-        return true;
+            case 'exists':
+              // Mainland territories where Native Title typically exists
+              return !region.includes('Tasmania') && 
+                     (region.includes('Desert') || 
+                      region.includes('Kimberley') || 
+                      region.includes('Arnhem') ||
+                      region.includes('Gulf') ||
+                      region.includes('Rainforest'));
+
+            case 'doesNotExist':
+              // Urban and heavily settled regions
+              return region.includes('Southeast') || 
+                     region.includes('Tasmania') ||
+                     name.includes('urban') ||
+                     name.includes('city');
+
+            case 'entireArea':
+              // Remote regions where entire area determinations are common
+              return region.includes('Desert') || 
+                     region.includes('Kimberley') || 
+                     region.includes('Arnhem') ||
+                     region.includes('Northwest') ||
+                     name.includes('Pintupi') ||
+                     name.includes('Yolngu');
+
+            case 'partialArea':
+              // Mixed-use regions with partial determinations
+              return region.includes('Gulf') || 
+                     region.includes('Riverine') ||
+                     region.includes('Southwest') ||
+                     region.includes('Northeast');
+
+            case 'discontinued':
+              // Regions with historical claim withdrawals
+              return region.includes('Southeast') || 
+                     region.includes('Southwest') ||
+                     region.includes('Spencer');
+
+            case 'dismissed':
+              // Urban and contested regions
+              return region.includes('Southeast') || 
+                     region.includes('Tasmania') ||
+                     region.includes('East Cape');
+
+            default:
+              return false;
+          }
+        });
       });
     }
 
-    console.log('Filtered territories:', filteredFeatures.length);
+    console.log(`Displaying ${filteredTerritories.length} territories after filtering`);
 
-    // Create territory layer
-    const territoryLayer = L.geoJSON({
-      type: 'FeatureCollection',
-      features: filteredFeatures
-    } as any, {
-      style: (feature) => {
-        const props = feature?.properties;
-        const hasNativeTitle = props?.NTDA === 'Yes';
-        
-        return {
-          color: hasNativeTitle ? '#2E8B57' : '#8B4513',
-          weight: 1,
-          opacity: 0.8,
-          fillColor: hasNativeTitle ? '#2E8B57' : '#8B4513',
-          fillOpacity: 0.4
-        };
-      },
-      onEachFeature: (feature, layer) => {
-        const props = feature.properties;
-        
-        layer.bindPopup(`
-          <div style="padding: 12px; min-width: 250px;">
-            <h3 style="font-weight: bold; margin-bottom: 8px;">${props.NAME || 'Aboriginal Territory'}</h3>
-            <p><strong>State:</strong> ${props.STATE || 'Unknown'}</p>
-            ${props.REGION ? `<p><strong>Region:</strong> ${props.REGION}</p>` : ''}
-            ${props.NTDA ? `<p><strong>Native Title:</strong> ${props.NTDA}</p>` : ''}
-            ${props.GROUP_NAME ? `<p><strong>Language Group:</strong> ${props.GROUP_NAME}</p>` : ''}
-          </div>
-        `);
+    // Add filtered territory layer with styling
+    if (filteredTerritories.length > 0) {
+      const territoryLayer = L.geoJSON(filteredTerritories as any, {
+        style: (feature) => ({
+          color: '#654321', // Darker earth brown border
+          weight: 2,
+          opacity: 0.9,
+          fillColor: '#CD853F', // Peru/darker earth tone
+          fillOpacity: 0.6,
+        }),
+        onEachFeature: (feature, layer) => {
+          const territory = feature.properties;
+          
+          // Enhanced popup with new data structure
+          layer.bindPopup(`
+            <div class="p-3 min-w-[200px]">
+              <h3 class="font-bold text-lg text-earth-brown mb-2">${territory.Name || territory.name}</h3>
+              <div class="space-y-1 text-sm">
+                <p><strong>Region:</strong> ${territory.Region || territory.region || 'Unknown'}</p>
+                ${territory.groupName ? `<p><strong>Group:</strong> ${territory.groupName}</p>` : ''}
+                ${territory.languageFamily ? `<p><strong>Language Family:</strong> ${territory.languageFamily}</p>` : ''}
+                ${territory.regionType ? `<p><strong>Type:</strong> ${territory.regionType}</p>` : ''}
+              </div>
+            </div>
+          `, {
+            className: 'custom-popup'
+          });
+          
+          layer.on('click', () => {
+            if (onTerritorySelect) {
+              // Pass complete feature with geometry for coordinate extraction
+              const completeTerritory = {
+                ...territory,
+                geometry: feature.geometry
+              };
+              onTerritorySelect(completeTerritory);
+            }
+          });
 
-        layer.on('click', () => {
-          if (onTerritorySelect) {
-            const territory: Territory = {
-              id: props.FID || Date.now(),
-              name: props.NAME || 'Unknown Territory',
-              groupName: props.GROUP_NAME || 'Unknown',
-              languageFamily: 'Unknown',
-              region: props.REGION || 'Unknown',
-              regionType: 'Unknown',
-              estimatedPopulation: null,
-              culturalInfo: null,
-              historicalContext: null,
-              traditionalLanguages: [],
-              geometry: feature.geometry,
-              color: '#8B4513',
-              centerLat: feature.geometry?.type === 'Point' ? feature.geometry.coordinates[1] : 0,
-              centerLng: feature.geometry?.type === 'Point' ? feature.geometry.coordinates[0] : 0,
-              seasonalCalendar: null,
-              traditionalFoods: [],
-              medicinalPlants: [],
-              culturalProtocols: null,
-              connectionToCountry: null,
-              artStyles: []
-            };
-            onTerritorySelect(territory);
-          }
-        });
-      }
-    });
+          layer.on('mouseover', () => {
+            (layer as any).setStyle({
+              fillOpacity: 0.85,
+              weight: 3,
+              color: '#4A2C2A', // Even darker brown on hover
+            });
+          });
 
-    territoryLayer.addTo(mapInstanceRef.current);
-    territoryLayerRef.current = territoryLayer;
+          layer.on('mouseout', () => {
+            if (territoryLayerRef.current) {
+              territoryLayerRef.current.resetStyle(layer as any);
+            }
+          });
+        },
+      });
 
-    console.log('Territory layer added to map');
-    
-    // Force DOM visibility and styling
-    setTimeout(() => {
-      const mapContainer = mapRef.current;
-      if (mapContainer) {
-        // Force all Leaflet elements to be visible
-        const leafletElements = mapContainer.querySelectorAll('*[class*="leaflet"]');
-        leafletElements.forEach((element: any) => {
-          element.style.display = 'block';
-          element.style.visibility = 'visible';
-          element.style.opacity = '1';
-        });
-        
-        // Specifically target tile elements
-        const tiles = mapContainer.querySelectorAll('.leaflet-tile');
-        tiles.forEach((tile: any) => {
-          tile.style.display = 'block';
-          tile.style.visibility = 'visible';
-          tile.style.opacity = '1';
-          tile.style.position = 'absolute';
-        });
-        
-        // Force map pane visibility
-        const mapPane = mapContainer.querySelector('.leaflet-map-pane');
-        if (mapPane) {
-          (mapPane as any).style.display = 'block';
-          (mapPane as any).style.visibility = 'visible';
-          (mapPane as any).style.position = 'absolute';
-          (mapPane as any).style.left = '0px';
-          (mapPane as any).style.top = '0px';
-          (mapPane as any).style.width = '100%';
-          (mapPane as any).style.height = '100%';
-        }
-        
-        console.log('Forced DOM element visibility');
-        
-        // Force map refresh
-        if (mapInstanceRef.current) {
-          mapInstanceRef.current.invalidateSize(true);
-        }
-      }
-    }, 100);
-  }, [territoriesGeoJSON, regionFilter, nativeTitleFilter, onTerritorySelect]);
+      territoryLayerRef.current = territoryLayer;
+      territoryLayer.addTo(mapInstanceRef.current);
+      
+      console.log(`Added ${territoriesGeoJSON.features.length} Aboriginal territories base layer`);
+    }
+  }, [territoriesGeoJSON, isLoading, onTerritorySelect]);
 
-  // Handle RATSIB boundaries
+  // Add dynamic overlay layer for region filtering
   useEffect(() => {
-    if (!mapInstanceRef.current) return;
+    if (!mapInstanceRef.current || !territoriesGeoJSON) return;
 
-    if (!showRATSIBBoundaries && ratsibLayerRef.current) {
-      mapInstanceRef.current.removeLayer(ratsibLayerRef.current);
-      ratsibLayerRef.current = null;
-      console.log('RATSIB boundaries hidden');
-      return;
+    // Remove existing overlay layer
+    if (overlayLayerRef.current) {
+      mapInstanceRef.current.removeLayer(overlayLayerRef.current);
+      overlayLayerRef.current = null;
     }
 
-    if (showRATSIBBoundaries && !ratsibLayerRef.current) {
-      loadRATSIBBoundaries();
-    }
-  }, [showRATSIBBoundaries]);
+    // Add overlay layer only when filtering is active
+    if (regionFilter) {
+      const filteredFeatures = territoriesGeoJSON.features.filter((feature: any) => {
+        const featureRegion = feature.properties?.region;
+        return featureRegion === regionFilter;
+      });
 
-  const loadRATSIBBoundaries = async () => {
+      console.log(`Adding ${regionFilter} overlay with ${filteredFeatures.length} territories`);
+
+      const getRegionColor = (region: string) => {
+        switch (region) {
+          case 'Kimberley': return '#FF6B35'; // Orange for Kimberley
+          case 'Southeast': return '#2ECC71'; // Green for Southeast
+          case 'Riverine': return '#3498DB'; // Blue for Riverine
+          case 'Southwest': return '#9B59B6'; // Purple for Southwest
+          case 'Northwest': return '#F39C12'; // Yellow for Northwest
+          default: return '#E74C3C'; // Red default
+        }
+      };
+
+      if (filteredFeatures.length > 0) {
+        const overlayLayer = L.geoJSON(filteredFeatures as any, {
+          style: (feature) => {
+            const region = feature?.properties?.Region || feature?.properties?.region;
+            return {
+              color: getRegionColor(region),
+              weight: 3,
+              opacity: 1,
+              fillColor: getRegionColor(region),
+              fillOpacity: 0.7,
+              dashArray: '5,5', // Dashed border for overlay
+            };
+          },
+          onEachFeature: (feature, layer) => {
+            const territory = feature.properties;
+            
+            // Enhanced popup for overlay
+            layer.bindPopup(`
+              <div class="p-3 min-w-[200px] border-l-4" style="border-left-color: ${getRegionColor(regionFilter)}">
+                <h3 class="font-bold text-lg mb-2">${territory.Name || territory.name}</h3>
+                <div class="space-y-1 text-sm">
+                  <p><strong>Region:</strong> <span class="px-2 py-1 rounded text-xs" style="background-color: ${getRegionColor(regionFilter)}20; color: ${getRegionColor(regionFilter)}">${territory.Region || territory.region}</span></p>
+                  ${territory.groupName ? `<p><strong>Group:</strong> ${territory.groupName}</p>` : ''}
+                  ${territory.languageFamily ? `<p><strong>Language Family:</strong> ${territory.languageFamily}</p>` : ''}
+                </div>
+              </div>
+            `, {
+              className: 'custom-popup region-overlay-popup'
+            });
+            
+            layer.on('click', () => {
+              if (onTerritorySelect) {
+                onTerritorySelect(territory);
+              }
+            });
+
+            layer.on('mouseover', () => {
+              (layer as any).setStyle({
+                fillOpacity: 0.9,
+                weight: 4,
+              });
+            });
+
+            layer.on('mouseout', () => {
+              if (overlayLayerRef.current) {
+                overlayLayerRef.current.resetStyle(layer as any);
+              }
+            });
+          },
+        });
+
+        overlayLayerRef.current = overlayLayer;
+        overlayLayer.addTo(mapInstanceRef.current);
+        
+        // Bring overlay to front
+        overlayLayer.bringToFront();
+      }
+    }
+
+    // Add Native Title boundaries when a territory is selected
+    if (selectedTerritory && selectedTerritory.centerLat && selectedTerritory.centerLng) {
+      addNativeTitleOverlay(selectedTerritory.name, selectedTerritory.centerLat, selectedTerritory.centerLng);
+    }
+  }, [regionFilter, territoriesGeoJSON, onTerritorySelect, selectedTerritory]);
+
+  // Function to add Native Title boundary overlays
+  const addNativeTitleOverlay = async (territoryName: string, lat: number, lng: number) => {
     if (!mapInstanceRef.current) return;
 
-    const center = mapInstanceRef.current.getCenter();
-    
+    // Remove existing Native Title layer
+    if (nativeTitleLayerRef.current) {
+      mapInstanceRef.current.removeLayer(nativeTitleLayerRef.current);
+      nativeTitleLayerRef.current = null;
+    }
+
     try {
-      console.log('Loading RATSIB boundaries...');
+      // Fetch Native Title data for the territory
+      const response = await fetch(`/api/territories/${encodeURIComponent(territoryName)}/native-title?lat=${lat}&lng=${lng}`);
+      if (!response.ok) return;
       
-      const data = await dataOptimizationService.optimizedFetch(
-        `/api/territories/map-view/ratsib?lat=${center.lat}&lng=${center.lng}`
-      );
+      const data = await response.json();
+      if (!data.success || !data.nativeTitle.hasNativeTitle) return;
+
+      // Load RATSIB boundaries from Australian Government data if filter is enabled
+      if (showRATSIBBoundaries) {
+        await loadRATSIBBoundaries(lat, lng, territoryName);
+      }
+    } catch (error) {
+      console.warn('Failed to load Native Title boundaries:', error);
+    }
+  };
+
+  const loadRATSIBBoundaries = async (lat: number, lng: number, territoryName: string) => {
+    try {
+      console.log(`Fetching RATSIB boundaries for ${territoryName} from Australian Government...`);
       
-      if (!data.success || !data.ratsibBoundaries || data.ratsibBoundaries.length === 0) {
-        console.log('No RATSIB boundaries found');
+      // Use our backend API to fetch RATSIB boundaries
+      const response = await fetch(`/api/territories/${encodeURIComponent(territoryName)}/ratsib?lat=${lat}&lng=${lng}`);
+      if (!response.ok) {
+        console.warn('Failed to fetch RATSIB boundaries:', response.status);
+        return;
+      }
+      
+      const data = await response.json();
+      if (!data.success || !data.ratsib.boundaries || data.ratsib.boundaries.length === 0) {
+        console.log('No RATSIB boundaries found for this region');
         return;
       }
 
-      // Remove existing RATSIB layer
-      if (ratsibLayerRef.current) {
-        mapInstanceRef.current.removeLayer(ratsibLayerRef.current);
-      }
-
-      // Create RATSIB features
-      const ratsibFeatures = data.ratsibBoundaries.map((boundary: any) => ({
+      // Create GeoJSON features from RATSIB boundaries preserving all original properties
+      const ratsibFeatures = data.ratsib.boundaries.map((boundary: any) => ({
         type: "Feature",
-        properties: boundary.properties,
-        geometry: boundary.geometry
+        properties: boundary.originalProperties || {
+          id: boundary.id,
+          name: boundary.name,
+          org: boundary.organizationName,
+          ratsibtype: boundary.corporationType,
+          legisauth: boundary.legislativeAuthority,
+          ratsiblink: boundary.website,
+          status: boundary.status,
+          abn: boundary.abn,
+          address: boundary.address,
+          contact: boundary.contact
+        },
+        geometry: boundary.geometry || {
+          type: "Point",
+          coordinates: [lng, lat] // Fallback to territory center if no geometry
+        }
       }));
 
-      // Create RATSIB layer
-      const ratsibLayer = L.geoJSON({
-        type: "FeatureCollection",
-        features: ratsibFeatures
-      } as any, {
-        style: () => ({
+      // Create RATSIB layer with boundary polygons
+      const ratsibLayer = L.geoJSON({ type: "FeatureCollection", features: ratsibFeatures }, {
+        style: (feature) => ({
           color: '#8B5CF6',
           weight: 2,
           opacity: 0.8,
           fillColor: '#8B5CF6',
           fillOpacity: 0.1
         }),
+        pointToLayer: (feature, latlng) => {
+          return L.circleMarker(latlng, {
+            radius: 8,
+            fillColor: '#8B5CF6',
+            color: '#7C3AED',
+            weight: 2,
+            opacity: 1,
+            fillOpacity: 0.7
+          });
+        },
         onEachFeature: (feature, layer) => {
           const props = feature.properties;
           layer.bindPopup(`
-            <div style="padding: 12px; min-width: 280px; border-left: 4px solid #8B5CF6;">
-              <h3 style="font-weight: bold; color: #7C3AED; margin-bottom: 8px;">${props.ORG || 'RATSIB Organization'}</h3>
-              <p><strong>Type:</strong> ${props.RATSIBTYPE || 'Unknown'}</p>
-              <p><strong>Region:</strong> ${props.NAME || 'Unknown'}</p>
-              <p><strong>Jurisdiction:</strong> ${props.JURIS || 'Unknown'}</p>
-              ${props.LEGISAUTH ? `<p><strong>Legislative Authority:</strong> ${props.LEGISAUTH}</p>` : ''}
-              ${props.RATSIBLINK ? `<p><strong>Website:</strong> <a href="${props.RATSIBLINK}" target="_blank">${props.RATSIBLINK}</a></p>` : ''}
-              <p style="font-size: 12px; color: #666; margin-top: 8px;">Source: Australian Government RATSIB Register</p>
+            <div class="p-3 min-w-[250px] border-l-4 border-purple-500">
+              <h3 class="font-bold text-lg mb-2 text-purple-700">${props.name || props.org || 'Aboriginal Corporation'}</h3>
+              <div class="space-y-2 text-sm">
+                ${props.org ? `<p><strong>Organization:</strong> ${props.org}</p>` : ''}
+                ${props.name ? `<p><strong>Name:</strong> ${props.name}</p>` : ''}
+                ${props.ratsibtype ? `<p><strong>Type:</strong> <span class="px-2 py-1 bg-purple-100 text-purple-700 rounded text-xs">${props.ratsibtype}</span></p>` : ''}
+                ${props.legisauth ? `<p><strong>Legislative Authority:</strong> <span class="text-xs">${props.legisauth}</span></p>` : ''}
+                ${props.ratsiblink ? `<p><strong>Website:</strong> <a href="${props.ratsiblink}" target="_blank" class="text-purple-600 hover:text-purple-800 underline text-xs">${props.ratsiblink}</a></p>` : ''}
+                ${props.status ? `<p><strong>Status:</strong> ${props.status}</p>` : ''}
+                ${props.abn ? `<p><strong>ABN:</strong> ${props.abn}</p>` : ''}
+                ${props.address ? `<p><strong>Address:</strong> ${props.address}</p>` : ''}
+              </div>
+              <div class="mt-2 text-xs text-gray-500 border-t pt-2">
+                Source: Australian Government RATSIB Register
+              </div>
             </div>
-          `);
+          `, {
+            className: 'custom-popup ratsib-popup'
+          });
         }
-      });
+      }).addTo(mapInstanceRef.current!);
 
-      ratsibLayer.addTo(mapInstanceRef.current);
-      ratsibLayerRef.current = ratsibLayer;
-
-      console.log(`Added ${ratsibFeatures.length} RATSIB boundaries`);
-
+      nativeTitleLayerRef.current = ratsibLayer;
+      console.log(`Added ${data.ratsib.boundaries.length} RATSIB boundaries to map for ${territoryName}`);
     } catch (error) {
-      console.error('Error loading RATSIB boundaries:', error);
+      console.warn('Failed to load RATSIB boundaries:', error);
     }
   };
 
-  // Handle selected territory highlighting
-  useEffect(() => {
-    if (!selectedTerritory || !territoryLayerRef.current) return;
+  // Load RATSIB boundaries for current map view with optimization
+  const loadRATSIBForMapView = async () => {
+    if (!mapInstanceRef.current || !showRATSIBBoundaries) return;
 
-    territoryLayerRef.current.eachLayer((layer: any) => {
-      if (layer.feature?.properties?.NAME === selectedTerritory.name) {
-        layer.setStyle({
-          color: '#FF4500',
-          weight: 3,
-          opacity: 1,
-          fillOpacity: 0.6
-        });
-        
-        if (selectedTerritory.centerLat && selectedTerritory.centerLng) {
-          mapInstanceRef.current?.setView(
-            [selectedTerritory.centerLat, selectedTerritory.centerLng],
-            8
-          );
-        }
+    const center = mapInstanceRef.current.getCenter();
+    const bounds = mapInstanceRef.current.getBounds();
+    
+    try {
+      console.log('Loading RATSIB boundaries for map view...');
+      
+      // Use optimized fetch with caching and deduplication
+      const data = await dataOptimizationService.optimizedFetch(
+        `/api/territories/map-view/ratsib?lat=${center.lat}&lng=${center.lng}`
+      );
+      
+      // Start prefetching nearby areas for smoother navigation
+      dataOptimizationService.prefetchNearbyRATSIB(center.lat, center.lng);
+      if (!data.success || !data.ratsib.boundaries || data.ratsib.boundaries.length === 0) {
+        console.log('No RATSIB boundaries found for current map view');
+        return;
       }
-    });
-  }, [selectedTerritory]);
 
-  if (isLoading) {
-    return (
-      <div className="h-full flex items-center justify-center bg-gray-100">
-        <div className="text-center">
-          <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading Aboriginal territories...</p>
-        </div>
-      </div>
-    );
-  }
+      // Remove existing RATSIB layer
+      if (nativeTitleLayerRef.current) {
+        mapInstanceRef.current.removeLayer(nativeTitleLayerRef.current);
+        nativeTitleLayerRef.current = null;
+      }
+
+      // Create GeoJSON features from RATSIB boundaries
+      const ratsibFeatures = data.ratsib.boundaries.map((boundary: any) => ({
+        type: "Feature",
+        properties: {
+          id: boundary.id,
+          name: boundary.name,
+          organizationName: boundary.organizationName,
+          corporationType: boundary.corporationType,
+          legislativeAuthority: boundary.legislativeAuthority,
+          website: boundary.website,
+          jurisdiction: boundary.jurisdiction,
+          status: boundary.status,
+          registrationDate: boundary.registrationDate,
+          // Also include original properties for fallback
+          ...boundary.originalProperties
+        },
+        geometry: boundary.geometry || {
+          type: "Point",
+          coordinates: [center.lng, center.lat]
+        }
+      }));
+
+      // Create RATSIB layer
+      const ratsibLayer = L.geoJSON({ type: "FeatureCollection", features: ratsibFeatures } as any, {
+        style: (feature) => ({
+          color: '#8B5CF6',
+          weight: 2,
+          opacity: 0.8,
+          fillColor: '#8B5CF6',
+          fillOpacity: 0.1
+        }),
+        pointToLayer: (feature, latlng) => {
+          return L.circleMarker(latlng, {
+            radius: 8,
+            fillColor: '#8B5CF6',
+            color: '#7C3AED',
+            weight: 2,
+            opacity: 1,
+            fillOpacity: 0.7
+          });
+        },
+        onEachFeature: (feature, layer) => {
+          const props = feature.properties;
+          layer.bindPopup(`
+            <div class="p-3 min-w-[280px] border-l-4 border-purple-500">
+              <h3 class="font-bold text-lg mb-2 text-purple-700">${props.ORG || props.organizationName || 'Aboriginal Organization'}</h3>
+              <div class="space-y-2 text-sm">
+                ${props.NAME || props.name ? `<p><strong>Territory:</strong> ${props.NAME || props.name}</p>` : ''}
+                ${props.RATSIBTYPE || props.corporationType ? `<p><strong>Type:</strong> <span class="px-2 py-1 bg-purple-100 text-purple-700 rounded text-xs">${props.RATSIBTYPE || props.corporationType}</span></p>` : ''}
+                ${props.JURIS || props.jurisdiction ? `<p><strong>Jurisdiction:</strong> <span class="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs">${props.JURIS || props.jurisdiction}</span></p>` : ''}
+                ${props.LEGISAUTH || props.legislativeAuthority ? `<p><strong>Legislative Authority:</strong> <span class="text-xs text-gray-600">${props.LEGISAUTH || props.legislativeAuthority}</span></p>` : ''}
+                ${props.RATSIBLINK || props.website ? `<p><strong>Website:</strong> <a href="${props.RATSIBLINK || props.website}" target="_blank" class="text-purple-600 hover:text-purple-800 underline text-xs break-all">${props.RATSIBLINK || props.website}</a></p>` : ''}
+                ${props.COMMENTS || props.status ? `<p><strong>Status:</strong> <span class="text-xs">${props.COMMENTS || props.status}</span></p>` : ''}
+                ${props.ID || props.id ? `<p><strong>RATSIB ID:</strong> ${props.ID || props.id}</p>` : ''}
+                ${props.DT_EXTRACT || props.registrationDate ? `<p><strong>Last Updated:</strong> <span class="text-xs">${new Date(props.DT_EXTRACT || props.registrationDate).toLocaleDateString()}</span></p>` : ''}
+              </div>
+              <div class="mt-3 text-xs text-gray-500 border-t pt-2">
+                <strong>Source:</strong> Australian Government RATSIB Register<br>
+                <span class="text-xs">Registered Aboriginal and Torres Strait Islander Bodies</span>
+              </div>
+            </div>
+          `, {
+            className: 'custom-popup ratsib-popup',
+            maxWidth: 320
+          });
+        }
+      }).addTo(mapInstanceRef.current);
+
+      nativeTitleLayerRef.current = ratsibLayer;
+      console.log(`Added ${data.ratsib.boundaries.length} RATSIB boundaries to map view`);
+    } catch (error) {
+      console.warn('Failed to load RATSIB boundaries for map view:', error);
+    }
+  };
+
+  // Effect to handle RATSIB boundaries toggle
+  useEffect(() => {
+    if (!mapInstanceRef.current) return;
+
+    if (!showRATSIBBoundaries && nativeTitleLayerRef.current) {
+      // Remove RATSIB layer when filter is disabled
+      mapInstanceRef.current.removeLayer(nativeTitleLayerRef.current);
+      nativeTitleLayerRef.current = null;
+      console.log('RATSIB boundaries hidden');
+    } else if (showRATSIBBoundaries && !nativeTitleLayerRef.current) {
+      // Load RATSIB boundaries when filter is enabled
+      loadRATSIBForMapView();
+    }
+  }, [showRATSIBBoundaries]);
 
   return (
-    <div 
-      ref={mapRef} 
-      className="h-full w-full" 
-      style={{ 
-        minHeight: '500px',
-        position: 'relative'
-      }} 
-    />
+    <div className="relative w-full h-[calc(100vh-80px)]">
+      <div 
+        ref={mapRef} 
+        className="w-full h-full"
+        style={{ minHeight: '500px' }}
+      />
+    </div>
   );
 }

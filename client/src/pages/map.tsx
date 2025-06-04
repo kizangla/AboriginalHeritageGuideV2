@@ -1,10 +1,9 @@
 import { useState, useMemo } from 'react';
-import SimpleLeafletMap from '@/components/map/SimpleLeafletMap';
+import SimpleMap from '@/components/map/SimpleMap';
 import TerritoryModal from '@/components/map/TerritoryModal';
 import TerritoryInfoPanel from '@/components/TerritoryInfoPanel';
 import FloatingMapControls from '@/components/FloatingMapControls';
 import CollapsibleSearch from '@/components/CollapsibleSearch';
-
 import { Button } from '@/components/ui/button';
 import { Building2 } from 'lucide-react';
 import { Link } from 'wouter';
@@ -137,7 +136,7 @@ export default function MapPage() {
 
       {/* Full Screen Map */}
       <main className="h-full pt-16">
-        <SimpleLeafletMap 
+        <SimpleMap 
           onMapReady={setMapInstance}
           onTerritorySelect={handleTerritorySelect}
           regionFilter={selectedRegion}

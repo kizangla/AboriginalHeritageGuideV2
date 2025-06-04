@@ -100,38 +100,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Search territories (must be before parameterized route)
-  app.get("/api/search/territories", async (req, res) => {
-    try {
-      const query = req.query.q as string;
-      if (!query || query.trim().length === 0) {
-        return res.status(400).json({ message: "Search query is required" });
-      }
-
-      const territories = await storage.getTerritories();
-      const searchTerm = query.toLowerCase().trim();
-      
-      const filteredTerritories = territories.filter((territory: any) => 
-        territory.name.toLowerCase().includes(searchTerm) ||
-        territory.groupName.toLowerCase().includes(searchTerm) ||
-        territory.region.toLowerCase().includes(searchTerm) ||
-        territory.languageFamily.toLowerCase().includes(searchTerm) ||
-        (territory.traditionalLanguages && territory.traditionalLanguages.some((lang: string) => 
-          lang.toLowerCase().includes(searchTerm)
-        ))
-      );
-
-      res.json({
-        query: query,
-        results: filteredTerritories,
-        totalResults: filteredTerritories.length
-      });
-    } catch (error) {
-      console.error("Territory search error:", error);
-      res.status(500).json({ message: "Failed to search territories" });
-    }
-  });
-
   // Get territory by ID
   app.get("/api/territories/:id", async (req, res) => {
     try {
@@ -972,9 +940,97 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ABS Indigenous Regions endpoint
+  app.get("/api/territories/map-view/abs-regions", async (req, res) => {
+    try {
+      const { lat, lng } = req.query;
+      
+      if (!lat || !lng) {
+        return res.status(400).json({ 
+          error: 'Coordinates required',
+          message: 'lat and lng query parameters are required'
+        });
+      }
+      
+      const latitude = parseFloat(lat as string);
+      const longitude = parseFloat(lng as string);
+      
+      if (isNaN(latitude) || isNaN(longitude)) {
+        return res.status(400).json({ 
+          error: 'Invalid coordinates',
+          message: 'lat and lng must be valid numbers'
+        });
+      }
+      
+      const { fetchABSIndigenousRegions } = await import('./abs-indigenous-regions-service');
+      const absData = await fetchABSIndigenousRegions(latitude, longitude, 'Map View');
+      
+      res.set({
+        'Cache-Control': 'public, max-age=1800', // 30 minutes
+        'ETag': `"abs-ireg-${latitude.toFixed(1)}-${longitude.toFixed(1)}-${absData.totalFound}"`
+      });
+      
+      res.json({
+        success: true,
+        coordinates: { lat: latitude, lng: longitude },
+        absRegions: absData,
+        timestamp: new Date().toISOString()
+      });
+      
+    } catch (error) {
+      console.error('ABS Indigenous Regions error:', error);
+      res.status(500).json({ 
+        error: 'Failed to fetch ABS Indigenous Regions',
+        message: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
 
-
-
+  // AIATSIS Language Boundaries endpoint
+  app.get("/api/territories/map-view/aiatsis-languages", async (req, res) => {
+    try {
+      const { lat, lng } = req.query;
+      
+      if (!lat || !lng) {
+        return res.status(400).json({ 
+          error: 'Coordinates required',
+          message: 'lat and lng query parameters are required'
+        });
+      }
+      
+      const latitude = parseFloat(lat as string);
+      const longitude = parseFloat(lng as string);
+      
+      if (isNaN(latitude) || isNaN(longitude)) {
+        return res.status(400).json({ 
+          error: 'Invalid coordinates',
+          message: 'lat and lng must be valid numbers'
+        });
+      }
+      
+      const { fetchAIATSISLanguageBoundaries } = await import('./aiatsis-language-service');
+      const aiatsisData = await fetchAIATSISLanguageBoundaries(latitude, longitude, 'Map View');
+      
+      res.set({
+        'Cache-Control': 'public, max-age=1800', // 30 minutes
+        'ETag': `"aiatsis-lang-${latitude.toFixed(1)}-${longitude.toFixed(1)}-${aiatsisData.totalFound}"`
+      });
+      
+      res.json({
+        success: true,
+        coordinates: { lat: latitude, lng: longitude },
+        aiatsisLanguages: aiatsisData,
+        timestamp: new Date().toISOString()
+      });
+      
+    } catch (error) {
+      console.error('AIATSIS Language Boundaries error:', error);
+      res.status(500).json({ 
+        error: 'Failed to fetch AIATSIS Language Boundaries',
+        message: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
 
   // Performance monitoring endpoint
   app.get("/api/performance/cache-stats", async (req, res) => {
