@@ -332,79 +332,68 @@ export default function SimpleMap({ onMapReady, onTerritorySelect, regionFilter,
       const data = await response.json();
       if (!data.success || !data.nativeTitle.hasNativeTitle) return;
 
-      // Create GeoJSON features from Native Title records with geometry
-      const nativeTitleFeatures = [];
-      
-      // Process applications and determinations
-      const allRecords = [
-        ...(data.nativeTitle.applications || []),
-        ...(data.nativeTitle.determinations || []),
-        ...(data.nativeTitle.registeredBodies || [])
-      ];
-
-      allRecords.forEach((record, index) => {
-        // Create point markers for Native Title records using territory coordinates as reference
-        if (record.applicantName || record.determinationName) {
-          // Create a larger offset for each marker to spread them more visibly
-          const offsetLat = lat + (Math.random() - 0.5) * 0.3; // Larger offset within ~15km
-          const offsetLng = lng + (Math.random() - 0.5) * 0.3;
-          
-          nativeTitleFeatures.push({
-            type: "Feature",
-            properties: {
-              name: record.applicantName || record.determinationName,
-              status: record.status,
-              outcome: record.outcome,
-              area: record.area,
-              tribunalNumber: record.tribunalNumber
-            },
-            geometry: {
-              type: "Point",
-              coordinates: [offsetLng, offsetLat] // Use offset coordinates to spread markers
-            }
-          });
-        }
-      });
-
-      if (nativeTitleFeatures.length > 0) {
-        // Create Native Title layer with point markers
-        const nativeTitleLayer = L.geoJSON(nativeTitleFeatures as any, {
-          pointToLayer: (feature, latlng) => {
-            return L.circleMarker(latlng, {
-              radius: 6,
-              fillColor: '#FF6B6B',
-              color: '#CC0000',
-              weight: 2,
-              opacity: 1,
-              fillOpacity: 0.8
-            });
-          },
-          onEachFeature: (feature, layer) => {
-            const props = feature.properties;
-            layer.bindPopup(`
-              <div class="p-3 min-w-[200px] border-l-4 border-red-500">
-                <h3 class="font-bold text-lg mb-2 text-red-700">Native Title: ${props.name}</h3>
-                <div class="space-y-1 text-sm">
-                  <p><strong>Status:</strong> <span class="px-2 py-1 bg-red-100 text-red-700 rounded text-xs">${props.status}</span></p>
-                  <p><strong>Outcome:</strong> ${props.outcome}</p>
-                  ${props.area ? `<p><strong>Area:</strong> ${props.area.toFixed(1)} km²</p>` : ''}
-                  ${props.tribunalNumber ? `<p><strong>File:</strong> ${props.tribunalNumber}</p>` : ''}
-                </div>
-                <div class="mt-2 text-xs text-gray-500 border-t pt-2">
-                  Source: Australian Government Native Title Tribunal
-                </div>
-              </div>
-            `, {
-              className: 'custom-popup native-title-popup'
-            });
-          }
-        }).addTo(mapInstanceRef.current);
-
-        nativeTitleLayerRef.current = nativeTitleLayer;
-        console.log(`Added ${nativeTitleFeatures.length} Native Title boundaries to map`);
-      }
+      // Load RATSIB boundaries from Australian Government data
+      await loadRATSIBBoundaries(lat, lng, territoryName);
     } catch (error) {
       console.warn('Failed to load Native Title boundaries:', error);
+    }
+  };
+
+  const loadRATSIBBoundaries = async (lat: number, lng: number, territoryName: string) => {
+    try {
+      // Fetch RATSIB boundaries from Australian Government WFS service
+      const bbox = `${lng - 0.5},${lat - 0.5},${lng + 0.5},${lat + 0.5}`;
+      const wfsUrl = `https://data.gov.au/geoserver/ratsib-boundaries/wfs?service=WFS&version=1.0.0&request=GetFeature&typeName=ratsib-boundaries:ratsib-boundaries&outputFormat=application/json&bbox=${bbox}`;
+      
+      console.log(`Fetching RATSIB boundaries for ${territoryName} from Australian Government...`);
+      const response = await fetch(wfsUrl);
+      if (!response.ok) {
+        console.warn('Failed to fetch RATSIB boundaries:', response.status);
+        return;
+      }
+      
+      const data = await response.json();
+      if (!data.features || data.features.length === 0) {
+        console.log('No RATSIB boundaries found for this region');
+        return;
+      }
+
+      // Create RATSIB layer with boundary polygons
+      const ratsibLayer = L.geoJSON(data, {
+        style: (feature) => ({
+          color: '#8B5CF6',
+          weight: 2,
+          opacity: 0.8,
+          fillColor: '#8B5CF6',
+          fillOpacity: 0.1
+        }),
+        onEachFeature: (feature, layer) => {
+          const props = feature.properties;
+          layer.bindPopup(`
+            <div class="p-3 min-w-[200px] border-l-4 border-purple-500">
+              <h3 class="font-bold text-lg mb-2 text-purple-700">RATSIB: ${props.name || props.organisation_name || 'Aboriginal Corporation'}</h3>
+              <div class="space-y-1 text-sm">
+                <p><strong>Type:</strong> <span class="px-2 py-1 bg-purple-100 text-purple-700 rounded text-xs">${props.type || props.corporation_type || 'Registered Body'}</span></p>
+                ${props.registration_date ? `<p><strong>Registered:</strong> ${props.registration_date}</p>` : ''}
+                ${props.address ? `<p><strong>Address:</strong> ${props.address}</p>` : ''}
+                ${props.contact ? `<p><strong>Contact:</strong> ${props.contact}</p>` : ''}
+                ${props.status ? `<p><strong>Status:</strong> ${props.status}</p>` : ''}
+                ${props.abn ? `<p><strong>ABN:</strong> ${props.abn}</p>` : ''}
+              </div>
+              <div class="mt-2 text-xs text-gray-500 border-t pt-2">
+                Source: Australian Government RATSIB Register
+              </div>
+            </div>
+          `, {
+            className: 'custom-popup ratsib-popup'
+          });
+        }
+      }).addTo(mapInstanceRef.current);
+
+      nativeTitleLayerRef.current = ratsibLayer;
+      console.log(`Added ${data.features.length} RATSIB boundaries to map for ${territoryName}`);
+    } catch (error) {
+      console.warn('Failed to load RATSIB boundaries:', error);
     }
   };
 
