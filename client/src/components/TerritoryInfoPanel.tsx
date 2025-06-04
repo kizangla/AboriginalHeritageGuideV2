@@ -140,10 +140,13 @@ export default function TerritoryInfoPanel({
             </div>
             
             {nativeTitleData.nativeTitle.hasNativeTitle ? (
-              <div className="space-y-2">
+              <div className="space-y-4">
+                {/* Status */}
                 <div className="text-sm text-gray-700">
                   <strong>Status:</strong> {nativeTitleData.nativeTitle.status}
                 </div>
+                
+                {/* Traditional Owners Section */}
                 {(() => {
                   // Extract all traditional owners from applications
                   const allTraditionalOwners = new Set<string>();
@@ -169,59 +172,57 @@ export default function TerritoryInfoPanel({
                   
                   if (ownersList.length > 0) {
                     return (
-                      <div className="text-sm text-gray-700">
-                        <strong>Traditional Owners:</strong>{' '}
-                        {ownersList.length === 1 ? (
-                          ownersList[0]
-                        ) : (
-                          <div className="mt-1 space-y-1 mb-6 pb-3">
-                            {ownersList.map((owner, index) => (
-                              <div key={index} className="flex items-center gap-1">
-                                <span className="w-1 h-1 bg-gray-400 rounded-full flex-shrink-0"></span>
-                                <span>{owner}</span>
-                              </div>
-                            ))}
-                          </div>
-                        )}
+                      <div className="bg-gray-50 p-3 rounded-lg border border-gray-200">
+                        <div className="text-sm text-gray-700 font-medium mb-2">Traditional Owners:</div>
+                        <div className="space-y-1">
+                          {ownersList.map((owner, index) => (
+                            <div key={index} className="flex items-center gap-2 text-sm text-gray-600">
+                              <span className="w-1.5 h-1.5 bg-orange-400 rounded-full flex-shrink-0"></span>
+                              <span>{owner}</span>
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     );
                   }
                   return null;
                 })()}
+
+                {/* Cultural Significance */}
+                {nativeTitleData.nativeTitle.culturalSignificance && (
+                  <div className="text-xs text-gray-600 italic bg-orange-25 p-2 rounded border-l-4 border-orange-300">
+                    {nativeTitleData.nativeTitle.culturalSignificance}
+                  </div>
+                )}
+
+                {/* Native Title Applications */}
                 {nativeTitleData.nativeTitle.applications && nativeTitleData.nativeTitle.applications.length > 0 && (
-                  <div className="space-y-3 mt-8 pt-6 border-t-2 border-orange-300 bg-orange-25">
-                    <div className="text-xs text-gray-600 font-medium">
+                  <div className="bg-white border border-orange-200 rounded-lg p-3">
+                    <div className="text-xs text-gray-600 font-medium mb-3 flex items-center gap-2">
+                      <span className="w-2 h-2 bg-orange-500 rounded-full"></span>
                       {nativeTitleData.nativeTitle.applications.length} Native Title application(s) recorded
                     </div>
                     
-                    {/* Individual Application Details */}
-                    <div className="space-y-2 max-h-40 sm:max-h-52 md:max-h-64 overflow-y-auto">
+                    <div className="space-y-2 max-h-48 overflow-y-auto">
                       {nativeTitleData.nativeTitle.applications.map((app: any, index: number) => (
-                        <div key={index} className="p-3 bg-white rounded-md border border-orange-100 shadow-sm">
-                          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2 text-xs">
-                            <div className="flex-1 min-w-0">
-                              <div className="font-medium text-gray-800 truncate mb-1">{app.applicantName}</div>
-                              <div className="flex flex-col sm:flex-row sm:gap-3 text-gray-600">
-                                {app.tribunalNumber && (
-                                  <div className="truncate">Tribunal: {app.tribunalNumber}</div>
-                                )}
-                                {app.area && (
-                                  <div>{app.area.toLocaleString()} sq km</div>
-                                )}
-                              </div>
+                        <div key={index} className="p-2 bg-orange-25 rounded border border-orange-100">
+                          <div className="flex flex-col gap-1 text-xs">
+                            <div className="font-medium text-gray-800">{app.applicantName}</div>
+                            <div className="flex flex-col sm:flex-row sm:gap-3 text-gray-600">
+                              {app.tribunalNumber && (
+                                <div>Tribunal: {app.tribunalNumber}</div>
+                              )}
+                              {app.area && (
+                                <div>{app.area.toLocaleString()} sq km</div>
+                              )}
                             </div>
-                            <Badge variant="outline" className="text-xs self-start sm:ml-2 flex-shrink-0">
+                            <Badge variant="outline" className="text-xs w-fit">
                               {app.status}
                             </Badge>
                           </div>
                         </div>
                       ))}
                     </div>
-                  </div>
-                )}
-                {nativeTitleData.nativeTitle.culturalSignificance && (
-                  <div className="text-xs text-gray-600 italic">
-                    {nativeTitleData.nativeTitle.culturalSignificance}
                   </div>
                 )}
               </div>
