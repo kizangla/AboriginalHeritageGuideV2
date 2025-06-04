@@ -218,7 +218,9 @@ class ComprehensiveNativeTitleService {
     const applicantName = props.NAME || props.DET_NAME || props.RNTBC_NAME || props.Applicant_Name || 'Unknown';
     
     // Extract coordinates from geometry if available
+    console.log('Feature data:', JSON.stringify(feature, null, 2).substring(0, 500));
     const coordinates = this.extractCoordinatesFromGeometry(feature.geometry);
+    console.log('Final coordinates for', applicantName, ':', coordinates);
     
     return {
       applicationId: props.TRIBID || props.Application_ID || '',
