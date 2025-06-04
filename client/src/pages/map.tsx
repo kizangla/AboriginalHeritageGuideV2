@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import LeafletMap from '@/components/map/LeafletMap';
+import WorkingLeafletMap from '@/components/map/WorkingLeafletMap';
 import TerritoryModal from '@/components/map/TerritoryModal';
 import TerritoryInfoPanel from '@/components/TerritoryInfoPanel';
 import FloatingMapControls from '@/components/FloatingMapControls';
@@ -137,7 +137,7 @@ export default function MapPage() {
 
       {/* Full Screen Map */}
       <main className="h-full pt-16">
-        <LeafletMap 
+        <WorkingLeafletMap 
           onMapReady={setMapInstance}
           onTerritorySelect={handleTerritorySelect}
           regionFilter={selectedRegion}
