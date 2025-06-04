@@ -41,6 +41,12 @@ export default function TerritoryInfoPanel({
       return { lat: props.lat, lng: props.lng };
     }
     
+    // Check for properties.centerLat/centerLng (from database)
+    if (props.properties && props.properties.centerLat && props.properties.centerLng) {
+      console.log('Using properties center coordinates:', { lat: props.properties.centerLat, lng: props.properties.centerLng });
+      return { lat: props.properties.centerLat, lng: props.properties.centerLng };
+    }
+    
     // Check for properties.lat/lng (common in GeoJSON features)
     if (props.properties && props.properties.lat && props.properties.lng) {
       console.log('Using properties coordinates:', { lat: props.properties.lat, lng: props.properties.lng });

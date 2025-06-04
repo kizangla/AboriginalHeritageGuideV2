@@ -232,6 +232,8 @@ export interface TerritoryGeoJSON {
     historicalContext: string | null;
     traditionalLanguages: string[];
     color: string;
+    centerLat: number;
+    centerLng: number;
   };
   geometry: {
     type: "Polygon" | "MultiPolygon";

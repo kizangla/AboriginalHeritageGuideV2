@@ -1,0 +1,32 @@
+Download the React DevTools for a better development experience: https://reactjs.org/link/react-devtools
+SimpleMap.tsx:27 SimpleMap: Creating map...
+SimpleMap.tsx:42 SimpleMap: Map created successfully
+SimpleMap.tsx:61 Adding Aboriginal territories base layer...
+SimpleMap.tsx:62 Territories data received: 717
+SimpleMap.tsx:156 Displaying 717 territories after filtering
+SimpleMap.tsx:216 Added 717 Aboriginal territories base layer
+FloatingMapControls.tsx:103 Region filter button clicked, current state: false
+SimpleMap.tsx:61 Adding Aboriginal territories base layer...
+SimpleMap.tsx:62 Territories data received: 717
+SimpleMap.tsx:156 Displaying 87 territories after filtering
+SimpleMap.tsx:216 Added 717 Aboriginal territories base layer
+SimpleMap.tsx:237 Adding Northwest overlay with 87 territories
+TerritoryInfoPanel.tsx:29 Territory data for coordinate extraction: {id: 899, name: 'Ngalawangka', groupName: 'Northern Nations', languageFamily: 'Pama-Nyungan', region: 'Northwest', …}
+TerritoryInfoPanel.tsx:66 No coordinates found for territory: Ngalawangka
+getCoordinates @ TerritoryInfoPanel.tsx:66
+TerritoryInfoPanel @ TerritoryInfoPanel.tsx:70
+renderWithHooks @ chunk-WERSD76P.js?v=32b83d67:11548
+mountIndeterminateComponent @ chunk-WERSD76P.js?v=32b83d67:14926
+beginWork @ chunk-WERSD76P.js?v=32b83d67:15914
+beginWork$1 @ chunk-WERSD76P.js?v=32b83d67:19753
+performUnitOfWork @ chunk-WERSD76P.js?v=32b83d67:19198
+workLoopSync @ chunk-WERSD76P.js?v=32b83d67:19137
+renderRootSync @ chunk-WERSD76P.js?v=32b83d67:19116
+performSyncWorkOnRoot @ chunk-WERSD76P.js?v=32b83d67:18874
+flushSyncCallbacks @ chunk-WERSD76P.js?v=32b83d67:9119
+(anonymous) @ chunk-WERSD76P.js?v=32b83d67:18627Understand this warning
+SimpleMap.tsx:61 Adding Aboriginal territories base layer...
+SimpleMap.tsx:62 Territories data received: 717
+SimpleMap.tsx:156 Displaying 87 territories after filtering
+SimpleMap.tsx:216 Added 717 Aboriginal territories base layer
+SimpleMap.tsx:237 Adding Northwest overlay with 87 territories

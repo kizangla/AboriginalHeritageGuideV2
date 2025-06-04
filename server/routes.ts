@@ -86,6 +86,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             historicalContext: territory.historicalContext,
             traditionalLanguages: territory.traditionalLanguages || [],
             color: territory.color,
+            centerLat: territory.centerLat,
+            centerLng: territory.centerLng,
           },
           geometry: territory.geometry as any,
         }))
