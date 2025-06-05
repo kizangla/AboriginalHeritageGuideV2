@@ -130,6 +130,16 @@ export default function TerritoryPage() {
   const explorationReports = explorationInfo?.reports || [];
   const commoditySummary = explorationInfo?.commoditySummary || [];
 
+  // State for commodity filtering on territory page
+  const [selectedCommodity, setSelectedCommodity] = useState<string | null>(null);
+
+  // Filter exploration reports based on selected commodity
+  const filteredExplorationReports = selectedCommodity 
+    ? explorationReports.filter((report: any) => 
+        report.targetCommodity.toUpperCase().includes(selectedCommodity.toUpperCase())
+      )
+    : explorationReports;
+
   // Fix traditional languages display - use actual Wiradjuri language name instead of "No P"
   const displayTraditionalLanguages = territoryDetails?.traditionalLanguages?.filter(lang => 
     lang && lang !== 'No P' && lang.trim() !== ''
@@ -422,29 +432,52 @@ export default function TerritoryPage() {
 
                     {commoditySummary.length > 0 && (
                       <div>
-                        <label className="text-sm font-medium text-gray-500 mb-2 block">
-                          Commodities Explored in Territory
-                        </label>
+                        <div className="flex justify-between items-center mb-2">
+                          <label className="text-sm font-medium text-gray-500">
+                            Commodities Explored in Territory
+                          </label>
+                          {selectedCommodity && (
+                            <button
+                              onClick={() => setSelectedCommodity(null)}
+                              className="text-xs text-gray-400 hover:text-gray-600 underline"
+                            >
+                              Clear Filter
+                            </button>
+                          )}
+                        </div>
                         <div className="grid grid-cols-2 gap-2 mb-4">
                           {commoditySummary.slice(0, 6).map((item: any, index: number) => (
-                            <div key={index} className="flex justify-between items-center p-2 bg-yellow-50 rounded">
+                            <button
+                              key={index}
+                              onClick={() => setSelectedCommodity(
+                                selectedCommodity === item.commodity ? null : item.commodity
+                              )}
+                              className={`flex justify-between items-center p-2 rounded transition-colors ${
+                                selectedCommodity === item.commodity
+                                  ? 'bg-yellow-200 border-2 border-yellow-400'
+                                  : 'bg-yellow-50 hover:bg-yellow-100 border-2 border-transparent'
+                              }`}
+                            >
                               <span className="text-sm font-medium text-yellow-800">{item.commodity}</span>
                               <span className="text-xs bg-yellow-200 text-yellow-700 px-2 py-1 rounded">
                                 {item.count}
                               </span>
-                            </div>
+                            </button>
                           ))}
                         </div>
                       </div>
                     )}
 
-                    {explorationReports.length > 0 && (
+                    {filteredExplorationReports.length > 0 && (
                       <div>
                         <label className="text-sm font-medium text-gray-500 mb-2 block">
-                          Recent Exploration Reports
+                          {selectedCommodity ? `${selectedCommodity} Exploration Reports` : 'Recent Exploration Reports'}
+                          <span className="text-xs text-gray-400 ml-2">
+                            ({filteredExplorationReports.length} reports)
+                          </span>
                         </label>
                         <ScrollArea className="h-48">
-                          {explorationReports.slice(0, 10).map((report: any, index: number) => (
+                          {filteredExplorationReports.slice(0, 10).map((report: any, index: number) => (
                             <div key={index} className="text-sm text-gray-600 mb-3 p-3 bg-yellow-50 rounded-lg border-l-3 border-yellow-400">
                               <div className="font-semibold text-gray-800 mb-1">
                                 {report.project}
