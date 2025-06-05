@@ -19,9 +19,28 @@ interface MiningOverlayProps {
 export default function MiningOverlay({ map, showMining, selectedTerritory }: MiningOverlayProps) {
   const [miningLayer, setMiningLayer] = useState<L.LayerGroup | null>(null);
 
-  // Query mining data for the current map view
+  // Query complete mining dataset from database with geographic bounds
   const { data: miningData, isLoading } = useQuery({
-    queryKey: ['/api/mining/tenements', showMining, map?.getCenter()?.lat, map?.getCenter()?.lng],
+    queryKey: ['/api/mining/map-bounds', showMining, map?.getBounds()],
+    queryFn: async () => {
+      if (!showMining || !map) return null;
+      
+      const bounds = map.getBounds();
+      const params = new URLSearchParams({
+        north: bounds.getNorth().toString(),
+        south: bounds.getSouth().toString(),
+        east: bounds.getEast().toString(),
+        west: bounds.getWest().toString(),
+        limit: '500' // Limit for map display performance
+      });
+      
+      const response = await fetch(`/api/mining/map-bounds?${params}`);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch mining data: ${response.status}`);
+      }
+      
+      return response.json();
+    },
     enabled: showMining && !!map,
     refetchOnWindowFocus: false,
     staleTime: 5 * 60 * 1000, // 5 minutes
@@ -29,15 +48,27 @@ export default function MiningOverlay({ map, showMining, selectedTerritory }: Mi
 
   interface MiningAPIResponse {
     success: boolean;
-    tenements: MiningTenement[];
+    tenements: Array<{
+      id: string;
+      type: string;
+      status: string;
+      holder: string;
+      coordinates: number[][];
+      area?: number;
+      mineralTypes?: string[];
+      grantDate?: string;
+      expiryDate?: string;
+      state: string;
+      majorCompany: boolean;
+    }>;
     totalFound: number;
+    totalInDatabase: number;
     dataSource: string;
     dataIntegrity: {
       authenticData: boolean;
       governmentSource: string;
-      extractedFromKML: boolean;
-      sampleSize: number;
-      totalInDataset: number;
+      databaseStored: boolean;
+      lastUpdated: string;
     };
   }
 
@@ -58,7 +89,7 @@ export default function MiningOverlay({ map, showMining, selectedTerritory }: Mi
     // Create new mining layer group
     const newMiningLayer = L.layerGroup();
 
-    typedMiningData.tenements.forEach((tenement: MiningTenement, index: number) => {
+    typedMiningData.tenements.forEach((tenement, index: number) => {
       console.log(`Processing tenement ${index + 1}:`, tenement.id, tenement.coordinates);
       if (!tenement.coordinates || tenement.coordinates.length === 0) {
         console.log(`Skipping tenement ${tenement.id}: no coordinates`);

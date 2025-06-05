@@ -18,6 +18,8 @@ import { miningService } from "./mining-service";
 import { nativeTitleCacheService } from "./native-title-cache-service";
 // Removed problematic KML processors that were causing delays
 import { getMiningTenementsData } from "./cached-mining-data";
+import { databaseMiningAPI } from "./database-mining-api";
+import { initializeMiningData } from "./complete-mining-import";
 import { registerMiningAPI } from "./wa-mining-api";
 
 // Australian postcode coordinate lookup for business positioning
@@ -71,6 +73,9 @@ import { indigenousBusinessService } from "./indigenous-business-service";
 import { asyncGeocodingService } from "./async-geocoding-service";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Initialize complete mining dataset from 144MB KML file
+  initializeMiningData();
+
   // Get all territories as GeoJSON
   app.get("/api/territories", async (req, res) => {
     try {
@@ -1602,6 +1607,104 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Register WA Department of Mines API endpoints
   registerMiningAPI(app);
+
+  // Database-powered mining tenements API with complete 144MB dataset
+  app.get("/api/mining/tenements", async (req, res) => {
+    try {
+      const filters = {
+        tenementTypes: req.query.types ? String(req.query.types).split(',') : undefined,
+        status: req.query.status ? String(req.query.status).split(',') : undefined,
+        holders: req.query.holders ? String(req.query.holders).split(',') : undefined,
+        states: req.query.states ? String(req.query.states).split(',') : undefined,
+        mineralTypes: req.query.minerals ? String(req.query.minerals).split(',') : undefined,
+        majorCompaniesOnly: req.query.majorOnly === 'true',
+        areaRange: req.query.minArea || req.query.maxArea ? {
+          min: req.query.minArea ? parseFloat(String(req.query.minArea)) : undefined,
+          max: req.query.maxArea ? parseFloat(String(req.query.maxArea)) : undefined
+        } : undefined,
+        bounds: req.query.north ? {
+          north: parseFloat(String(req.query.north)),
+          south: parseFloat(String(req.query.south)),
+          east: parseFloat(String(req.query.east)),
+          west: parseFloat(String(req.query.west))
+        } : undefined,
+        search: req.query.search ? String(req.query.search) : undefined,
+        limit: req.query.limit ? parseInt(String(req.query.limit)) : 1000,
+        offset: req.query.offset ? parseInt(String(req.query.offset)) : 0,
+        sortBy: req.query.sortBy as 'holder' | 'area' | 'grantDate' | 'tenementType' | undefined,
+        sortOrder: req.query.sortOrder as 'asc' | 'desc' | undefined
+      };
+
+      const response = await databaseMiningAPI.getFilteredTenements(filters);
+      res.json(response);
+
+    } catch (error) {
+      console.error('Database mining API error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to fetch mining tenements from database',
+        message: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
+  // Get mining filter options from database
+  app.get("/api/mining/filter-options", async (req, res) => {
+    try {
+      const options = await databaseMiningAPI.getFilterOptions();
+      res.json({
+        success: true,
+        ...options,
+        dataSource: "WA Department of Mines, Industry Regulation and Safety (DMIRS)"
+      });
+
+    } catch (error) {
+      console.error('Mining filter options error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to fetch filter options',
+        message: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
+  // Get tenements within geographic bounds for map display
+  app.get("/api/mining/map-bounds", async (req, res) => {
+    try {
+      const { north, south, east, west } = req.query;
+      
+      if (!north || !south || !east || !west) {
+        return res.status(400).json({
+          success: false,
+          error: 'Geographic bounds required',
+          message: 'north, south, east, west query parameters are required'
+        });
+      }
+
+      const bounds = {
+        north: parseFloat(String(north)),
+        south: parseFloat(String(south)),
+        east: parseFloat(String(east)),
+        west: parseFloat(String(west))
+      };
+
+      const additionalFilters = {
+        majorCompaniesOnly: req.query.majorOnly === 'true',
+        limit: req.query.limit ? parseInt(String(req.query.limit)) : 500
+      };
+
+      const response = await databaseMiningAPI.getTenementsInBounds(bounds, additionalFilters);
+      res.json(response);
+
+    } catch (error) {
+      console.error('Mining map bounds error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to fetch tenements for map bounds',
+        message: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
 
   app.get("/api/territories/:territoryName/mining-overlap", async (req, res) => {
     try {
