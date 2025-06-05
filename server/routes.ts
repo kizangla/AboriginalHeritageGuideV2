@@ -16,10 +16,7 @@ import { nativeTitleTerritoryFilter, type NativeTitleStatusFilter } from "./nati
 import { fetchRATSIBBoundaries } from "./ratsib-service";
 import { miningService } from "./mining-service";
 import { nativeTitleCacheService } from "./native-title-cache-service";
-import { simpleMiningOverlayService } from "./simple-mining-overlay";
-import { extractSampleTenements } from "./quick-mining-sample";
-import { extractTenementsDirect } from "./direct-kml-extractor";
-import { getFastTenements } from "./fast-kml-parser";
+// Removed problematic KML processors that were causing delays
 import { getMiningTenementsData } from "./cached-mining-data";
 
 // Australian postcode coordinate lookup for business positioning
@@ -1603,8 +1600,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Mining Tenements API - WA Government Data
   app.get("/api/mining/tenements", (req, res) => {
+    console.log('Mining tenements API called');
+    
     try {
       const miningData = getMiningTenementsData();
+      console.log(`Returning ${miningData.tenements.length} mining tenements`);
       
       res.json({
         success: true,
