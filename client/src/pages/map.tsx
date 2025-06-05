@@ -30,6 +30,7 @@ export default function MapPage() {
   const [showRATSIBBoundaries, setShowRATSIBBoundaries] = useState(true);
   const [businessSearchQuery, setBusinessSearchQuery] = useState<string>('');
   const [showMining, setShowMining] = useState<boolean>(false);
+  const [showExploration, setShowExploration] = useState<boolean>(false);
 
   const { data: territoriesGeoJSON } = useQuery<any>({
     queryKey: ['/api/territories'],
@@ -153,6 +154,7 @@ export default function MapPage() {
             }
           }}
           showMining={showMining}
+          showExploration={showExploration}
         />
         
         {/* Floating Map Controls */}
@@ -169,6 +171,8 @@ export default function MapPage() {
           showRATSIBBoundaries={showRATSIBBoundaries}
           onToggleMining={setShowMining}
           showMining={showMining}
+          onToggleExploration={setShowExploration}
+          showExploration={showExploration}
         />
         
         {/* Collapsible Search Panel */}

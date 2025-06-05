@@ -43,7 +43,9 @@ function FloatingMapControls({
   onToggleRATSIB,
   showRATSIBBoundaries = true,
   onToggleMining,
-  showMining = false
+  showMining = false,
+  onToggleExploration,
+  showExploration = false
 }: FloatingMapControlsProps) {
   const [showRegionFilter, setShowRegionFilter] = useState(false);
   const [showNativeTitleFilter, setShowNativeTitleFilter] = useState(false);
@@ -177,6 +179,21 @@ function FloatingMapControls({
             <Scale className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
             <span className="hidden sm:inline">Mining</span>
             <span className="sm:hidden">Mine</span>
+          </Button>
+        )}
+
+        {/* Exploration Overlay Toggle */}
+        {onToggleExploration && (
+          <Button
+            onClick={() => onToggleExploration(!showExploration)}
+            size="sm"
+            variant={showExploration ? "default" : "ghost"}
+            className="h-7 sm:h-8 px-2 sm:px-3 rounded-full text-xs sm:text-sm"
+            title="Toggle WA DMIRS exploration reports overlay"
+          >
+            <Search className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
+            <span className="hidden sm:inline">Exploration</span>
+            <span className="sm:hidden">Explore</span>
           </Button>
         )}
 
