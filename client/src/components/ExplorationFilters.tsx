@@ -35,6 +35,9 @@ export function ExplorationFilters({ onFilterChange, isVisible, currentFilters }
   const handleFilterChange = (key: keyof ExplorationFilters, value: any) => {
     const newFilters = { ...localFilters, [key]: value };
     setLocalFilters(newFilters);
+    console.log('Filter changed:', key, value, 'New filters:', newFilters);
+    // Apply filters immediately when changed
+    onFilterChange(newFilters);
   };
 
   const applyFilters = () => {
