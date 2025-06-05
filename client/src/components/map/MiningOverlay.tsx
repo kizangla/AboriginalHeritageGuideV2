@@ -27,6 +27,20 @@ export default function MiningOverlay({ map, showMining, selectedTerritory }: Mi
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
+  interface MiningAPIResponse {
+    success: boolean;
+    tenements: MiningTenement[];
+    totalFound: number;
+    dataSource: string;
+    dataIntegrity: {
+      authenticData: boolean;
+      governmentSource: string;
+      extractedFromKML: boolean;
+      sampleSize: number;
+      totalInDataset: number;
+    };
+  }
+
   useEffect(() => {
     if (!map) return;
 
@@ -36,14 +50,15 @@ export default function MiningOverlay({ map, showMining, selectedTerritory }: Mi
       setMiningLayer(null);
     }
 
-    if (!showMining || !miningData?.tenements) return;
+    const typedMiningData = miningData as MiningAPIResponse;
+    if (!showMining || !typedMiningData?.tenements) return;
 
-    console.log('Adding mining tenements overlay:', miningData.tenements.length);
+    console.log('Adding mining tenements overlay:', typedMiningData.tenements.length);
 
     // Create new mining layer group
     const newMiningLayer = L.layerGroup();
 
-    miningData.tenements.forEach((tenement: MiningTenement) => {
+    typedMiningData.tenements.forEach((tenement: MiningTenement) => {
       if (!tenement.coordinates || tenement.coordinates.length === 0) return;
 
       // Color coding based on tenement type
@@ -72,7 +87,7 @@ export default function MiningOverlay({ map, showMining, selectedTerritory }: Mi
 
       // Convert coordinates to GeoJSON polygon
       const geoJsonGeometry = {
-        type: 'Polygon',
+        type: 'Polygon' as const,
         coordinates: [tenement.coordinates]
       };
 
@@ -110,7 +125,7 @@ export default function MiningOverlay({ map, showMining, selectedTerritory }: Mi
     newMiningLayer.addTo(map);
     setMiningLayer(newMiningLayer);
 
-    console.log(`Added ${miningData.tenements.length} mining tenements to map`);
+    console.log(`Added ${typedMiningData.tenements.length} mining tenements to map`);
 
   }, [map, showMining, miningData]);
 
