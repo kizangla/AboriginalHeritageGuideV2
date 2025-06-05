@@ -133,11 +133,20 @@ export default function TerritoryPage() {
   const explorationReports = explorationInfo?.reports || [];
   const commoditySummary = explorationInfo?.commoditySummary || [];
 
-  // Filter exploration reports based on selected commodity
+  // Filter exploration reports based on selected commodity - ensure matches backend logic
   const filteredExplorationReports = selectedCommodity 
-    ? explorationReports.filter((report: any) => 
-        report.targetCommodity.toUpperCase().includes(selectedCommodity.toUpperCase())
-      )
+    ? explorationReports.filter((report: any) => {
+        if (!report.targetCommodity) return false;
+        
+        // Handle multiple commodities separated by semicolons or commas
+        const commodities = report.targetCommodity
+          .split(/[;,]/)
+          .map((c: string) => c.trim().toUpperCase())
+          .filter((c: string) => c && c.length > 0);
+        
+        // Check if any commodity matches the selected one
+        return commodities.includes(selectedCommodity.toUpperCase());
+      })
     : explorationReports;
 
   // Fix traditional languages display - use actual Wiradjuri language name instead of "No P"

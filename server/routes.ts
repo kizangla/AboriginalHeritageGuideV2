@@ -1688,21 +1688,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return pointInPolygon([centerLng, centerLat], territory.geometry);
       });
 
-      // Group by commodity for summary
+      // Group by commodity for summary - ensure accurate counts match database records
       const commoditySummary = territoryReports.reduce((acc: any, report: any) => {
-        const commodities = report.targetCommodity.split(';').map((c: string) => c.trim());
-        const primaryCommodity = commodities[0].toUpperCase();
+        if (!report.targetCommodity) return acc;
         
-        if (!acc[primaryCommodity]) {
-          acc[primaryCommodity] = {
-            commodity: primaryCommodity,
-            count: 0,
-            reports: []
-          };
-        }
+        // Handle multiple commodities separated by semicolons or commas
+        const commodities = report.targetCommodity
+          .split(/[;,]/)
+          .map((c: string) => c.trim().toUpperCase())
+          .filter((c: string) => c && c.length > 0);
         
-        acc[primaryCommodity].count++;
-        acc[primaryCommodity].reports.push(report);
+        // Count each commodity mentioned in the report
+        commodities.forEach((commodity: string) => {
+          if (!acc[commodity]) {
+            acc[commodity] = {
+              commodity: commodity,
+              count: 0,
+              reports: []
+            };
+          }
+          
+          // Only count each report once per commodity to avoid duplicates
+          if (!acc[commodity].reports.find((r: any) => r.id === report.id)) {
+            acc[commodity].count++;
+            acc[commodity].reports.push(report);
+          }
+        });
         
         return acc;
       }, {} as Record<string, { commodity: string; count: number; reports: any[] }>);
