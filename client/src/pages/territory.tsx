@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { ArrowLeft, MapPin, Users, Calendar, ExternalLink, Scale, Building2 } from 'lucide-react';
+import { ArrowLeft, MapPin, Users, Calendar, ExternalLink, Scale, Building2, Pickaxe } from 'lucide-react';
 
 interface TerritoryDetails {
   name: string;
@@ -52,6 +52,11 @@ export default function TerritoryPage() {
 
   const { data: ratsibData, isLoading: ratsibLoading } = useQuery({
     queryKey: [`/api/territories/${territoryName}/ratsib`],
+    enabled: !!territoryName && !!territoryDetails?.geometry
+  });
+
+  const { data: explorationData, isLoading: explorationLoading } = useQuery({
+    queryKey: [`/api/territories/${territoryName}/exploration`],
     enabled: !!territoryName && !!territoryDetails?.geometry
   });
 
@@ -119,6 +124,11 @@ export default function TerritoryPage() {
   // Extract RATSIB data from API response - fix data structure access
   const ratsibInfo = (ratsibData as any)?.success ? (ratsibData as any).ratsibData : null;
   const ratsibBoundaries = ratsibInfo?.boundaries || [];
+
+  // Extract exploration data from API response
+  const explorationInfo = (explorationData as any)?.success ? (explorationData as any).explorationData : null;
+  const explorationReports = explorationInfo?.reports || [];
+  const commoditySummary = explorationInfo?.commoditySummary || [];
 
   // Fix traditional languages display - use actual Wiradjuri language name instead of "No P"
   const displayTraditionalLanguages = territoryDetails?.traditionalLanguages?.filter(lang => 

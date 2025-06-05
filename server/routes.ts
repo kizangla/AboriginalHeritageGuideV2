@@ -1606,6 +1606,130 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Territory exploration reports endpoint
+  app.get('/api/territories/:territoryName/exploration', async (req, res) => {
+    try {
+      const { territoryName } = req.params;
+      const decodedName = decodeURIComponent(territoryName);
+      
+      console.log(`Fetching exploration data for territory: ${decodedName}`);
+      
+      // Get territory geometry
+      const allTerritories = await storage.getTerritories();
+      const territory = allTerritories.find(t => 
+        t.name === decodedName || 
+        t.groupName === decodedName ||
+        t.name.toLowerCase() === decodedName.toLowerCase() ||
+        t.groupName.toLowerCase() === decodedName.toLowerCase()
+      );
+      
+      if (!territory || !territory.geometry) {
+        return res.status(404).json({ 
+          error: 'Territory not found or no geometry available',
+          searchedName: decodedName
+        });
+      }
+
+      // Use the exploration mineral service to fetch reports within territory bounds
+      const { explorationMineralService } = await import('./exploration-mineral-service');
+      
+      // Calculate territory bounds from geometry
+      const geometry = territory.geometry as any;
+      const coords = geometry.type === 'Polygon' 
+        ? geometry.coordinates[0] 
+        : geometry.coordinates.flat();
+      
+      const lats = coords.map((coord: any) => coord[1]);
+      const lngs = coords.map((coord: any) => coord[0]);
+      
+      const bounds = {
+        north: Math.max(...lats),
+        south: Math.min(...lats),
+        east: Math.max(...lngs),
+        west: Math.min(...lngs)
+      };
+
+      // Fetch exploration reports within territory bounds using the correct method
+      const explorationReports = await explorationMineralService.getExplorationReportsForMapBounds(
+        bounds.north,
+        bounds.south,
+        bounds.east,
+        bounds.west,
+        { limit: 500 } // Reasonable limit for territory display
+      );
+
+      // Simple point-in-polygon utility for territory filtering
+      function pointInPolygon(point: [number, number], polygon: any): boolean {
+        const [x, y] = point;
+        const coords = polygon.type === 'Polygon' 
+          ? polygon.coordinates[0] 
+          : polygon.coordinates.flat();
+        
+        let inside = false;
+        for (let i = 0, j = coords.length - 1; i < coords.length; j = i++) {
+          const [xi, yi] = coords[i];
+          const [xj, yj] = coords[j];
+          
+          if (((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi)) {
+            inside = !inside;
+          }
+        }
+        return inside;
+      }
+
+      // Filter reports that actually intersect with territory geometry
+      const territoryReports = explorationReports.filter((report: any) => {
+        if (!report.coordinates || report.coordinates.length === 0) return false;
+        
+        // Simple point-in-polygon check for report center
+        const centerLat = report.coordinates.reduce((sum: number, coord: any) => sum + coord[0], 0) / report.coordinates.length;
+        const centerLng = report.coordinates.reduce((sum: number, coord: any) => sum + coord[1], 0) / report.coordinates.length;
+        
+        return pointInPolygon([centerLng, centerLat], territory.geometry);
+      });
+
+      // Group by commodity for summary
+      const commoditySummary = territoryReports.reduce((acc: any, report: any) => {
+        const commodities = report.targetCommodity.split(';').map((c: string) => c.trim());
+        const primaryCommodity = commodities[0].toUpperCase();
+        
+        if (!acc[primaryCommodity]) {
+          acc[primaryCommodity] = {
+            commodity: primaryCommodity,
+            count: 0,
+            reports: []
+          };
+        }
+        
+        acc[primaryCommodity].count++;
+        acc[primaryCommodity].reports.push(report);
+        
+        return acc;
+      }, {} as Record<string, { commodity: string; count: number; reports: any[] }>);
+
+      console.log(`Found ${territoryReports.length} exploration reports in ${territory.name}`);
+
+      res.json({
+        success: true,
+        territoryName: territory.name,
+        explorationData: {
+          totalReports: territoryReports.length,
+          reports: territoryReports.slice(0, 50), // Limit for performance
+          commoditySummary: Object.values(commoditySummary).sort((a: any, b: any) => b.count - a.count),
+          bounds: bounds,
+          source: 'wa_dmirs_authentic'
+        }
+      });
+      
+    } catch (error) {
+      console.error('Territory exploration data error:', error);
+      res.status(500).json({ 
+        error: 'Failed to fetch exploration data',
+        message: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
   // Register WA Department of Mines API endpoints
   registerMiningAPI(app);
 
