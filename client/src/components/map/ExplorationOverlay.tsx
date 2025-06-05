@@ -41,7 +41,7 @@ export default function ExplorationOverlay({ map, showExploration, selectedTerri
   useEffect(() => {
     if (!map || !showExploration) {
       // Remove exploration layer if hidden
-      if (explorationLayer) {
+      if (explorationLayer && map) {
         map.removeLayer(explorationLayer);
         setExplorationLayer(null);
       }
@@ -63,126 +63,76 @@ export default function ExplorationOverlay({ map, showExploration, selectedTerri
     // Create new layer group for exploration reports
     const newExplorationLayer = L.layerGroup();
 
-    // Sample exploration reports for demonstration (authentic commodity data)
-    const sampleReports: ExplorationReport[] = [
-      {
-        id: 'EXPL_001',
-        targetCommodity: 'GOLD; ANTIMONY; BASE METALS',
-        operator: 'MALLINA MINING & EXP NL',
-        project: 'Mallina - Peawah',
-        reportYear: 2023,
-        coordinates: [
-          [-20.94, 118.18], [-20.94, 118.12], [-20.88, 118.12], [-20.88, 118.26], [-20.94, 118.26], [-20.94, 118.18]
-        ]
-      },
-      {
-        id: 'EXPL_002', 
-        targetCommodity: 'IRON; INDUSTRIAL MINERALS',
-        operator: 'HAMERSLEY IRON PTY LIMITED',
-        project: 'Pilbara Iron Exploration',
-        reportYear: 2023,
-        coordinates: [
-          [-22.7, 117.5], [-22.7, 117.3], [-22.4, 117.3], [-22.4, 117.8], [-22.7, 117.8], [-22.7, 117.5]
-        ]
-      },
-      {
-        id: 'EXPL_003',
-        targetCommodity: 'LITHIUM; TANTALUM; CESIUM',
-        operator: 'GREENBUSHES LITHIUM PTY LTD',
-        project: 'Lithium Triangle Exploration',
-        reportYear: 2024,
-        coordinates: [
-          [-33.9, 116.2], [-33.9, 115.9], [-33.7, 115.9], [-33.7, 116.2], [-33.9, 116.2]
-        ]
-      },
-      {
-        id: 'EXPL_004',
-        targetCommodity: 'COPPER; GOLD; ZINC; LEAD',
-        operator: 'COPPER BELT RESOURCES',
-        project: 'Pilbara Copper Project',
-        reportYear: 2023,
-        coordinates: [
-          [-20.8, 116.9], [-20.8, 116.7], [-20.6, 116.7], [-20.6, 116.9], [-20.8, 116.9]
-        ]
-      },
-      {
-        id: 'EXPL_005',
-        targetCommodity: 'NICKEL; GOLD; PLATINUM GROUP ELEMENTS',
-        operator: 'KAMBALDA NICKEL PTY LTD',
-        project: 'Kambalda Nickel Exploration',
-        reportYear: 2024,
-        coordinates: [
-          [-31.3, 121.7], [-31.3, 121.5], [-31.1, 121.5], [-31.1, 121.7], [-31.3, 121.7]
-        ]
-      }
-    ];
+    // Use authentic exploration reports from WA DMIRS data
+    const explorationReports = typedExplorationData.reports || [];
+    
+    if (explorationReports.length === 0) {
+      console.log('No exploration reports available for current map bounds');
+      // Add empty layer to map and set state
+      newExplorationLayer.addTo(map);
+      setExplorationLayer(newExplorationLayer);
+      return;
+    }
 
-    sampleReports.forEach(report => {
+    explorationReports.forEach(report => {
       // Parse authentic commodities
       const commodities = report.targetCommodity.split(';').map(c => c.trim());
       
       // Style based on primary commodity
-      const primaryCommodity = commodities[0];
-      let color = '#9333ea'; // Default purple
+      const primaryCommodity = commodities[0].toLowerCase();
+      let fillColor = '#8B4513'; // Default brown for other minerals
       
-      if (primaryCommodity.includes('GOLD')) color = '#fbbf24'; // Gold
-      else if (primaryCommodity.includes('IRON')) color = '#dc2626'; // Red
-      else if (primaryCommodity.includes('LITHIUM')) color = '#10b981'; // Green
-      else if (primaryCommodity.includes('COPPER')) color = '#f97316'; // Orange
-      else if (primaryCommodity.includes('NICKEL')) color = '#6366f1'; // Indigo
+      if (primaryCommodity.includes('gold')) {
+        fillColor = '#FFD700';
+      } else if (primaryCommodity.includes('iron')) {
+        fillColor = '#B22222';
+      } else if (primaryCommodity.includes('lithium')) {
+        fillColor = '#9370DB';
+      } else if (primaryCommodity.includes('copper')) {
+        fillColor = '#B87333';
+      } else if (primaryCommodity.includes('nickel')) {
+        fillColor = '#C0C0C0';
+      }
 
-      const style = {
-        color: color,
+      // Create polygon for exploration report boundary
+      const reportPolygon = L.polygon(report.coordinates, {
+        fillColor: fillColor,
+        fillOpacity: 0.4,
+        color: fillColor,
         weight: 2,
-        opacity: 0.8,
-        fillColor: color,
-        fillOpacity: 0.1,
-        dashArray: '5, 5' // Dashed to distinguish from mining tenements
-      };
+        opacity: 0.8
+      });
 
-      const reportPolygon = L.polygon(
-        report.coordinates,
-        style
-      );
-
-      // Enhanced popup with authentic exploration data
-      const popupContent = `
-        <div class="p-3 min-w-[300px] border-l-4 border-purple-500">
-          <h3 class="font-bold text-lg mb-2 text-purple-700">
-            Exploration Report ${report.id}
+      // Add popup with authentic WA DMIRS data
+      reportPolygon.bindPopup(`
+        <div class="exploration-popup">
+          <h3 style="margin: 0 0 8px 0; color: #2c3e50; font-size: 14px; font-weight: bold;">
+            ${report.project}
           </h3>
-          <div class="space-y-2 text-sm">
-            <p><strong>Project:</strong> ${report.project}</p>
-            <p><strong>Operator:</strong> ${report.operator}</p>
-            <p><strong>Report Year:</strong> ${report.reportYear}</p>
-            <p><strong>Target Commodities:</strong> 
-              <span class="text-green-600 font-medium">${commodities.join(', ')}</span>
+          <div style="font-size: 12px; line-height: 1.4;">
+            <p style="margin: 4px 0;"><strong>Operator:</strong> ${report.operator}</p>
+            <p style="margin: 4px 0;"><strong>Target Commodities:</strong> ${report.targetCommodity}</p>
+            <p style="margin: 4px 0;"><strong>Report Year:</strong> ${report.reportYear}</p>
+            <p style="margin: 4px 0;"><strong>Report ID:</strong> ${report.id}</p>
+            <p style="margin: 8px 0 0 0; font-size: 10px; color: #7f8c8d;">
+              Source: WA Department of Mines, Industry Regulation and Safety
             </p>
-            <p class="text-blue-600 font-semibold">★ Authentic WA DMIRS Data</p>
-          </div>
-          <div class="mt-3 text-xs text-gray-500 border-t pt-2">
-            <strong>Source:</strong> WA Department of Mines Exploration Reports Database<br>
-            <strong>Data Type:</strong> Official government exploration records<br>
-            <strong>Total Reports:</strong> 113,850 in complete dataset
           </div>
         </div>
-      `;
-
-      reportPolygon.bindPopup(popupContent, {
-        className: 'custom-popup exploration-popup',
+      `, {
         maxWidth: 350
       });
 
       newExplorationLayer.addLayer(reportPolygon);
     });
 
-    console.log(`Added ${sampleReports.length} exploration reports to map with authentic commodity data`);
+    console.log(`Added ${explorationReports.length} exploration reports to map with authentic commodity data`);
 
     // Add to map
     newExplorationLayer.addTo(map);
     setExplorationLayer(newExplorationLayer);
 
-  }, [map, showExploration, explorationData, isLoading, explorationLayer]);
+  }, [map, showExploration, explorationData, isLoading]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -191,7 +141,7 @@ export default function ExplorationOverlay({ map, showExploration, selectedTerri
         map.removeLayer(explorationLayer);
       }
     };
-  }, [explorationLayer, map]);
+  }, []);
 
   return null;
 }
