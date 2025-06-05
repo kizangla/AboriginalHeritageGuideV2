@@ -16,6 +16,7 @@ import { nativeTitleTerritoryFilter, type NativeTitleStatusFilter } from "./nati
 import { fetchRATSIBBoundaries } from "./ratsib-service";
 import { miningService } from "./mining-service";
 import { nativeTitleCacheService } from "./native-title-cache-service";
+import { waMiningTenementsService } from "./wa-mining-tenements-service";
 
 // Australian postcode coordinate lookup for business positioning
 function getPostcodeCoordinates(postcode: string, stateCode: string): { lat: number; lng: number } | null {
@@ -1590,6 +1591,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ 
         error: 'Failed to fetch territory details',
         message: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
+  // Mining Tenements API - WA Government Data
+  app.get("/api/mining/tenements", async (req, res) => {
+    try {
+      const result = await waMiningTenementsService.loadMiningTenements();
+      res.json({
+        success: true,
+        ...result
+      });
+    } catch (error) {
+      console.error('Error loading mining tenements:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to load mining tenements data'
+      });
+    }
+  });
+
+  app.get("/api/territories/:territoryName/mining-overlap", async (req, res) => {
+    try {
+      const territoryName = decodeURIComponent(req.params.territoryName);
+      console.log(`Analyzing mining overlaps for territory: ${territoryName}`);
+      
+      // Get territory geometry
+      const territories = await storage.getTerritories();
+      const territory = territories.find(t => t.name === territoryName);
+      
+      if (!territory) {
+        return res.status(404).json({
+          success: false,
+          error: 'Territory not found'
+        });
+      }
+
+      const analysis = await waMiningTenementsService.analyzeTerritoryOverlaps(
+        territoryName, 
+        territory.geometry
+      );
+
+      res.json({
+        success: true,
+        territoryName,
+        miningOverlapAnalysis: analysis,
+        dataSource: 'wa_dmirs_government'
+      });
+
+    } catch (error) {
+      console.error('Error analyzing mining overlaps:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to analyze mining overlaps'
       });
     }
   });
