@@ -116,13 +116,14 @@ export default function ExplorationOverlay({ map, showExploration, selectedTerri
         fillColor = '#C0C0C0';
       }
 
-      // Create polygon for exploration report boundary
+      // Create polygon for exploration report boundary with enhanced visibility
       const reportPolygon = L.polygon(report.coordinates, {
         fillColor: fillColor,
-        fillOpacity: 0.4,
-        color: fillColor,
-        weight: 2,
-        opacity: 0.8
+        fillOpacity: 0.7,
+        color: '#ffffff',
+        weight: 3,
+        opacity: 1.0,
+        dashArray: '5, 5'
       });
 
       // Add popup with authentic WA DMIRS data
@@ -167,7 +168,8 @@ export default function ExplorationOverlay({ map, showExploration, selectedTerri
 
   const handleFilterChange = (newFilters: ExplorationFiltersType) => {
     setFilters(newFilters);
-    refetch();
+    // Force immediate refetch with new filters
+    setTimeout(() => refetch(), 100);
   };
 
   return (
