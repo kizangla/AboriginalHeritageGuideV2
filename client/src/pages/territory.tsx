@@ -39,6 +39,9 @@ interface TerritoryDetails {
 export default function TerritoryPage() {
   const { territoryName } = useParams<{ territoryName: string }>();
   const [, setLocation] = useLocation();
+  
+  // State for commodity filtering on territory page - moved to top to fix hooks order
+  const [selectedCommodity, setSelectedCommodity] = useState<string | null>(null);
 
   const { data: territoryDetails, isLoading, error } = useQuery<TerritoryDetails>({
     queryKey: [`/api/territories/${territoryName}/details`],
@@ -129,9 +132,6 @@ export default function TerritoryPage() {
   const explorationInfo = (explorationData as any)?.success ? (explorationData as any).explorationData : null;
   const explorationReports = explorationInfo?.reports || [];
   const commoditySummary = explorationInfo?.commoditySummary || [];
-
-  // State for commodity filtering on territory page
-  const [selectedCommodity, setSelectedCommodity] = useState<string | null>(null);
 
   // Filter exploration reports based on selected commodity
   const filteredExplorationReports = selectedCommodity 
