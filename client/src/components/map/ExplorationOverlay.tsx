@@ -108,85 +108,133 @@ export default function ExplorationOverlay({ map, showExploration, selectedTerri
       return;
     }
 
+    // Group reports by location to handle overlapping markers
+    const locationGroups = new Map<string, typeof explorationReports>();
+    
     explorationReports.forEach(report => {
-      // Parse authentic commodities
-      const commodities = report.targetCommodity.split(';').map(c => c.trim());
+      const centerLat = report.coordinates.reduce((sum, coord) => sum + coord[0], 0) / report.coordinates.length;
+      const centerLng = report.coordinates.reduce((sum, coord) => sum + coord[1], 0) / report.coordinates.length;
+      const locationKey = `${centerLat.toFixed(3)}_${centerLng.toFixed(3)}`;
       
-      // Style based on primary commodity
-      const primaryCommodity = commodities[0].toLowerCase();
-      let fillColor = '#8B4513'; // Default brown for other minerals
-      
-      if (primaryCommodity.includes('gold')) {
-        fillColor = '#FFD700';
-      } else if (primaryCommodity.includes('iron')) {
-        fillColor = '#B22222';
-      } else if (primaryCommodity.includes('lithium')) {
-        fillColor = '#9370DB';
-      } else if (primaryCommodity.includes('copper')) {
-        fillColor = '#B87333';
-      } else if (primaryCommodity.includes('nickel')) {
-        fillColor = '#C0C0C0';
+      if (!locationGroups.has(locationKey)) {
+        locationGroups.set(locationKey, []);
       }
+      locationGroups.get(locationKey)!.push(report);
+    });
 
-      // Create polygon for exploration report boundary with enhanced visibility for all zoom levels
-      const reportPolygon = L.polygon(report.coordinates, {
-        fillColor: fillColor,
-        fillOpacity: 0.9,
-        color: '#ffffff',
-        weight: 5,
-        opacity: 1.0,
-        interactive: true,
-        // Make markers more conspicuous at all zoom levels
-        dashArray: '8, 4',
-        lineCap: 'round',
-        lineJoin: 'round'
+    // Process each location group
+    locationGroups.forEach((reports) => {
+      reports.forEach((report, index) => {
+        // Parse authentic commodities
+        const commodities = report.targetCommodity.split(';').map(c => c.trim());
+        
+        // Style based on primary commodity with enhanced color palette
+        const primaryCommodity = commodities[0].toLowerCase();
+        let fillColor = '#8B4513'; // Default brown for other minerals
+      
+        if (primaryCommodity.includes('gold')) {
+          fillColor = '#FFD700'; // Gold
+        } else if (primaryCommodity.includes('iron')) {
+          fillColor = '#B22222'; // Fire Brick Red
+        } else if (primaryCommodity.includes('lithium')) {
+          fillColor = '#9370DB'; // Medium Purple
+        } else if (primaryCommodity.includes('copper')) {
+          fillColor = '#B87333'; // Dark Goldenrod
+        } else if (primaryCommodity.includes('nickel')) {
+          fillColor = '#C0C0C0'; // Silver
+        } else if (primaryCommodity.includes('aluminum') || primaryCommodity.includes('aluminium')) {
+          fillColor = '#87CEEB'; // Sky Blue
+        } else if (primaryCommodity.includes('zinc')) {
+          fillColor = '#708090'; // Slate Gray
+        } else if (primaryCommodity.includes('lead')) {
+          fillColor = '#2F4F4F'; // Dark Slate Gray
+        } else if (primaryCommodity.includes('uranium')) {
+          fillColor = '#00FF00'; // Bright Green
+        } else if (primaryCommodity.includes('diamond')) {
+          fillColor = '#E6E6FA'; // Lavender
+        } else if (primaryCommodity.includes('coal')) {
+          fillColor = '#2F2F2F'; // Very Dark Gray
+        } else if (primaryCommodity.includes('tin')) {
+          fillColor = '#D2691E'; // Chocolate
+        } else if (primaryCommodity.includes('tantalum')) {
+          fillColor = '#4B0082'; // Indigo
+        } else if (primaryCommodity.includes('bismuth')) {
+          fillColor = '#FF1493'; // Deep Pink
+        } else if (primaryCommodity.includes('rare earth')) {
+          fillColor = '#FF69B4'; // Hot Pink
+        } else if (primaryCommodity.includes('oil') || primaryCommodity.includes('petroleum')) {
+          fillColor = '#000000'; // Black
+        }
+
+        // Apply offset for overlapping markers to prevent complete overlap
+        let polygonCoords = report.coordinates;
+        if (reports.length > 1 && index > 0) {
+          const offsetAmount = 0.002 * index; // Small offset for overlapping markers
+          polygonCoords = report.coordinates.map(coord => [
+            coord[0] + offsetAmount,
+            coord[1] + offsetAmount
+          ]);
+        }
+
+        // Create polygon with offset coordinates for enhanced visibility
+        const explorationPolygon = L.polygon(polygonCoords, {
+          fillColor: fillColor,
+          fillOpacity: 0.9,
+          color: '#ffffff',
+          weight: 5,
+          opacity: 1.0,
+          interactive: true,
+          dashArray: '8, 4',
+          lineCap: 'round',
+          lineJoin: 'round'
+        });
+
+        // Add detailed popup with authentic WA DMIRS data showing clustering info
+        explorationPolygon.bindPopup(`
+          <div style="min-width: 280px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+            <div style="border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; margin-bottom: 12px;">
+              <h3 style="margin: 0; color: #1e293b; font-size: 16px; font-weight: bold; line-height: 1.3;">
+                ${report.project}
+              </h3>
+              <div style="color: #64748b; font-size: 12px; margin-top: 4px; font-weight: 500;">
+                WA DMIRS Report #${report.id} ${reports.length > 1 ? `(${index + 1} of ${reports.length} in area)` : ''}
+              </div>
+            </div>
+            
+            <div style="display: grid; gap: 8px; font-size: 13px;">
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span style="color: #475569; font-weight: 500;">Operator:</span>
+                <span style="color: #1e293b; font-weight: 600; text-align: right; max-width: 150px;">${report.operator}</span>
+              </div>
+              
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span style="color: #475569; font-weight: 500;">Target Commodities:</span>
+                <span style="color: #1e293b; font-weight: 600; text-align: right; max-width: 150px;">${report.targetCommodity}</span>
+              </div>
+              
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span style="color: #475569; font-weight: 500;">Report Year:</span>
+                <span style="color: #1e293b; font-weight: 600;">${report.reportYear}</span>
+              </div>
+              
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span style="color: #475569; font-weight: 500;">Primary Commodity:</span>
+                <span style="color: ${fillColor}; font-weight: 700;">${primaryCommodity.toUpperCase()}</span>
+              </div>
+            </div>
+            
+            <div style="margin-top: 14px; padding-top: 10px; border-top: 1px solid #e2e8f0; text-align: center;">
+              <div style="color: #64748b; font-size: 11px; margin-bottom: 2px;">Authentic Government Data</div>
+              <div style="color: #059669; font-size: 12px; font-weight: 600;">WA Department of Mines & Petroleum</div>
+            </div>
+          </div>
+        `, {
+          maxWidth: 320,
+          closeButton: true
+        });
+
+        newExplorationLayer.addLayer(explorationPolygon);
       });
-
-      // Add detailed popup with authentic WA DMIRS data matching mining tenement style
-      reportPolygon.bindPopup(`
-        <div style="min-width: 280px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
-          <div style="border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; margin-bottom: 12px;">
-            <h3 style="margin: 0; color: #1e293b; font-size: 16px; font-weight: bold; line-height: 1.3;">
-              ${report.project}
-            </h3>
-            <div style="color: #64748b; font-size: 12px; margin-top: 4px; font-weight: 500;">
-              WA DMIRS Report #${report.id}
-            </div>
-          </div>
-          
-          <div style="display: grid; gap: 8px; font-size: 13px;">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-              <span style="color: #475569; font-weight: 500;">Operator:</span>
-              <span style="color: #1e293b; font-weight: 600; text-align: right; max-width: 150px;">${report.operator}</span>
-            </div>
-            
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-              <span style="color: #475569; font-weight: 500;">Target Commodities:</span>
-              <span style="color: #1e293b; font-weight: 600; text-align: right; max-width: 150px;">${report.targetCommodity}</span>
-            </div>
-            
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-              <span style="color: #475569; font-weight: 500;">Report Year:</span>
-              <span style="color: #1e293b; font-weight: 600;">${report.reportYear}</span>
-            </div>
-            
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-              <span style="color: #475569; font-weight: 500;">Primary Commodity:</span>
-              <span style="color: #059669; font-weight: 700;">${primaryCommodity}</span>
-            </div>
-          </div>
-          
-          <div style="margin-top: 14px; padding-top: 10px; border-top: 1px solid #e2e8f0; text-align: center;">
-            <div style="color: #64748b; font-size: 11px; margin-bottom: 2px;">Authentic Government Data</div>
-            <div style="color: #059669; font-size: 12px; font-weight: 600;">WA Department of Mines & Petroleum</div>
-          </div>
-        </div>
-      `, {
-        maxWidth: 320,
-        closeButton: true
-      });
-
-      newExplorationLayer.addLayer(reportPolygon);
     });
 
     console.log(`Added ${explorationReports.length} exploration reports to map with authentic commodity data`);
