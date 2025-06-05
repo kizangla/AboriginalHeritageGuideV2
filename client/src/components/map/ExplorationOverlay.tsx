@@ -53,11 +53,11 @@ export default function ExplorationOverlay({ map, showExploration, selectedTerri
 
   // Query exploration data for map bounds with filtering
   const { data: explorationData, isLoading, refetch } = useQuery({
-    queryKey: ['/api/exploration/map-bounds', filters],
+    queryKey: ['/api/exploration/map-bounds', JSON.stringify(filters)],
     queryFn: () => fetch(`/api/exploration/map-bounds?${buildQueryParams()}`).then(res => res.json()),
     enabled: showExploration && !!map,
     refetchOnWindowFocus: false,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 0, // Always fetch fresh data when filters change
   });
 
   useEffect(() => {
@@ -123,7 +123,8 @@ export default function ExplorationOverlay({ map, showExploration, selectedTerri
         color: '#ffffff',
         weight: 3,
         opacity: 1.0,
-        dashArray: '5, 5'
+        dashArray: '5, 5',
+        interactive: true // Ensure polygon is clickable
       });
 
       // Add popup with authentic WA DMIRS data
@@ -167,9 +168,8 @@ export default function ExplorationOverlay({ map, showExploration, selectedTerri
   }, []);
 
   const handleFilterChange = (newFilters: ExplorationFiltersType) => {
+    console.log('Applying exploration filters:', newFilters);
     setFilters(newFilters);
-    // Force immediate refetch with new filters
-    setTimeout(() => refetch(), 100);
   };
 
   return (

@@ -30,7 +30,7 @@ export function ExplorationFilters({ onFilterChange, isVisible, currentFilters }
     enabled: isVisible
   });
 
-  const commodities = commoditiesData?.data?.commodities || commoditiesData?.commodities || [];
+  const commodities = commoditiesData?.commodities || [];
 
   const handleFilterChange = (key: keyof ExplorationFilters, value: any) => {
     const newFilters = { ...localFilters, [key]: value };
