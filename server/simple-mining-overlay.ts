@@ -27,14 +27,58 @@ class SimpleMiningOverlayService {
     }
 
     try {
-      const fs = await import('fs/promises');
-      const kmlData = await fs.readFile('./attached_assets/doc.kml', 'utf-8');
+      const fs = await import('fs');
+      const path = './attached_assets/doc.kml';
       
-      console.log('Processing WA Department of Mines KML data...');
-      this.tenementsData = this.extractBasicTenements(kmlData);
+      console.log('Processing WA Department of Mines KML data (streaming)...');
       
-      console.log(`Processed ${this.tenementsData.length} mining tenements from WA DMIRS`);
-      return this.tenementsData;
+      // Stream processing for large KML file
+      const stream = fs.createReadStream(path, { encoding: 'utf8' });
+      let buffer = '';
+      let tenements: SimpleMiningTenement[] = [];
+      let processedCount = 0;
+      
+      return new Promise((resolve, reject) => {
+        stream.on('data', (chunk: string) => {
+          buffer += chunk;
+          
+          // Process complete Placemark elements
+          let placemarkStart = buffer.indexOf('<Placemark');
+          while (placemarkStart !== -1) {
+            const placemarkEnd = buffer.indexOf('</Placemark>', placemarkStart);
+            if (placemarkEnd === -1) break;
+            
+            const placemarkContent = buffer.substring(placemarkStart, placemarkEnd + 12);
+            buffer = buffer.substring(placemarkEnd + 12);
+            
+            // Extract tenement data
+            const tenement = this.parsePlacemarkContent(placemarkContent, processedCount);
+            if (tenement) {
+              tenements.push(tenement);
+              processedCount++;
+              
+              // Limit for performance (first 1000 tenements)
+              if (processedCount >= 1000) {
+                stream.destroy();
+                break;
+              }
+            }
+            
+            placemarkStart = buffer.indexOf('<Placemark');
+          }
+        });
+        
+        stream.on('end', () => {
+          console.log(`Successfully processed ${tenements.length} mining tenements from WA DMIRS`);
+          this.tenementsData = tenements;
+          resolve(tenements);
+        });
+        
+        stream.on('error', (error) => {
+          console.error('Error streaming KML file:', error);
+          reject(error);
+        });
+      });
       
     } catch (error) {
       console.error('Error loading mining KML data:', error);
@@ -42,28 +86,62 @@ class SimpleMiningOverlayService {
     }
   }
 
+  private parsePlacemarkContent(content: string, index: number): SimpleMiningTenement | null {
+    try {
+      // Extract basic properties
+      const tenementId = this.extractValue(content, 'Tenement ID');
+      const tenementType = this.extractValue(content, 'Tenement Type');
+      const tenureStatus = this.extractValue(content, 'Tenure Status');
+      const holder = this.extractValue(content, 'Tenement Holder 1');
+      
+      // Skip if no valid tenement ID
+      if (!tenementId || tenementId.trim() === '' || tenementId.trim() === ' ') {
+        return null;
+      }
+      
+      // Extract coordinates
+      const coordsMatch = content.match(/<coordinates>([\s\S]*?)<\/coordinates>/);
+      if (!coordsMatch) return null;
+      
+      const coordinates = this.parseSimpleCoordinates(coordsMatch[1]);
+      if (coordinates.length === 0) return null;
+      
+      return {
+        id: tenementId.trim(),
+        type: tenementType?.trim() || 'Unknown',
+        status: tenureStatus?.trim() || 'Unknown',
+        holder: holder?.trim() || 'Unknown',
+        coordinates
+      };
+      
+    } catch (error) {
+      return null;
+    }
+  }
+
   private extractBasicTenements(kmlData: string): SimpleMiningTenement[] {
     const tenements: SimpleMiningTenement[] = [];
     
     try {
-      // Simple extraction using string matching
-      const placemarksStart = kmlData.indexOf('<Placemark>');
-      if (placemarksStart === -1) return tenements;
+      // Extract all Placemark sections properly
+      const placemarkMatches = kmlData.match(/<Placemark[^>]*>[\s\S]*?<\/Placemark>/g);
+      if (!placemarkMatches) return tenements;
       
-      const sections = kmlData.split('<Placemark>');
+      console.log(`Found ${placemarkMatches.length} Placemark elements`);
       
-      for (let i = 1; i < Math.min(sections.length, 101); i++) { // Limit to first 100 for performance
-        const section = sections[i];
-        const endIndex = section.indexOf('</Placemark>');
-        if (endIndex === -1) continue;
+      for (let i = 0; i < Math.min(placemarkMatches.length, 500); i++) { // Process first 500 for performance
+        const placemarkContent = placemarkMatches[i];
         
-        const placemarkContent = section.substring(0, endIndex);
-        
-        // Extract basic properties
+        // Extract basic properties from SimpleData elements
         const tenementId = this.extractValue(placemarkContent, 'Tenement ID');
         const tenementType = this.extractValue(placemarkContent, 'Tenement Type');
         const tenureStatus = this.extractValue(placemarkContent, 'Tenure Status');
         const holder = this.extractValue(placemarkContent, 'Tenement Holder 1');
+        const grantDate = this.extractValue(placemarkContent, 'Grant Date');
+        const endDate = this.extractValue(placemarkContent, 'End Date');
+        
+        // Skip if no tenement ID
+        if (!tenementId || tenementId.trim() === '') continue;
         
         // Extract coordinates
         const coordsMatch = placemarkContent.match(/<coordinates>([\s\S]*?)<\/coordinates>/);
@@ -73,12 +151,16 @@ class SimpleMiningOverlayService {
         if (coordinates.length === 0) continue;
         
         tenements.push({
-          id: tenementId || `tenement_${i}`,
-          type: tenementType || 'Unknown',
-          status: tenureStatus || 'Unknown',
-          holder: holder || 'Unknown',
+          id: tenementId.trim(),
+          type: tenementType?.trim() || 'Unknown',
+          status: tenureStatus?.trim() || 'Unknown',
+          holder: holder?.trim() || 'Unknown',
           coordinates
         });
+        
+        if (i % 100 === 0) {
+          console.log(`Processed ${i + 1} tenements...`);
+        }
       }
       
     } catch (error) {
