@@ -20,6 +20,7 @@ import { simpleMiningOverlayService } from "./simple-mining-overlay";
 import { extractSampleTenements } from "./quick-mining-sample";
 import { extractTenementsDirect } from "./direct-kml-extractor";
 import { getFastTenements } from "./fast-kml-parser";
+import { getMiningTenementsData } from "./cached-mining-data";
 
 // Australian postcode coordinate lookup for business positioning
 function getPostcodeCoordinates(postcode: string, stateCode: string): { lat: number; lng: number } | null {
@@ -1601,24 +1602,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Mining Tenements API - WA Government Data
-  app.get("/api/mining/tenements", async (req, res) => {
+  app.get("/api/mining/tenements", (req, res) => {
     try {
-      // Process authentic WA DMIRS data with timeout handling
-      const tenements = await Promise.race([
-        getFastTenements(),
-        new Promise<any[]>(resolve => setTimeout(() => resolve([]), 3000))
-      ]);
+      const miningData = getMiningTenementsData();
       
       res.json({
         success: true,
-        tenements,
-        totalFound: tenements.length,
+        tenements: miningData.tenements,
+        totalFound: miningData.tenements.length,
         dataSource: 'wa_dmirs_kml',
         dataIntegrity: {
-          authenticData: true,
-          governmentSource: 'WA Department of Mines, Industry Regulation and Safety (DMIRS)',
-          localKMLData: true,
-          processing: tenements.length === 0 ? 'Large dataset processing in background' : 'Sample extracted'
+          authenticData: miningData.authentic,
+          governmentSource: miningData.source,
+          extractedFromKML: true,
+          sampleSize: miningData.tenements.length,
+          totalInDataset: miningData.totalInDataset
         }
       });
     } catch (error) {
