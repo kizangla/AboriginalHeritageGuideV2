@@ -1652,7 +1652,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Fetch exploration reports within territory bounds using the correct method
       const explorationReports = await explorationMineralService.getExplorationReportsForMapBounds(
         bounds,
-        { limit: 500 } // Reasonable limit for territory display
+        undefined, // commodity filter
+        undefined, // yearFrom filter  
+        undefined, // yearTo filter
+        500 // limit for territory display
       );
 
       // Simple point-in-polygon utility for territory filtering

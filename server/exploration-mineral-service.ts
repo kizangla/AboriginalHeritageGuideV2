@@ -183,7 +183,7 @@ class ExplorationMineralService {
       // Build dynamic SQL query with filtering
       let sqlConditions = ['TARGET_COMMODITY IS NOT NULL', 'OPERATOR IS NOT NULL', 'PROJECT IS NOT NULL'];
       
-      if (commodity) {
+      if (commodity && typeof commodity === 'string') {
         sqlConditions.push(`TARGET_COMMODITY LIKE '%${commodity.toUpperCase()}%'`);
       }
       
