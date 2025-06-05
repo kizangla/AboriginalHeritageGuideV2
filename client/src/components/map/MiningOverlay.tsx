@@ -65,7 +65,7 @@ export default function MiningOverlay({ map, showMining, selectedTerritory }: Mi
         return;
       }
 
-      // Color coding based on tenement type
+      // Color coding based on tenement type with enhanced visibility
       const getStyle = () => {
         const baseStyle = {
           weight: 4,
@@ -90,46 +90,44 @@ export default function MiningOverlay({ map, showMining, selectedTerritory }: Mi
         }
       };
 
-      // Create GeoJSON Feature for proper Leaflet rendering
-      const geoJsonFeature = {
-        type: 'Feature' as const,
-        properties: {
-          id: tenement.id,
-          type: tenement.type,
-          holder: tenement.holder,
-          status: tenement.status
-        },
-        geometry: {
-          type: 'Polygon' as const,
-          coordinates: [tenement.coordinates]
-        }
-      };
+      // Calculate center point of tenement
+      const centerLat = tenement.coordinates.reduce((sum, coord) => sum + coord[1], 0) / tenement.coordinates.length;
+      const centerLng = tenement.coordinates.reduce((sum, coord) => sum + coord[0], 0) / tenement.coordinates.length;
+      
+      // Get style for this tenement type
+      const style = getStyle();
+      
+      // Create a highly visible circle marker instead of tiny polygon
+      const tenementLayer = L.circleMarker([centerLat, centerLng], {
+        radius: 15, // Large radius for visibility
+        fillColor: style.fillColor,
+        color: style.color,
+        weight: style.weight,
+        opacity: style.opacity,
+        fillOpacity: style.fillOpacity,
+        dashArray: style.dashArray
+      });
 
-      // Create GeoJSON layer for tenement
-      const tenementLayer = L.geoJSON(geoJsonFeature, {
-        style: getStyle(),
-        onEachFeature: (feature, layer) => {
-          const popupContent = `
-            <div class="p-3 min-w-[280px] border-l-4 border-orange-500">
-              <h3 class="font-bold text-lg mb-2 text-orange-700">
-                ${tenement.id}
-              </h3>
-              <div class="space-y-2 text-sm">
-                <p><strong>Type:</strong> ${tenement.type}</p>
-                <p><strong>Holder:</strong> ${tenement.holder}</p>
-                <p><strong>Status:</strong> <span class="px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs">${tenement.status}</span></p>
-              </div>
-              <div class="mt-3 text-xs text-gray-500 border-t pt-2">
-                <strong>Source:</strong> WA Department of Mines, Industry Regulation and Safety (DMIRS)
-              </div>
-            </div>
-          `;
+      // Add popup to the circle marker
+      const popupContent = `
+        <div class="p-3 min-w-[280px] border-l-4 border-orange-500">
+          <h3 class="font-bold text-lg mb-2 text-orange-700">
+            ${tenement.id}
+          </h3>
+          <div class="space-y-2 text-sm">
+            <p><strong>Type:</strong> ${tenement.type}</p>
+            <p><strong>Holder:</strong> ${tenement.holder}</p>
+            <p><strong>Status:</strong> <span class="px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs">${tenement.status}</span></p>
+          </div>
+          <div class="mt-3 text-xs text-gray-500 border-t pt-2">
+            <strong>Source:</strong> WA Department of Mines, Industry Regulation and Safety (DMIRS)
+          </div>
+        </div>
+      `;
 
-          layer.bindPopup(popupContent, {
-            className: 'custom-popup mining-popup',
-            maxWidth: 350
-          });
-        }
+      tenementLayer.bindPopup(popupContent, {
+        className: 'custom-popup mining-popup',
+        maxWidth: 350
       });
 
       newMiningLayer.addLayer(tenementLayer);
@@ -178,7 +176,7 @@ export default function MiningOverlay({ map, showMining, selectedTerritory }: Mi
         map.removeLayer(miningLayer);
       }
     };
-  }, []);
+  }, [miningLayer, map]);
 
-  return null; // This component renders directly to the map
+  return null;
 }
