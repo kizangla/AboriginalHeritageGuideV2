@@ -27,14 +27,34 @@ interface ExplorationData {
   success: boolean;
   reports: ExplorationReport[];
   totalInDatabase: number;
+  totalDisplayed: number;
+  filters: {
+    commodity: string;
+    yearFrom: string | number;
+    yearTo: string | number;
+    limit: number;
+  };
 }
 
 export default function ExplorationOverlay({ map, showExploration, selectedTerritory }: ExplorationOverlayProps) {
   const [explorationLayer, setExplorationLayer] = useState<L.LayerGroup | null>(null);
+  const [showFilters, setShowFilters] = useState(false);
+  const [filters, setFilters] = useState<ExplorationFiltersType>({ limit: 2000 });
 
-  // Query exploration data for map bounds
-  const { data: explorationData, isLoading } = useQuery({
-    queryKey: ['/api/exploration/map-bounds'],
+  // Build query parameters for filtering
+  const buildQueryParams = () => {
+    const params = new URLSearchParams();
+    if (filters.commodity) params.append('commodity', filters.commodity);
+    if (filters.yearFrom) params.append('yearFrom', filters.yearFrom.toString());
+    if (filters.yearTo) params.append('yearTo', filters.yearTo.toString());
+    if (filters.limit) params.append('limit', filters.limit.toString());
+    return params.toString();
+  };
+
+  // Query exploration data for map bounds with filtering
+  const { data: explorationData, isLoading, refetch } = useQuery({
+    queryKey: ['/api/exploration/map-bounds', filters],
+    queryFn: () => fetch(`/api/exploration/map-bounds?${buildQueryParams()}`).then(res => res.json()),
     enabled: showExploration && !!map,
     refetchOnWindowFocus: false,
     staleTime: 5 * 60 * 1000, // 5 minutes
@@ -145,5 +165,39 @@ export default function ExplorationOverlay({ map, showExploration, selectedTerri
     };
   }, []);
 
-  return null;
+  const handleFilterChange = (newFilters: ExplorationFiltersType) => {
+    setFilters(newFilters);
+    refetch();
+  };
+
+  return (
+    <>
+      {showExploration && (
+        <>
+          <ExplorationFilters
+            onFilterChange={handleFilterChange}
+            isVisible={showFilters}
+            currentFilters={filters}
+          />
+          <div className="absolute top-4 left-4 z-[1000]">
+            <button
+              onClick={() => setShowFilters(!showFilters)}
+              className="bg-white/90 backdrop-blur border border-gray-300 rounded px-3 py-2 shadow-lg hover:bg-white/95 transition-colors"
+            >
+              {showFilters ? 'Hide Filters' : 'Filter Exploration Data'}
+            </button>
+            {explorationData && (
+              <div className="mt-2 bg-white/90 backdrop-blur border border-gray-300 rounded px-3 py-2 shadow-lg text-sm">
+                <div>Showing: {explorationData.totalDisplayed || 0} reports</div>
+                <div>Database: {explorationData.totalInDatabase || 113850} total</div>
+                <div className="text-xs text-gray-600 mt-1">
+                  Source: WA Department of Mines
+                </div>
+              </div>
+            )}
+          </div>
+        </>
+      )}
+    </>
+  );
 }
