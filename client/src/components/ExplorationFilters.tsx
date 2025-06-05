@@ -66,25 +66,23 @@ export function ExplorationFilters({ onFilterChange, isVisible, currentFilters }
       <CardContent className="space-y-4">
         <div>
           <Label htmlFor="commodity-select">Target Commodity</Label>
-          <Select
+          <select
+            id="commodity-select"
             value={localFilters.commodity || 'all'}
-            onValueChange={(value) => {
+            onChange={(e) => {
+              const value = e.target.value;
               console.log('Commodity selection changed:', value);
               handleFilterChange('commodity', value === 'all' ? undefined : value);
             }}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
           >
-            <SelectTrigger id="commodity-select" className="bg-white">
-              <SelectValue placeholder="All commodities" />
-            </SelectTrigger>
-            <SelectContent className="bg-white border shadow-lg max-h-60 overflow-y-auto">
-              <SelectItem value="all" className="cursor-pointer hover:bg-gray-100">All Commodities</SelectItem>
-              {commodities.slice(0, 20).map((commodity: string) => (
-                <SelectItem key={commodity} value={commodity} className="cursor-pointer hover:bg-gray-100">
-                  {commodity}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            <option value="all">All Commodities</option>
+            {commodities.slice(0, 20).map((commodity: string) => (
+              <option key={commodity} value={commodity}>
+                {commodity}
+              </option>
+            ))}
+          </select>
         </div>
 
         <div className="grid grid-cols-2 gap-2">
@@ -116,27 +114,25 @@ export function ExplorationFilters({ onFilterChange, isVisible, currentFilters }
 
         <div>
           <Label htmlFor="limit-select">Display Limit</Label>
-          <Select
+          <select
+            id="limit-select"
             value={localFilters.limit?.toString() || '2000'}
-            onValueChange={(value) => {
+            onChange={(e) => {
+              const value = parseInt(e.target.value);
               console.log('Limit selection changed:', value);
-              handleFilterChange('limit', parseInt(value));
+              handleFilterChange('limit', value);
             }}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
           >
-            <SelectTrigger id="limit-select" className="bg-white">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent className="bg-white border shadow-lg">
-              <SelectItem value="500" className="cursor-pointer hover:bg-gray-100">500 reports</SelectItem>
-              <SelectItem value="1000" className="cursor-pointer hover:bg-gray-100">1,000 reports</SelectItem>
-              <SelectItem value="2000" className="cursor-pointer hover:bg-gray-100">2,000 reports</SelectItem>
-              <SelectItem value="5000" className="cursor-pointer hover:bg-gray-100">5,000 reports</SelectItem>
-              <SelectItem value="10000" className="cursor-pointer hover:bg-gray-100">10,000 reports</SelectItem>
-              <SelectItem value="25000" className="cursor-pointer hover:bg-gray-100">25,000 reports</SelectItem>
-              <SelectItem value="50000" className="cursor-pointer hover:bg-gray-100">50,000 reports</SelectItem>
-              <SelectItem value="113850" className="cursor-pointer hover:bg-gray-100">All 113,850 reports</SelectItem>
-            </SelectContent>
-          </Select>
+            <option value="500">500 reports</option>
+            <option value="1000">1,000 reports</option>
+            <option value="2000">2,000 reports</option>
+            <option value="5000">5,000 reports</option>
+            <option value="10000">10,000 reports</option>
+            <option value="25000">25,000 reports</option>
+            <option value="50000">50,000 reports</option>
+            <option value="113850">All 113,850 reports</option>
+          </select>
         </div>
 
         <div className="flex gap-2 pt-2">
