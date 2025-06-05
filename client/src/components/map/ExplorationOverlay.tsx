@@ -138,24 +138,48 @@ export default function ExplorationOverlay({ map, showExploration, selectedTerri
         interactive: true // Ensure polygon is clickable
       });
 
-      // Add popup with authentic WA DMIRS data
+      // Add detailed popup with authentic WA DMIRS data matching mining tenement style
       reportPolygon.bindPopup(`
-        <div class="exploration-popup">
-          <h3 style="margin: 0 0 8px 0; color: #2c3e50; font-size: 14px; font-weight: bold;">
-            ${report.project}
-          </h3>
-          <div style="font-size: 12px; line-height: 1.4;">
-            <p style="margin: 4px 0;"><strong>Operator:</strong> ${report.operator}</p>
-            <p style="margin: 4px 0;"><strong>Target Commodities:</strong> ${report.targetCommodity}</p>
-            <p style="margin: 4px 0;"><strong>Report Year:</strong> ${report.reportYear}</p>
-            <p style="margin: 4px 0;"><strong>Report ID:</strong> ${report.id}</p>
-            <p style="margin: 8px 0 0 0; font-size: 10px; color: #7f8c8d;">
-              Source: WA Department of Mines, Industry Regulation and Safety
-            </p>
+        <div style="min-width: 280px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+          <div style="border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; margin-bottom: 12px;">
+            <h3 style="margin: 0; color: #1e293b; font-size: 16px; font-weight: bold; line-height: 1.3;">
+              ${report.project}
+            </h3>
+            <div style="color: #64748b; font-size: 12px; margin-top: 4px; font-weight: 500;">
+              WA DMIRS Report #${report.id}
+            </div>
+          </div>
+          
+          <div style="display: grid; gap: 8px; font-size: 13px;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <span style="color: #475569; font-weight: 500;">Operator:</span>
+              <span style="color: #1e293b; font-weight: 600; text-align: right; max-width: 150px;">${report.operator}</span>
+            </div>
+            
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <span style="color: #475569; font-weight: 500;">Target Commodities:</span>
+              <span style="color: #1e293b; font-weight: 600; text-align: right; max-width: 150px;">${report.targetCommodity}</span>
+            </div>
+            
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <span style="color: #475569; font-weight: 500;">Report Year:</span>
+              <span style="color: #1e293b; font-weight: 600;">${report.reportYear}</span>
+            </div>
+            
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <span style="color: #475569; font-weight: 500;">Primary Commodity:</span>
+              <span style="color: #059669; font-weight: 700;">${primaryCommodity}</span>
+            </div>
+          </div>
+          
+          <div style="margin-top: 14px; padding-top: 10px; border-top: 1px solid #e2e8f0; text-align: center;">
+            <div style="color: #64748b; font-size: 11px; margin-bottom: 2px;">Authentic Government Data</div>
+            <div style="color: #059669; font-size: 12px; font-weight: 600;">WA Department of Mines & Petroleum</div>
           </div>
         </div>
       `, {
-        maxWidth: 350
+        maxWidth: 320,
+        closeButton: true
       });
 
       newExplorationLayer.addLayer(reportPolygon);

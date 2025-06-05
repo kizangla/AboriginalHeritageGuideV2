@@ -65,15 +65,18 @@ export function ExplorationFilters({ onFilterChange, isVisible, currentFilters }
           <Label htmlFor="commodity-select">Target Commodity</Label>
           <Select
             value={localFilters.commodity || 'all'}
-            onValueChange={(value) => handleFilterChange('commodity', value === 'all' ? undefined : value)}
+            onValueChange={(value) => {
+              console.log('Commodity selection changed:', value);
+              handleFilterChange('commodity', value === 'all' ? undefined : value);
+            }}
           >
-            <SelectTrigger id="commodity-select">
+            <SelectTrigger id="commodity-select" className="bg-white">
               <SelectValue placeholder="All commodities" />
             </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Commodities</SelectItem>
+            <SelectContent className="bg-white border shadow-lg max-h-60 overflow-y-auto">
+              <SelectItem value="all" className="cursor-pointer hover:bg-gray-100">All Commodities</SelectItem>
               {commodities.slice(0, 20).map((commodity: string) => (
-                <SelectItem key={commodity} value={commodity}>
+                <SelectItem key={commodity} value={commodity} className="cursor-pointer hover:bg-gray-100">
                   {commodity}
                 </SelectItem>
               ))}
@@ -112,29 +115,46 @@ export function ExplorationFilters({ onFilterChange, isVisible, currentFilters }
           <Label htmlFor="limit-select">Display Limit</Label>
           <Select
             value={localFilters.limit?.toString() || '2000'}
-            onValueChange={(value) => handleFilterChange('limit', parseInt(value))}
+            onValueChange={(value) => {
+              console.log('Limit selection changed:', value);
+              handleFilterChange('limit', parseInt(value));
+            }}
           >
-            <SelectTrigger id="limit-select">
+            <SelectTrigger id="limit-select" className="bg-white">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="500">500 reports</SelectItem>
-              <SelectItem value="1000">1,000 reports</SelectItem>
-              <SelectItem value="2000">2,000 reports</SelectItem>
-              <SelectItem value="5000">5,000 reports</SelectItem>
-              <SelectItem value="10000">10,000 reports</SelectItem>
-              <SelectItem value="25000">25,000 reports</SelectItem>
-              <SelectItem value="50000">50,000 reports</SelectItem>
-              <SelectItem value="113850">All 113,850 reports</SelectItem>
+            <SelectContent className="bg-white border shadow-lg">
+              <SelectItem value="500" className="cursor-pointer hover:bg-gray-100">500 reports</SelectItem>
+              <SelectItem value="1000" className="cursor-pointer hover:bg-gray-100">1,000 reports</SelectItem>
+              <SelectItem value="2000" className="cursor-pointer hover:bg-gray-100">2,000 reports</SelectItem>
+              <SelectItem value="5000" className="cursor-pointer hover:bg-gray-100">5,000 reports</SelectItem>
+              <SelectItem value="10000" className="cursor-pointer hover:bg-gray-100">10,000 reports</SelectItem>
+              <SelectItem value="25000" className="cursor-pointer hover:bg-gray-100">25,000 reports</SelectItem>
+              <SelectItem value="50000" className="cursor-pointer hover:bg-gray-100">50,000 reports</SelectItem>
+              <SelectItem value="113850" className="cursor-pointer hover:bg-gray-100">All 113,850 reports</SelectItem>
             </SelectContent>
           </Select>
         </div>
 
         <div className="flex gap-2 pt-2">
-          <Button onClick={applyFilters} className="flex-1">
+          <Button 
+            onClick={() => {
+              console.log('Apply button clicked with filters:', localFilters);
+              applyFilters();
+            }}
+            className="flex-1 bg-orange-600 hover:bg-orange-700 text-white"
+            type="button"
+          >
             Apply Filters
           </Button>
-          <Button onClick={resetFilters} variant="outline">
+          <Button 
+            onClick={() => {
+              console.log('Reset button clicked');
+              resetFilters();
+            }}
+            variant="outline"
+            type="button"
+          >
             Reset
           </Button>
         </div>
