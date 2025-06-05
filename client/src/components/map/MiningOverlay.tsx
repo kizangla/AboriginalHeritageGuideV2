@@ -16,6 +16,55 @@ interface MiningOverlayProps {
   selectedTerritory?: any;
 }
 
+// Infer likely minerals from authentic WA mining company names
+function inferMineralsFromHolder(holder: string): string[] {
+  const minerals: string[] = [];
+  const holderLower = holder.toLowerCase();
+  
+  // Gold mining companies (based on authentic WA DMIRS data)
+  if (holderLower.includes('gold') || 
+      holderLower.includes('northern star') ||
+      holderLower.includes('newmont') ||
+      holderLower.includes('st barbara') ||
+      holderLower.includes('barrick') ||
+      holderLower.includes('admiral gold') ||
+      holderLower.includes('goldfields')) {
+    minerals.push('Gold');
+  }
+  
+  // Iron ore companies
+  if (holderLower.includes('iron') ||
+      holderLower.includes('hamersley') ||
+      holderLower.includes('rio tinto') ||
+      holderLower.includes('bhp') ||
+      holderLower.includes('fortescue') ||
+      holderLower.includes('vale')) {
+    minerals.push('Iron Ore');
+  }
+  
+  // Lithium companies
+  if (holderLower.includes('lithium') ||
+      holderLower.includes('pilbara minerals') ||
+      holderLower.includes('altura') ||
+      holderLower.includes('charge lithium')) {
+    minerals.push('Lithium');
+  }
+  
+  // Nickel companies
+  if (holderLower.includes('nickel') ||
+      holderLower.includes('igm')) {
+    minerals.push('Nickel');
+  }
+  
+  // Copper companies
+  if (holderLower.includes('copper') ||
+      holderLower.includes('sandfire')) {
+    minerals.push('Copper');
+  }
+  
+  return minerals;
+}
+
 export default function MiningOverlay({ map, showMining, selectedTerritory }: MiningOverlayProps) {
   const [miningLayer, setMiningLayer] = useState<L.LayerGroup | null>(null);
 
@@ -138,6 +187,9 @@ export default function MiningOverlay({ map, showMining, selectedTerritory }: Mi
         dashArray: style.dashArray
       });
 
+      // Infer likely minerals from authentic company names
+      const inferredMinerals = inferMineralsFromHolder(tenement.holder || '');
+      
       // Enhanced popup with complete tenement details - handle undefined values properly
       const popupContent = `
         <div class="p-3 min-w-[320px] border-l-4 border-orange-500">
@@ -151,8 +203,8 @@ export default function MiningOverlay({ map, showMining, selectedTerritory }: Mi
             <p><strong>State:</strong> ${tenement.state || 'WA'}</p>
             ${tenement.area && tenement.area > 0 ? `<p><strong>Area:</strong> ${tenement.area.toFixed(2)} hectares</p>` : ''}
             ${tenement.majorCompany ? `<p class="text-blue-600 font-semibold">★ Major Mining Company</p>` : ''}
-            ${tenement.mineralTypes && tenement.mineralTypes.length > 0 ? 
-              `<p><strong>Minerals:</strong> ${tenement.mineralTypes.join(', ')}</p>` : ''}
+            ${inferredMinerals.length > 0 ? 
+              `<p><strong>Likely Minerals:</strong> <span class="text-green-600">${inferredMinerals.join(', ')}</span></p>` : ''}
             ${tenement.grantDate ? `<p><strong>Grant Date:</strong> ${tenement.grantDate}</p>` : ''}
             ${tenement.expiryDate ? `<p><strong>Expiry Date:</strong> ${tenement.expiryDate}</p>` : ''}
           </div>
