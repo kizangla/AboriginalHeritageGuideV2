@@ -6,6 +6,7 @@ import type { NativeTitleStatusFilter } from '@/components/NativeTitleFilter';
 import { dataOptimizationService } from '@/lib/data-optimization';
 import EnhancedBusinessMarkers from './EnhancedBusinessMarkers';
 import MiningOverlay from './MiningOverlay';
+import ExplorationOverlay from './ExplorationOverlay';
 
 interface SimpleMapProps {
   onMapReady?: (map: L.Map) => void;
@@ -17,9 +18,10 @@ interface SimpleMapProps {
   businessSearchQuery?: string;
   onBusinessSelect?: (business: any) => void;
   showMining?: boolean;
+  showExploration?: boolean;
 }
 
-export default function SimpleMap({ onMapReady, onTerritorySelect, regionFilter, nativeTitleFilter, selectedTerritory, showRATSIBBoundaries = true, businessSearchQuery, onBusinessSelect, showMining = false }: SimpleMapProps) {
+export default function SimpleMap({ onMapReady, onTerritorySelect, regionFilter, nativeTitleFilter, selectedTerritory, showRATSIBBoundaries = true, businessSearchQuery, onBusinessSelect, showMining = false, showExploration = false }: SimpleMapProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
   const territoryLayerRef = useRef<L.GeoJSON | null>(null);
@@ -676,6 +678,12 @@ export default function SimpleMap({ onMapReady, onTerritorySelect, regionFilter,
       <MiningOverlay
         map={mapInstanceRef.current}
         showMining={showMining}
+        selectedTerritory={selectedTerritory}
+      />
+      {/* Exploration Overlay with Authentic WA DMIRS Data */}
+      <ExplorationOverlay
+        map={mapInstanceRef.current}
+        showExploration={showExploration}
         selectedTerritory={selectedTerritory}
       />
     </div>

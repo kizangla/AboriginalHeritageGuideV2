@@ -48,7 +48,7 @@ export default function ExplorationOverlay({ map, showExploration, selectedTerri
       return;
     }
 
-    if (isLoading || !explorationData?.success) {
+    if (isLoading || !explorationData) {
       return;
     }
 

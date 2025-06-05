@@ -27,6 +27,8 @@ interface FloatingMapControlsProps {
   showRATSIBBoundaries?: boolean;
   onToggleMining?: (show: boolean) => void;
   showMining?: boolean;
+  onToggleExploration?: (show: boolean) => void;
+  showExploration?: boolean;
 }
 
 function FloatingMapControls({
