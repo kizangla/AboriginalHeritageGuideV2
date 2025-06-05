@@ -17,6 +17,7 @@ import { fetchRATSIBBoundaries } from "./ratsib-service";
 import { miningService } from "./mining-service";
 import { nativeTitleCacheService } from "./native-title-cache-service";
 import { simpleMiningOverlayService } from "./simple-mining-overlay";
+import { extractSampleTenements } from "./quick-mining-sample";
 
 // Australian postcode coordinate lookup for business positioning
 function getPostcodeCoordinates(postcode: string, stateCode: string): { lat: number; lng: number } | null {
@@ -1600,12 +1601,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Mining Tenements API - WA Government Data
   app.get("/api/mining/tenements", async (req, res) => {
     try {
-      const tenements = await simpleMiningOverlayService.loadMiningData();
+      // Use quick sample for immediate testing
+      const tenements = await extractSampleTenements();
       res.json({
         success: true,
         tenements,
         totalFound: tenements.length,
-        dataSource: 'wa_dmirs_kml'
+        dataSource: 'wa_dmirs_kml',
+        sampleData: true
       });
     } catch (error) {
       console.error('Error loading mining tenements:', error);
