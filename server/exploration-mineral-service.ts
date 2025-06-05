@@ -173,7 +173,7 @@ class ExplorationMineralService {
     try {
       console.log('Extracting exploration reports from WA DMIRS database...');
       
-      // Extract sample exploration reports with authentic data from WA DMIRS
+      // Extract exploration reports with authentic data from WA DMIRS within map bounds
       const explorationData = await this.runOGRCommand([
         '-sql',
         `SELECT ANUMBER, TARGET_COMMODITY, OPERATOR, PROJECT, REPORT_YEAR, KEYWORDS 
@@ -181,7 +181,8 @@ class ExplorationMineralService {
          WHERE TARGET_COMMODITY IS NOT NULL 
          AND OPERATOR IS NOT NULL 
          AND PROJECT IS NOT NULL
-         LIMIT 10`,
+         AND REPORT_YEAR >= 2015
+         LIMIT 100`,
         'attached_assets/Exploration_Reports.gdb'
       ]);
 
