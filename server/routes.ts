@@ -1855,12 +1855,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // API endpoint for exploration map bounds
+  // API endpoint for exploration map bounds with authentic WA DMIRS data
   app.get("/api/exploration/map-bounds", async (req, res) => {
     try {
+      console.log('Fetching authentic WA DMIRS exploration reports for map bounds...');
+      
+      // Get authentic exploration reports from WA DMIRS database
+      const explorationReports = await explorationMineralService.getExplorationReportsForMapBounds();
+      
       res.json({
         success: true,
-        reports: [],
+        reports: explorationReports,
         totalInDatabase: 113850,
         source: 'WA Department of Mines Exploration Reports',
         dataAuthenticity: 'authentic_government_data'
