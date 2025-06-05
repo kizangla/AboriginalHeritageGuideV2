@@ -486,7 +486,7 @@ export default function TerritoryPage() {
                           </span>
                         </label>
                         <ScrollArea className="h-48">
-                          {filteredExplorationReports.slice(0, 10).map((report: any, index: number) => (
+                          {filteredExplorationReports.map((report: any, index: number) => (
                             <div key={index} className="text-sm text-gray-600 mb-3 p-3 bg-yellow-50 rounded-lg border-l-3 border-yellow-400">
                               <div className="font-semibold text-gray-800 mb-1">
                                 {report.project}

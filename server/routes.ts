@@ -1725,7 +1725,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         territoryName: territory.name,
         explorationData: {
           totalReports: territoryReports.length,
-          reports: territoryReports.slice(0, 50), // Limit for performance
+          reports: territoryReports, // Return all reports to match commodity counts
           commoditySummary: Object.values(commoditySummary).sort((a: any, b: any) => b.count - a.count),
           bounds: bounds,
           source: 'wa_dmirs_authentic'
