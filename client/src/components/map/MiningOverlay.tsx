@@ -139,9 +139,9 @@ export default function MiningOverlay({ map, showMining, selectedTerritory }: Mi
         dashArray: style.dashArray
       });
 
-      // Add popup to the circle marker
+      // Enhanced popup with complete tenement details
       const popupContent = `
-        <div class="p-3 min-w-[280px] border-l-4 border-orange-500">
+        <div class="p-3 min-w-[320px] border-l-4 border-orange-500">
           <h3 class="font-bold text-lg mb-2 text-orange-700">
             ${tenement.id}
           </h3>
@@ -149,9 +149,17 @@ export default function MiningOverlay({ map, showMining, selectedTerritory }: Mi
             <p><strong>Type:</strong> ${tenement.type}</p>
             <p><strong>Holder:</strong> ${tenement.holder}</p>
             <p><strong>Status:</strong> <span class="px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs">${tenement.status}</span></p>
+            <p><strong>State:</strong> ${tenement.state}</p>
+            ${tenement.area ? `<p><strong>Area:</strong> ${tenement.area.toFixed(2)} hectares</p>` : ''}
+            ${tenement.majorCompany ? `<p class="text-blue-600 font-semibold">⭐ Major Mining Company</p>` : ''}
+            ${tenement.mineralTypes && tenement.mineralTypes.length > 0 ? 
+              `<p><strong>Minerals:</strong> ${tenement.mineralTypes.join(', ')}</p>` : ''}
+            ${tenement.grantDate ? `<p><strong>Grant Date:</strong> ${tenement.grantDate}</p>` : ''}
+            ${tenement.expiryDate ? `<p><strong>Expiry Date:</strong> ${tenement.expiryDate}</p>` : ''}
           </div>
           <div class="mt-3 text-xs text-gray-500 border-t pt-2">
-            <strong>Source:</strong> WA Department of Mines, Industry Regulation and Safety (DMIRS)
+            <strong>Source:</strong> WA Department of Mines, Industry Regulation and Safety (DMIRS)<br>
+            <strong>Database:</strong> Complete authentic dataset
           </div>
         </div>
       `;
