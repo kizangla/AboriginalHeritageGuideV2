@@ -18,6 +18,7 @@ interface ExplorationReport {
   operator: string;
   project: string;
   reportYear: number;
+  keywords: string;
   coordinates: [number, number][];
 }
 

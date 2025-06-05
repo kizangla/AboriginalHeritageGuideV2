@@ -176,7 +176,7 @@ class ExplorationMineralService {
       // Extract sample exploration reports with authentic data from WA DMIRS
       const explorationData = await this.runOGRCommand([
         '-sql',
-        `SELECT REPORT_ID, TARGET_COMMODITY, OPERATOR, PROJECT, REPORT_YEAR, KEYWORDS 
+        `SELECT ANUMBER, TARGET_COMMODITY, OPERATOR, PROJECT, REPORT_YEAR, KEYWORDS 
          FROM Exploration_Reports 
          WHERE TARGET_COMMODITY IS NOT NULL 
          AND OPERATOR IS NOT NULL 
@@ -191,14 +191,14 @@ class ExplorationMineralService {
       let currentReport: Partial<ExplorationReport> = {};
       
       for (const line of lines) {
-        if (line.includes('REPORT_ID (String) =')) {
+        if (line.includes('ANUMBER (Integer) =')) {
           if (currentReport.targetCommodity) {
             reports.push(this.completeExplorationReport(currentReport));
           }
           currentReport = {};
-          const match = line.match(/REPORT_ID \(String\) = (.+)/);
+          const match = line.match(/ANUMBER \(Integer\) = (.+)/);
           if (match) {
-            currentReport.project = match[1].trim();
+            currentReport.project = `Report ${match[1].trim()}`;
           }
         } else if (line.includes('TARGET_COMMODITY (String) =')) {
           const match = line.match(/TARGET_COMMODITY \(String\) = (.+)/);
@@ -269,6 +269,7 @@ class ExplorationMineralService {
     ];
 
     return {
+      id: `EXPL_${Math.random().toString(36).substr(2, 9)}`,
       targetCommodity: partial.targetCommodity || 'UNKNOWN',
       operator: partial.operator || 'UNKNOWN OPERATOR',
       project: partial.project || 'UNKNOWN PROJECT',
