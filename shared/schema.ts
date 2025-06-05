@@ -117,6 +117,27 @@ export const supplyNationBusinesses = pgTable("supply_nation_businesses", {
   createdAt: text("created_at")
 });
 
+export const miningTenements = pgTable("mining_tenements", {
+  id: serial("id").primaryKey(),
+  tenementId: text("tenement_id").notNull().unique(), // e.g. "AG 7000003", "M 45/1234"
+  tenementType: text("tenement_type").notNull(), // MINING LEASE, EXPLORATION LICENCE, etc.
+  status: text("status").notNull(), // LIVE, PENDING, EXPIRED
+  holder: text("holder").notNull(), // Company name
+  state: text("state").notNull().default("WA"), // State/Territory
+  area: real("area"), // Area in hectares
+  geometry: jsonb("geometry").notNull(), // GeoJSON polygon coordinates
+  centerLat: real("center_lat").notNull(),
+  centerLng: real("center_lng").notNull(),
+  grantDate: text("grant_date"),
+  expiryDate: text("expiry_date"),
+  mineralTypes: text("mineral_types").array().default([]), // Iron ore, Gold, Coal, etc.
+  dataSource: text("data_source").default("WA Department of Mines, Industry Regulation and Safety (DMIRS)"),
+  lastUpdated: text("last_updated").default(new Date().toISOString()),
+  // Indexing for fast filtering
+  holderNormalized: text("holder_normalized"), // Normalized company name for searching
+  majorCompany: integer("major_company").default(0), // 1 if BHP, Rio Tinto, Fortescue, etc.
+});
+
 export const insertTerritorySchema = createInsertSchema(territories).omit({
   id: true,
 });
@@ -142,9 +163,16 @@ export const insertSupplyNationBusinessSchema = createInsertSchema(supplyNationB
   createdAt: true,
 });
 
+export const insertMiningTenementSchema = createInsertSchema(miningTenements).omit({
+  id: true,
+  lastUpdated: true,
+});
+
 // Type definitions
 export type SupplyNationBusiness = typeof supplyNationBusinesses.$inferSelect;
 export type InsertSupplyNationBusiness = z.infer<typeof insertSupplyNationBusinessSchema>;
+export type MiningTenement = typeof miningTenements.$inferSelect;
+export type InsertMiningTenement = z.infer<typeof insertMiningTenementSchema>;
 
 // Integrated Business Type with Supply Nation data
 export interface IntegratedBusiness {
