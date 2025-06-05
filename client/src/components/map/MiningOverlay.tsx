@@ -58,8 +58,12 @@ export default function MiningOverlay({ map, showMining, selectedTerritory }: Mi
     // Create new mining layer group
     const newMiningLayer = L.layerGroup();
 
-    typedMiningData.tenements.forEach((tenement: MiningTenement) => {
-      if (!tenement.coordinates || tenement.coordinates.length === 0) return;
+    typedMiningData.tenements.forEach((tenement: MiningTenement, index: number) => {
+      console.log(`Processing tenement ${index + 1}:`, tenement.id, tenement.coordinates);
+      if (!tenement.coordinates || tenement.coordinates.length === 0) {
+        console.log(`Skipping tenement ${tenement.id}: no coordinates`);
+        return;
+      }
 
       // Color coding based on tenement type
       const getStyle = () => {
@@ -85,14 +89,23 @@ export default function MiningOverlay({ map, showMining, selectedTerritory }: Mi
         }
       };
 
-      // Convert coordinates to GeoJSON polygon
-      const geoJsonGeometry = {
-        type: 'Polygon' as const,
-        coordinates: [tenement.coordinates]
+      // Create GeoJSON Feature for proper Leaflet rendering
+      const geoJsonFeature = {
+        type: 'Feature' as const,
+        properties: {
+          id: tenement.id,
+          type: tenement.type,
+          holder: tenement.holder,
+          status: tenement.status
+        },
+        geometry: {
+          type: 'Polygon' as const,
+          coordinates: [tenement.coordinates]
+        }
       };
 
       // Create GeoJSON layer for tenement
-      const tenementLayer = L.geoJSON(geoJsonGeometry, {
+      const tenementLayer = L.geoJSON(geoJsonFeature, {
         style: getStyle(),
         onEachFeature: (feature, layer) => {
           const popupContent = `
@@ -119,11 +132,18 @@ export default function MiningOverlay({ map, showMining, selectedTerritory }: Mi
       });
 
       newMiningLayer.addLayer(tenementLayer);
+      console.log(`Added tenement ${tenement.id} to layer group, total layers: ${newMiningLayer.getLayers().length}`);
     });
 
     // Add to map
+    console.log(`Adding mining layer group with ${newMiningLayer.getLayers().length} layers to map`);
     newMiningLayer.addTo(map);
     setMiningLayer(newMiningLayer);
+    
+    // Debug: Check map bounds to see if tenements are within view
+    const mapBounds = map.getBounds();
+    console.log('Current map bounds:', mapBounds.getNorth(), mapBounds.getSouth(), mapBounds.getEast(), mapBounds.getWest());
+    console.log('Sample tenement coordinates:', typedMiningData.tenements[0].coordinates[0]);
 
     console.log(`Added ${typedMiningData.tenements.length} mining tenements to map`);
 
