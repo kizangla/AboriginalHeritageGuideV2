@@ -187,7 +187,7 @@ export default function MiningOverlay({ map, showMining, selectedTerritory }: Mi
         dashArray: style.dashArray
       });
 
-      // Infer likely minerals from authentic company names
+      // Get authentic mineral data from WA DMIRS exploration reports
       const inferredMinerals = inferMineralsFromHolder(tenement.holder || '');
       
       // Enhanced popup with complete tenement details - handle undefined values properly

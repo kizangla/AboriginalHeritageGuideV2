@@ -21,6 +21,7 @@ import { getMiningTenementsData } from "./cached-mining-data";
 import { databaseMiningAPI } from "./database-mining-api";
 import { initializeMiningData } from "./complete-mining-import";
 import { registerMiningAPI } from "./wa-mining-api";
+import { explorationMineralService } from "./exploration-mineral-service";
 
 // Australian postcode coordinate lookup for business positioning
 function getPostcodeCoordinates(postcode: string, stateCode: string): { lat: number; lng: number } | null {
@@ -1778,6 +1779,78 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({
         success: false,
         error: 'Failed to analyze mining overlaps'
+      });
+    }
+  });
+
+  // API endpoint to get authentic mineral data from WA DMIRS exploration reports
+  app.get("/api/exploration/minerals/:lat/:lng", async (req, res) => {
+    try {
+      const lat = parseFloat(req.params.lat);
+      const lng = parseFloat(req.params.lng);
+      const radius = parseFloat(req.query.radius as string) || 0.01;
+
+      if (isNaN(lat) || isNaN(lng)) {
+        return res.status(400).json({ 
+          success: false, 
+          error: 'Invalid coordinates' 
+        });
+      }
+
+      console.log(`Getting authentic mineral data for location: ${lat}, ${lng} (radius: ${radius})`);
+      
+      const mineralData = await explorationMineralService.getMineralsForLocation(lat, lng, radius);
+      
+      if (!mineralData) {
+        return res.json({
+          success: true,
+          mineralData: null,
+          message: 'No exploration reports found in this area',
+          source: 'WA Department of Mines Exploration Reports'
+        });
+      }
+
+      res.json({
+        success: true,
+        mineralData: {
+          commodities: mineralData.commodities,
+          confidence: mineralData.confidence,
+          reportCount: mineralData.reportCount,
+          source: 'WA Department of Mines Exploration Reports',
+          dataAuthenticity: 'authentic_government_data'
+        },
+        location: { lat, lng, radius }
+      });
+
+    } catch (error) {
+      console.error('Error getting exploration mineral data:', error);
+      res.status(500).json({ 
+        success: false, 
+        error: 'Failed to get exploration mineral data' 
+      });
+    }
+  });
+
+  // API endpoint to get all unique commodities from exploration reports
+  app.get("/api/exploration/commodities", async (req, res) => {
+    try {
+      console.log('Extracting all commodities from WA DMIRS exploration reports...');
+      
+      const commodities = await explorationMineralService.extractCommodities();
+      
+      res.json({
+        success: true,
+        commodities: commodities,
+        totalCount: commodities.length,
+        source: 'WA Department of Mines Exploration Reports',
+        dataAuthenticity: 'authentic_government_data'
+      });
+
+    } catch (error) {
+      console.error('Error extracting commodities:', error);
+      res.status(500).json({ 
+        success: false, 
+        error: 'Failed to extract commodities from exploration reports' 
       });
     }
   });
