@@ -44,10 +44,22 @@ export default function ExplorationOverlay({ map, showExploration, selectedTerri
   // Build query parameters for filtering
   const buildQueryParams = () => {
     const params = new URLSearchParams();
-    if (filters.commodity) params.append('commodity', filters.commodity);
-    if (filters.yearFrom) params.append('yearFrom', filters.yearFrom.toString());
-    if (filters.yearTo) params.append('yearTo', filters.yearTo.toString());
-    if (filters.limit) params.append('limit', filters.limit.toString());
+    if (filters.commodity) {
+      console.log('Adding commodity filter:', filters.commodity);
+      params.append('commodity', filters.commodity);
+    }
+    if (filters.yearFrom) {
+      console.log('Adding yearFrom filter:', filters.yearFrom);
+      params.append('yearFrom', filters.yearFrom.toString());
+    }
+    if (filters.yearTo) {
+      console.log('Adding yearTo filter:', filters.yearTo);
+      params.append('yearTo', filters.yearTo.toString());
+    }
+    if (filters.limit) {
+      params.append('limit', filters.limit.toString());
+    }
+    console.log('Built query params:', params.toString());
     return params.toString();
   };
 
@@ -116,14 +128,13 @@ export default function ExplorationOverlay({ map, showExploration, selectedTerri
         fillColor = '#C0C0C0';
       }
 
-      // Create polygon for exploration report boundary with enhanced visibility
+      // Create polygon for exploration report boundary with enhanced visibility like mining tenements
       const reportPolygon = L.polygon(report.coordinates, {
         fillColor: fillColor,
-        fillOpacity: 0.7,
-        color: '#ffffff',
-        weight: 3,
+        fillOpacity: 0.8,
+        color: '#000000',
+        weight: 4,
         opacity: 1.0,
-        dashArray: '5, 5',
         interactive: true // Ensure polygon is clickable
       });
 

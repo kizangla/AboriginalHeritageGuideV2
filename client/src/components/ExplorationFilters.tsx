@@ -38,6 +38,7 @@ export function ExplorationFilters({ onFilterChange, isVisible, currentFilters }
   };
 
   const applyFilters = () => {
+    console.log('Applying exploration filters:', localFilters);
     onFilterChange(localFilters);
   };
 
