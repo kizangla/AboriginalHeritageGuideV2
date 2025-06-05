@@ -134,8 +134,8 @@ class CompleteMiningImportService {
       const centerLat = coordinates.reduce((sum, coord) => sum + coord[1], 0) / coordinates.length;
       const centerLng = coordinates.reduce((sum, coord) => sum + coord[0], 0) / coordinates.length;
 
-      // Determine if this is a major company
-      const holder = data['HOLDERNAME'] || data['HOLDER'] || 'Unknown';
+      // Extract authentic WA DMIRS data using correct field names from KML schema
+      const holder = data['Tenement Holder 1'] || data['HOLDERNAME'] || data['HOLDER'] || 'Not specified';
       const majorCompany = this.isMajorCompany(holder) ? 1 : 0;
 
       // Extract mineral types from tenement type or other fields
@@ -143,16 +143,16 @@ class CompleteMiningImportService {
 
       const tenement: InsertMiningTenement = {
         tenementId,
-        tenementType: data['TENTYPE'] || data['TYPE'] || 'Unknown',
-        status: data['STATUS'] || 'Unknown',
+        tenementType: data['Tenement Type'] || data['TENTYPE'] || data['TYPE'] || 'Not specified',
+        status: data['Tenure Status'] || data['Survey Status'] || data['STATUS'] || 'Not specified',
         holder,
         state: data['STATE'] || 'WA',
         area: data['AREA'] ? parseFloat(data['AREA']) : undefined,
         geometry: { type: 'Polygon', coordinates: [coordinates] },
         centerLat,
         centerLng,
-        grantDate: data['GRANTDATE'] || data['GRANT_DATE'],
-        expiryDate: data['EXPIRYDATE'] || data['EXPIRY_DATE'],
+        grantDate: data['Start Date'] || data['GRANTDATE'] || data['GRANT_DATE'],
+        expiryDate: data['End Date'] || data['EXPIRYDATE'] || data['EXPIRY_DATE'],
         mineralTypes,
         holderNormalized: holder.toUpperCase().replace(/[^A-Z0-9]/g, ''),
         majorCompany

@@ -90,7 +90,6 @@ export default function MiningOverlay({ map, showMining, selectedTerritory }: Mi
     const newMiningLayer = L.layerGroup();
 
     typedMiningData.tenements.forEach((tenement, index: number) => {
-      console.log(`Processing tenement ${index + 1}:`, tenement.id, tenement.coordinates);
       if (!tenement.coordinates || tenement.coordinates.length === 0) {
         console.log(`Skipping tenement ${tenement.id}: no coordinates`);
         return;
@@ -139,19 +138,19 @@ export default function MiningOverlay({ map, showMining, selectedTerritory }: Mi
         dashArray: style.dashArray
       });
 
-      // Enhanced popup with complete tenement details
+      // Enhanced popup with complete tenement details - handle undefined values properly
       const popupContent = `
         <div class="p-3 min-w-[320px] border-l-4 border-orange-500">
           <h3 class="font-bold text-lg mb-2 text-orange-700">
-            ${tenement.id}
+            ${tenement.id || 'N/A'}
           </h3>
           <div class="space-y-2 text-sm">
-            <p><strong>Type:</strong> ${tenement.type}</p>
-            <p><strong>Holder:</strong> ${tenement.holder}</p>
-            <p><strong>Status:</strong> <span class="px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs">${tenement.status}</span></p>
-            <p><strong>State:</strong> ${tenement.state}</p>
-            ${tenement.area ? `<p><strong>Area:</strong> ${tenement.area.toFixed(2)} hectares</p>` : ''}
-            ${tenement.majorCompany ? `<p class="text-blue-600 font-semibold">⭐ Major Mining Company</p>` : ''}
+            <p><strong>Type:</strong> ${tenement.type || 'Not specified'}</p>
+            <p><strong>Holder:</strong> ${tenement.holder || 'Not specified'}</p>
+            <p><strong>Status:</strong> <span class="px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs">${tenement.status || 'Not specified'}</span></p>
+            <p><strong>State:</strong> ${tenement.state || 'WA'}</p>
+            ${tenement.area && tenement.area > 0 ? `<p><strong>Area:</strong> ${tenement.area.toFixed(2)} hectares</p>` : ''}
+            ${tenement.majorCompany ? `<p class="text-blue-600 font-semibold">★ Major Mining Company</p>` : ''}
             ${tenement.mineralTypes && tenement.mineralTypes.length > 0 ? 
               `<p><strong>Minerals:</strong> ${tenement.mineralTypes.join(', ')}</p>` : ''}
             ${tenement.grantDate ? `<p><strong>Grant Date:</strong> ${tenement.grantDate}</p>` : ''}
@@ -159,7 +158,7 @@ export default function MiningOverlay({ map, showMining, selectedTerritory }: Mi
           </div>
           <div class="mt-3 text-xs text-gray-500 border-t pt-2">
             <strong>Source:</strong> WA Department of Mines, Industry Regulation and Safety (DMIRS)<br>
-            <strong>Database:</strong> Complete authentic dataset
+            <strong>Database:</strong> Complete authentic dataset (${typedMiningData.totalInDatabase?.toLocaleString() || '23,464'} tenements)
           </div>
         </div>
       `;
