@@ -1477,15 +1477,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         };
       }
 
-      const miningData = await miningService.searchMiningTenements(bounds);
+      const tenements = await simpleMiningOverlayService.loadMiningData();
 
       res.json({
         success: true,
-        ...miningData,
+        tenements,
+        totalFound: tenements.length,
+        dataSource: 'wa_dmirs_kml',
         dataIntegrity: {
           authenticData: true,
           governmentSource: 'WA Department of Mines, Industry Regulation and Safety (DMIRS)',
-          realTimeData: true
+          localKMLData: true
         }
       });
 
