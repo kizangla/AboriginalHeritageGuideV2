@@ -397,6 +397,99 @@ export default function TerritoryPage() {
               </CardContent>
             </Card>
 
+            {/* Exploration Reports */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Pickaxe className="w-5 h-5" />
+                  Exploration Reports
+                </CardTitle>
+                <CardDescription>WA DMIRS exploration data within territory</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {explorationLoading ? (
+                  <div className="text-center py-4">
+                    <div className="animate-pulse">Loading exploration data...</div>
+                  </div>
+                ) : explorationInfo ? (
+                  <div className="space-y-4">
+                    <div className="text-center p-3 bg-yellow-50 rounded-lg">
+                      <div className="text-2xl font-bold text-yellow-700">
+                        {explorationInfo.totalReports}
+                      </div>
+                      <div className="text-sm text-yellow-600">Exploration Reports</div>
+                    </div>
+
+                    {commoditySummary.length > 0 && (
+                      <div>
+                        <label className="text-sm font-medium text-gray-500 mb-2 block">
+                          Commodities Explored in Territory
+                        </label>
+                        <div className="grid grid-cols-2 gap-2 mb-4">
+                          {commoditySummary.slice(0, 6).map((item: any, index: number) => (
+                            <div key={index} className="flex justify-between items-center p-2 bg-yellow-50 rounded">
+                              <span className="text-sm font-medium text-yellow-800">{item.commodity}</span>
+                              <span className="text-xs bg-yellow-200 text-yellow-700 px-2 py-1 rounded">
+                                {item.count}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {explorationReports.length > 0 && (
+                      <div>
+                        <label className="text-sm font-medium text-gray-500 mb-2 block">
+                          Recent Exploration Reports
+                        </label>
+                        <ScrollArea className="h-48">
+                          {explorationReports.slice(0, 10).map((report: any, index: number) => (
+                            <div key={index} className="text-sm text-gray-600 mb-3 p-3 bg-yellow-50 rounded-lg border-l-3 border-yellow-400">
+                              <div className="font-semibold text-gray-800 mb-1">
+                                {report.project}
+                              </div>
+                              
+                              <div className="space-y-1">
+                                <div className="text-xs">
+                                  <span className="font-medium">Operator:</span> {report.operator}
+                                </div>
+                                
+                                <div className="text-xs">
+                                  <span className="font-medium">Commodities:</span> {report.targetCommodity}
+                                </div>
+                                
+                                <div className="text-xs">
+                                  <span className="font-medium">Report Year:</span> 
+                                  <span className="ml-1 px-2 py-0.5 bg-yellow-200 text-yellow-700 rounded text-xs">
+                                    {report.reportYear}
+                                  </span>
+                                </div>
+                                
+                                <div className="text-xs text-green-600 mt-1">
+                                  WA DMIRS Report #{report.id}
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </ScrollArea>
+                      </div>
+                    )}
+
+                    <div className="mt-4 pt-3 border-t text-center">
+                      <div className="text-xs text-gray-500">
+                        Authentic data from WA Department of Mines
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-4 text-gray-500">
+                    No exploration data available for this territory
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
             {/* RATSIB Information */}
             <Card>
               <CardHeader>
