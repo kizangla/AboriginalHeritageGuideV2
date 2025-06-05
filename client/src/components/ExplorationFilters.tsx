@@ -77,7 +77,7 @@ export function ExplorationFilters({ onFilterChange, isVisible, currentFilters }
             className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
           >
             <option value="all">All Commodities</option>
-            {commodities.slice(0, 20).map((commodity: string) => (
+            {commodities.map((commodity: string) => (
               <option key={commodity} value={commodity}>
                 {commodity}
               </option>
@@ -88,26 +88,36 @@ export function ExplorationFilters({ onFilterChange, isVisible, currentFilters }
         <div className="grid grid-cols-2 gap-2">
           <div>
             <Label htmlFor="year-from">From Year</Label>
-            <Input
+            <input
               id="year-from"
               type="number"
               min="1970"
               max="2024"
               value={localFilters.yearFrom || ''}
-              onChange={(e) => handleFilterChange('yearFrom', e.target.value ? parseInt(e.target.value) : undefined)}
+              onChange={(e) => {
+                const value = e.target.value ? parseInt(e.target.value) : undefined;
+                console.log('Year From changed:', value);
+                handleFilterChange('yearFrom', value);
+              }}
               placeholder="1970"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
             />
           </div>
           <div>
             <Label htmlFor="year-to">To Year</Label>
-            <Input
+            <input
               id="year-to"
               type="number"
               min="1970"
               max="2024"
               value={localFilters.yearTo || ''}
-              onChange={(e) => handleFilterChange('yearTo', e.target.value ? parseInt(e.target.value) : undefined)}
+              onChange={(e) => {
+                const value = e.target.value ? parseInt(e.target.value) : undefined;
+                console.log('Year To changed:', value);
+                handleFilterChange('yearTo', value);
+              }}
               placeholder="2024"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
             />
           </div>
         </div>

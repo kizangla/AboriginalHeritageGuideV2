@@ -128,14 +128,18 @@ export default function ExplorationOverlay({ map, showExploration, selectedTerri
         fillColor = '#C0C0C0';
       }
 
-      // Create polygon for exploration report boundary with enhanced visibility like mining tenements
+      // Create polygon for exploration report boundary with enhanced visibility for all zoom levels
       const reportPolygon = L.polygon(report.coordinates, {
         fillColor: fillColor,
-        fillOpacity: 0.8,
-        color: '#000000',
-        weight: 4,
+        fillOpacity: 0.9,
+        color: '#ffffff',
+        weight: 5,
         opacity: 1.0,
-        interactive: true // Ensure polygon is clickable
+        interactive: true,
+        // Make markers more conspicuous at all zoom levels
+        dashArray: '8, 4',
+        lineCap: 'round',
+        lineJoin: 'round'
       });
 
       // Add detailed popup with authentic WA DMIRS data matching mining tenement style
