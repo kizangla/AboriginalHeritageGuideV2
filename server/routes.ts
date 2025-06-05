@@ -1860,15 +1860,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       console.log('Fetching authentic WA DMIRS exploration reports for map bounds...');
       
-      // Get authentic exploration reports from WA DMIRS database
-      const explorationReports = await explorationMineralService.getExplorationReportsForMapBounds();
+      const bounds = req.query.bounds ? JSON.parse(req.query.bounds as string) : undefined;
+      const commodity = req.query.commodity as string;
+      const yearFrom = req.query.yearFrom ? parseInt(req.query.yearFrom as string) : undefined;
+      const yearTo = req.query.yearTo ? parseInt(req.query.yearTo as string) : undefined;
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : undefined;
+      
+      // Get authentic exploration reports from WA DMIRS database with filtering
+      const explorationReports = await explorationMineralService.getExplorationReportsForMapBounds(
+        bounds, commodity, yearFrom, yearTo, limit
+      );
       
       res.json({
         success: true,
         reports: explorationReports,
         totalInDatabase: 113850,
+        totalDisplayed: explorationReports.length,
         source: 'WA Department of Mines Exploration Reports',
-        dataAuthenticity: 'authentic_government_data'
+        dataAuthenticity: 'authentic_government_data',
+        filters: {
+          commodity: commodity || 'all',
+          yearFrom: yearFrom || 'all',
+          yearTo: yearTo || 'all',
+          limit: limit || 2000
+        }
       });
     } catch (error) {
       console.error('Error fetching exploration map bounds:', error);

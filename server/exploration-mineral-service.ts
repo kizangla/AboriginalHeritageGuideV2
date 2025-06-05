@@ -8,6 +8,7 @@ import { promises as fs } from 'fs';
 import path from 'path';
 
 export interface ExplorationReport {
+  id: string;
   targetCommodity: string;
   operator: string;
   project: string;
@@ -169,20 +170,45 @@ class ExplorationMineralService {
   /**
    * Get exploration reports for map bounds with authentic WA DMIRS data
    */
-  async getExplorationReportsForMapBounds(): Promise<ExplorationReport[]> {
+  async getExplorationReportsForMapBounds(
+    bounds?: { north: number; south: number; east: number; west: number },
+    commodity?: string,
+    yearFrom?: number,
+    yearTo?: number,
+    limit?: number
+  ): Promise<ExplorationReport[]> {
     try {
       console.log('Extracting exploration reports from WA DMIRS database...');
       
-      // Extract exploration reports with authentic data from WA DMIRS within map bounds
+      // Build dynamic SQL query with filtering
+      let sqlConditions = ['TARGET_COMMODITY IS NOT NULL', 'OPERATOR IS NOT NULL', 'PROJECT IS NOT NULL'];
+      
+      if (commodity) {
+        sqlConditions.push(`TARGET_COMMODITY LIKE '%${commodity.toUpperCase()}%'`);
+      }
+      
+      if (yearFrom) {
+        sqlConditions.push(`REPORT_YEAR >= ${yearFrom}`);
+      }
+      
+      if (yearTo) {
+        sqlConditions.push(`REPORT_YEAR <= ${yearTo}`);
+      }
+      
+      const limitClause = limit ? `LIMIT ${limit}` : 'LIMIT 2000';
+      
+      const sqlQuery = `SELECT ANUMBER, TARGET_COMMODITY, OPERATOR, PROJECT, REPORT_YEAR, KEYWORDS 
+                        FROM Exploration_Reports 
+                        WHERE ${sqlConditions.join(' AND ')}
+                        ORDER BY REPORT_YEAR DESC
+                        ${limitClause}`;
+
+      console.log(`Querying WA DMIRS: ${sqlConditions.length} filters applied, limit: ${limit || 2000}`);
+      
+      // Extract exploration reports with authentic data from WA DMIRS
       const explorationData = await this.runOGRCommand([
         '-sql',
-        `SELECT ANUMBER, TARGET_COMMODITY, OPERATOR, PROJECT, REPORT_YEAR, KEYWORDS 
-         FROM Exploration_Reports 
-         WHERE TARGET_COMMODITY IS NOT NULL 
-         AND OPERATOR IS NOT NULL 
-         AND PROJECT IS NOT NULL
-         AND REPORT_YEAR >= 2015
-         LIMIT 100`,
+        sqlQuery,
         'attached_assets/Exploration_Reports.gdb'
       ]);
 

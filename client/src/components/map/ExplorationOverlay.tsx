@@ -5,6 +5,7 @@
 import { useEffect, useState } from 'react';
 import L from 'leaflet';
 import { useQuery } from '@tanstack/react-query';
+import { ExplorationFilters, type ExplorationFilters as ExplorationFiltersType } from '../ExplorationFilters';
 
 interface ExplorationOverlayProps {
   map: L.Map | null;
