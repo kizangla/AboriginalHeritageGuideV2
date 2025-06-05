@@ -16,7 +16,7 @@ import { nativeTitleTerritoryFilter, type NativeTitleStatusFilter } from "./nati
 import { fetchRATSIBBoundaries } from "./ratsib-service";
 import { miningService } from "./mining-service";
 import { nativeTitleCacheService } from "./native-title-cache-service";
-import { waMiningTenementsService } from "./wa-mining-tenements-service";
+import { simpleMiningOverlayService } from "./simple-mining-overlay";
 
 // Australian postcode coordinate lookup for business positioning
 function getPostcodeCoordinates(postcode: string, stateCode: string): { lat: number; lng: number } | null {
@@ -1598,10 +1598,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Mining Tenements API - WA Government Data
   app.get("/api/mining/tenements", async (req, res) => {
     try {
-      const result = await waMiningTenementsService.loadMiningTenements();
+      const tenements = await simpleMiningOverlayService.loadMiningData();
       res.json({
         success: true,
-        ...result
+        tenements,
+        totalFound: tenements.length,
+        dataSource: 'wa_dmirs_kml'
       });
     } catch (error) {
       console.error('Error loading mining tenements:', error);
@@ -1628,7 +1630,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      const analysis = await waMiningTenementsService.analyzeTerritoryOverlaps(
+      const analysis = await simpleMiningOverlayService.getMiningOverlayForTerritory(
         territoryName, 
         territory.geometry
       );
@@ -1637,7 +1639,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         success: true,
         territoryName,
         miningOverlapAnalysis: analysis,
-        dataSource: 'wa_dmirs_government'
+        dataSource: 'wa_dmirs_kml'
       });
 
     } catch (error) {

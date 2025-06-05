@@ -88,14 +88,14 @@ class WAMiningTenementsService {
         const placemarkContent = match[1];
         
         // Extract extended data
-        const extendedDataMatch = /<ExtendedData>(.*?)<\/ExtendedData>/s.exec(placemarkContent);
+        const extendedDataMatch = /<ExtendedData>([\s\S]*?)<\/ExtendedData>/.exec(placemarkContent);
         if (!extendedDataMatch) continue;
         
         const extendedData = extendedDataMatch[1];
         const properties = this.parseExtendedData(extendedData);
         
         // Extract geometry
-        const geometryMatch = /<coordinates>(.*?)<\/coordinates>/s.exec(placemarkContent);
+        const geometryMatch = /<coordinates>([\s\S]*?)<\/coordinates>/.exec(placemarkContent);
         if (!geometryMatch) continue;
         
         const coordinates = this.parseCoordinates(geometryMatch[1]);
