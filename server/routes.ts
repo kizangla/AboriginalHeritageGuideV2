@@ -18,6 +18,7 @@ import { miningService } from "./mining-service";
 import { nativeTitleCacheService } from "./native-title-cache-service";
 // Removed problematic KML processors that were causing delays
 import { getMiningTenementsData } from "./cached-mining-data";
+import { registerMiningAPI } from "./wa-mining-api";
 
 // Australian postcode coordinate lookup for business positioning
 function getPostcodeCoordinates(postcode: string, stateCode: string): { lat: number; lng: number } | null {
@@ -1478,7 +1479,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         };
       }
 
-      const tenements = await simpleMiningOverlayService.loadMiningData();
+      const miningData = getMiningTenementsData();
+      const tenements = miningData.tenements;
 
       res.json({
         success: true,
@@ -1598,35 +1600,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Mining Tenements API - WA Government Data
-  app.get("/api/mining/tenements", (req, res) => {
-    console.log('Mining tenements API called');
-    
-    try {
-      const miningData = getMiningTenementsData();
-      console.log(`Returning ${miningData.tenements.length} mining tenements`);
-      
-      res.json({
-        success: true,
-        tenements: miningData.tenements,
-        totalFound: miningData.tenements.length,
-        dataSource: 'wa_dmirs_kml',
-        dataIntegrity: {
-          authenticData: miningData.authentic,
-          governmentSource: miningData.source,
-          extractedFromKML: true,
-          sampleSize: miningData.tenements.length,
-          totalInDataset: miningData.totalInDataset
-        }
-      });
-    } catch (error) {
-      console.error('Error loading mining tenements:', error);
-      res.status(500).json({
-        success: false,
-        error: 'Failed to load mining tenements data'
-      });
-    }
-  });
+  // Register WA Department of Mines API endpoints
+  registerMiningAPI(app);
 
   app.get("/api/territories/:territoryName/mining-overlap", async (req, res) => {
     try {
@@ -1644,10 +1619,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      const analysis = await simpleMiningOverlayService.getMiningOverlayForTerritory(
-        territoryName, 
-        territory.geometry
-      );
+      // Simple mining overlap analysis using cached data
+      const miningData = getMiningTenementsData();
+      const overlappingTenements = miningData.tenements.filter(tenement => {
+        // Basic geographic filtering - check if tenement coordinates are within territory bounds
+        if (!tenement.coordinates || tenement.coordinates.length === 0) return false;
+        
+        // Simple bounding box check
+        const tenementBounds = {
+          minLat: Math.min(...tenement.coordinates.map(coord => coord[1])),
+          maxLat: Math.max(...tenement.coordinates.map(coord => coord[1])),
+          minLng: Math.min(...tenement.coordinates.map(coord => coord[0])),
+          maxLng: Math.max(...tenement.coordinates.map(coord => coord[0]))
+        };
+        
+        // Territory bounds (simplified check)
+        if (territory.geometry && territory.geometry.coordinates) {
+          const territoryCoords = Array.isArray(territory.geometry.coordinates[0][0]) 
+            ? territory.geometry.coordinates[0] 
+            : territory.geometry.coordinates;
+          
+          const territoryBounds = {
+            minLat: Math.min(...territoryCoords.map((coord: number[]) => coord[1])),
+            maxLat: Math.max(...territoryCoords.map((coord: number[]) => coord[1])),
+            minLng: Math.min(...territoryCoords.map((coord: number[]) => coord[0])),
+            maxLng: Math.max(...territoryCoords.map((coord: number[]) => coord[0]))
+          };
+          
+          // Check for overlap
+          return !(tenementBounds.maxLat < territoryBounds.minLat || 
+                   tenementBounds.minLat > territoryBounds.maxLat ||
+                   tenementBounds.maxLng < territoryBounds.minLng || 
+                   tenementBounds.minLng > territoryBounds.maxLng);
+        }
+        
+        return false;
+      });
+      
+      const analysis = {
+        territoryName,
+        totalTenements: overlappingTenements.length,
+        dataSource: 'wa_dmirs_kml',
+        tenements: overlappingTenements
+      };
 
       res.json({
         success: true,
