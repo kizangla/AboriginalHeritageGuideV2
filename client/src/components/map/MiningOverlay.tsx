@@ -68,24 +68,25 @@ export default function MiningOverlay({ map, showMining, selectedTerritory }: Mi
       // Color coding based on tenement type
       const getStyle = () => {
         const baseStyle = {
-          weight: 2,
-          opacity: 0.8,
-          fillOpacity: 0.3,
+          weight: 4,
+          opacity: 1.0,
+          fillOpacity: 0.7,
+          dashArray: '8, 4' // Dashed border for better visibility
         };
 
         // Color by tenement type from authentic WA DMIRS data
         const typeKey = tenement.type?.toLowerCase() || '';
         
         if (typeKey.includes('mining lease')) {
-          return { ...baseStyle, color: '#ea580c', fillColor: '#fed7aa' };
+          return { ...baseStyle, color: '#dc2626', fillColor: '#fca5a5' }; // Bright red
         } else if (typeKey.includes('exploration')) {
-          return { ...baseStyle, color: '#0ea5e9', fillColor: '#bae6fd' };
+          return { ...baseStyle, color: '#2563eb', fillColor: '#93c5fd' }; // Bright blue
         } else if (typeKey.includes('prospecting')) {
-          return { ...baseStyle, color: '#22c55e', fillColor: '#bbf7d0' };
+          return { ...baseStyle, color: '#16a34a', fillColor: '#86efac' }; // Bright green
         } else if (typeKey.includes('general purpose')) {
-          return { ...baseStyle, color: '#8b5cf6', fillColor: '#ddd6fe' };
+          return { ...baseStyle, color: '#7c3aed', fillColor: '#c4b5fd' }; // Bright purple
         } else {
-          return { ...baseStyle, color: '#6b7280', fillColor: '#e5e7eb' };
+          return { ...baseStyle, color: '#f59e0b', fillColor: '#fde68a' }; // Bright orange
         }
       };
 
@@ -140,10 +141,31 @@ export default function MiningOverlay({ map, showMining, selectedTerritory }: Mi
     newMiningLayer.addTo(map);
     setMiningLayer(newMiningLayer);
     
-    // Debug: Check map bounds to see if tenements are within view
-    const mapBounds = map.getBounds();
-    console.log('Current map bounds:', mapBounds.getNorth(), mapBounds.getSouth(), mapBounds.getEast(), mapBounds.getWest());
-    console.log('Sample tenement coordinates:', typedMiningData.tenements[0].coordinates[0]);
+    // Auto-zoom to WA mining region if tenements are added
+    if (typedMiningData.tenements.length > 0) {
+      // Calculate bounds for all tenements
+      let minLat = Infinity, maxLat = -Infinity;
+      let minLng = Infinity, maxLng = -Infinity;
+      
+      typedMiningData.tenements.forEach(tenement => {
+        tenement.coordinates.forEach(coord => {
+          const [lng, lat] = coord;
+          minLat = Math.min(minLat, lat);
+          maxLat = Math.max(maxLat, lat);
+          minLng = Math.min(minLng, lng);
+          maxLng = Math.max(maxLng, lng);
+        });
+      });
+      
+      // Add padding and fit to bounds
+      const bounds = L.latLngBounds(
+        [minLat - 1, minLng - 1],
+        [maxLat + 1, maxLng + 1]
+      );
+      
+      console.log('Zooming to WA mining tenements region:', bounds);
+      map.fitBounds(bounds, { padding: [20, 20] });
+    }
 
     console.log(`Added ${typedMiningData.tenements.length} mining tenements to map`);
 
