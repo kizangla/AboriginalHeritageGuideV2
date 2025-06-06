@@ -46,11 +46,21 @@ export class GeoscienceAustraliaPlaceNamesService {
     try {
       console.log(`Fetching place names from Geoscience Australia for ${territoryName}...`);
       
-      // Geoscience Australia Gazetteer WFS query
+      // Test if Geoscience Australia WFS is publicly accessible
       const wfsQuery = this.buildWFSQuery(bounds);
-      console.log('Geoscience Australia WFS Query:', wfsQuery);
+      console.log('Testing Geoscience Australia WFS access:', wfsQuery);
       
-      const response = await fetch(wfsQuery);
+      const headers: Record<string, string> = {
+        'User-Agent': 'Aboriginal-Australia-Map/1.0',
+        'Accept': 'application/gml+xml, application/xml, text/xml'
+      };
+      
+      // Add API key if available
+      if (this.apiKey) {
+        headers['Authorization'] = `Bearer ${this.apiKey}`;
+      }
+      
+      const response = await fetch(wfsQuery, { headers });
       
       if (!response.ok) {
         throw new Error(`Geoscience Australia API error: ${response.status} ${response.statusText}`);
