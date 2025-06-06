@@ -22,6 +22,7 @@ import { databaseMiningAPI } from "./database-mining-api";
 import { initializeMiningData } from "./complete-mining-import";
 import { registerMiningAPI } from "./wa-mining-api";
 import { explorationMineralService } from "./exploration-mineral-service";
+import { geoscienceAustraliaPlaceNames } from "./geoscience-australia-placenames";
 
 // Australian postcode coordinate lookup for business positioning
 function getPostcodeCoordinates(postcode: string, stateCode: string): { lat: number; lng: number } | null {
@@ -1737,6 +1738,65 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ 
         error: 'Failed to fetch exploration data',
         message: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
+  // Territory place names endpoint - Geoscience Australia data
+  app.get('/api/territories/:territoryName/place-names', async (req, res) => {
+    try {
+      const territoryName = req.params.territoryName;
+      console.log(`Fetching place names for territory: ${territoryName}`);
+      
+      // Get territory details for bounds
+      const territory = await storage.getTerritoryByName(territoryName);
+      if (!territory || !territory.geometry) {
+        return res.status(404).json({ 
+          success: false, 
+          error: 'Territory not found or missing geometry' 
+        });
+      }
+      
+      // Calculate territory bounds for place name search
+      const coordinates = territory.geometry.coordinates[0];
+      const lats = coordinates.map((coord: number[]) => coord[1]);
+      const lngs = coordinates.map((coord: number[]) => coord[0]);
+      
+      const bounds = {
+        minLat: Math.min(...lats),
+        maxLat: Math.max(...lats),
+        minLng: Math.min(...lngs),
+        maxLng: Math.max(...lngs)
+      };
+      
+      console.log(`Territory bounds for ${territoryName}:`, bounds);
+      
+      // Fetch place names from Geoscience Australia
+      const placeNamesResult = await geoscienceAustraliaPlaceNames.getPlaceNamesForTerritory(
+        territoryName, 
+        bounds
+      );
+      
+      console.log(`Found ${placeNamesResult.totalFound} place names for ${territoryName}`);
+      
+      res.json({
+        success: true,
+        territoryName: territory.name,
+        placeNamesData: {
+          totalPlaces: placeNamesResult.totalFound,
+          places: placeNamesResult.places,
+          bounds: bounds,
+          source: 'geoscience_australia_official'
+        }
+      });
+      
+    } catch (error) {
+      console.error('Error fetching place names:', error);
+      res.status(500).json({ 
+        success: false, 
+        error: 'Failed to fetch place names data',
+        requiresApiKey: true,
+        dataSource: 'geoscience_australia_gazetteer'
       });
     }
   });

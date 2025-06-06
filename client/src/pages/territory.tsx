@@ -63,6 +63,11 @@ export default function TerritoryPage() {
     enabled: !!territoryName && !!territoryDetails?.geometry
   });
 
+  const { data: placeNamesData, isLoading: placeNamesLoading } = useQuery({
+    queryKey: [`/api/territories/${territoryName}/place-names`],
+    enabled: !!territoryName && !!territoryDetails?.geometry
+  });
+
   // Debug log to check data
   console.log('Territory Details:', territoryDetails);
   console.log('Loading:', isLoading);
@@ -132,6 +137,10 @@ export default function TerritoryPage() {
   const explorationInfo = (explorationData as any)?.success ? (explorationData as any).explorationData : null;
   const explorationReports = explorationInfo?.reports || [];
   const commoditySummary = explorationInfo?.commoditySummary || [];
+
+  // Extract place names data from API response
+  const placeNamesInfo = (placeNamesData as any)?.success ? (placeNamesData as any).placeNamesData : null;
+  const aboriginalPlaces = placeNamesInfo?.places || [];
 
   // Filter exploration reports based on selected commodity - ensure matches backend logic
   const filteredExplorationReports = selectedCommodity 

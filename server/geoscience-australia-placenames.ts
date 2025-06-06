@@ -34,6 +34,7 @@ export interface PlaceNamesResult {
 export class GeoscienceAustraliaPlaceNamesService {
   private readonly baseUrl = 'https://services.ga.gov.au/gis/rest/services/Gazetteer/Gazetteer_of_Australia/MapServer';
   private readonly wfsUrl = 'https://services.ga.gov.au/gis/services/Gazetteer/Gazetteer_of_Australia/WFSServer';
+  private readonly apiKey = process.env.GEOSCIENCE_AUSTRALIA_API_KEY;
   
   /**
    * Fetch place names for a specific territory or region
@@ -107,17 +108,137 @@ export class GeoscienceAustraliaPlaceNamesService {
     
     try {
       // Parse GML XML response from Geoscience Australia
-      // This would require XML parsing to extract place name features
       console.log('Parsing Geoscience Australia Gazetteer response...');
       
-      // Note: Actual XML parsing implementation would go here
-      // For now, return empty array indicating need for proper API access
+      // Use DOMParser to parse XML response
+      const { DOMParser } = require('@xmldom/xmldom');
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(xmlData, 'text/xml');
+      
+      // Extract features from GML response
+      const features = doc.getElementsByTagName('wfs:member') || doc.getElementsByTagName('gml:featureMember');
+      
+      for (let i = 0; i < features.length; i++) {
+        const feature = features[i];
+        
+        // Extract place name data from feature
+        const name = this.getElementText(feature, 'NAME') || '';
+        const state = this.getElementText(feature, 'STATE') || '';
+        const featureType = this.getElementText(feature, 'FEATURE_CODE') || '';
+        
+        // Extract coordinates
+        const coords = this.extractCoordinates(feature);
+        
+        if (name && coords) {
+          const place: AustralianPlaceName = {
+            id: `ga_${i}_${Date.now()}`,
+            name: name,
+            aboriginalName: this.extractAboriginalName(name),
+            aboriginalMeaning: this.extractAboriginalMeaning(name),
+            languageGroup: this.extractLanguageGroup(feature),
+            featureType: featureType,
+            state: state,
+            coordinates: coords,
+            culturalSignificance: this.extractCulturalSignificance(feature),
+            source: 'geoscience_australia_gazetteer',
+            lastUpdated: new Date()
+          };
+          
+          places.push(place);
+        }
+      }
+      
+      console.log(`Parsed ${places.length} place names from Geoscience Australia`);
       
     } catch (error) {
       console.error('Error parsing Geoscience Australia response:', error);
     }
     
     return places;
+  }
+  
+  /**
+   * Extract text content from XML element
+   */
+  private getElementText(parent: any, tagName: string): string | null {
+    const elements = parent.getElementsByTagName(tagName);
+    return elements.length > 0 ? elements[0].textContent : null;
+  }
+  
+  /**
+   * Extract coordinates from GML geometry
+   */
+  private extractCoordinates(feature: any): { lat: number; lng: number } | null {
+    try {
+      const posElements = feature.getElementsByTagName('gml:pos');
+      if (posElements.length > 0) {
+        const coords = posElements[0].textContent.split(' ');
+        return {
+          lat: parseFloat(coords[1]),
+          lng: parseFloat(coords[0])
+        };
+      }
+      
+      const coordElements = feature.getElementsByTagName('gml:coordinates');
+      if (coordElements.length > 0) {
+        const coords = coordElements[0].textContent.split(',');
+        return {
+          lat: parseFloat(coords[1]),
+          lng: parseFloat(coords[0])
+        };
+      }
+    } catch (error) {
+      console.error('Error extracting coordinates:', error);
+    }
+    
+    return null;
+  }
+  
+  /**
+   * Extract Aboriginal name if present
+   */
+  private extractAboriginalName(officialName: string): string | undefined {
+    // Check if name appears to be Aboriginal origin
+    const aboriginalIndicators = ['Uluru', 'Kata Tjuta', 'Wiradjuri', 'Ngunnawal', 'Yugambeh'];
+    const lowerName = officialName.toLowerCase();
+    
+    for (const indicator of aboriginalIndicators) {
+      if (lowerName.includes(indicator.toLowerCase())) {
+        return officialName;
+      }
+    }
+    
+    return undefined;
+  }
+  
+  /**
+   * Extract Aboriginal meaning if available
+   */
+  private extractAboriginalMeaning(name: string): string | undefined {
+    // This would be enhanced with actual meaning database
+    const knownMeanings: Record<string, string> = {
+      'Uluru': 'Meeting place',
+      'Kata Tjuta': 'Many heads',
+      'Canberra': 'Meeting place',
+      'Parramatta': 'Place where eels lie down'
+    };
+    
+    return knownMeanings[name];
+  }
+  
+  /**
+   * Extract language group information
+   */
+  private extractLanguageGroup(feature: any): string | undefined {
+    // Extract from feature attributes if available
+    return this.getElementText(feature, 'LANGUAGE_GROUP') || undefined;
+  }
+  
+  /**
+   * Extract cultural significance information
+   */
+  private extractCulturalSignificance(feature: any): string | undefined {
+    return this.getElementText(feature, 'CULTURAL_INFO') || undefined;
   }
   
   /**
