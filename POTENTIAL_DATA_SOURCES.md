@@ -24,7 +24,10 @@
 - **Place Names Database**: Aboriginal place names and meanings
 - **Geological Survey Data**: Traditional ochre and stone tool sites
 - **Topographic Features**: Mountains, rivers with cultural significance
-- **API Access**: Gazetteer and WFS services
+- **API Access**: 
+  - Gazetteer of Australia WFS: `https://services.ga.gov.au/gis/services/Gazetteer/Gazetteer_of_Australia/WFSServer`
+  - REST Services: `https://services.ga.gov.au/gis/rest/services/Gazetteer/Gazetteer_of_Australia/MapServer`
+  - Data Portal: `https://data.gov.au/dataset/gazetteer-of-australia-2012`
 
 ### 5. Department of Industry, Science, Energy and Resources
 - **Water Rights and Access**: Traditional water sources and rights
