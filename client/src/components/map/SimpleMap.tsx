@@ -5,8 +5,9 @@ import type { Territory } from '@shared/schema';
 import type { NativeTitleStatusFilter } from '@/components/NativeTitleFilter';
 import { dataOptimizationService } from '@/lib/data-optimization';
 import EnhancedBusinessMarkers from './EnhancedBusinessMarkers';
-import MiningOverlay from './MiningOverlay';
+import EnhancedMiningOverlay from './EnhancedMiningOverlay';
 import ExplorationOverlay from './ExplorationOverlay';
+import MapLoadingIndicator from './MapLoadingIndicator';
 
 interface SimpleMapProps {
   onMapReady?: (map: L.Map) => void;
@@ -28,6 +29,11 @@ export default function SimpleMap({ onMapReady, onTerritorySelect, regionFilter,
   const overlayLayerRef = useRef<L.GeoJSON | null>(null);
   const nativeTitleLayerRef = useRef<L.GeoJSON | null>(null);
   const ratsibLayerRef = useRef<L.GeoJSON | null>(null);
+  const [loadingState, setLoadingState] = useState<{
+    isLoading: boolean;
+    progress?: number;
+    message?: string;
+  }>({ isLoading: false });
 
   const { data: territoriesGeoJSON, isLoading } = useQuery<any>({
     queryKey: ['/api/territories'],
@@ -390,7 +396,7 @@ export default function SimpleMap({ onMapReady, onTerritorySelect, regionFilter,
       }));
 
       // Create RATSIB layer with boundary polygons
-      const ratsibLayer = L.geoJSON({ type: "FeatureCollection", features: ratsibFeatures }, {
+      const ratsibLayer = L.geoJSON({ type: "FeatureCollection", features: ratsibFeatures } as any, {
         style: (feature) => ({
           color: '#8B5CF6',
           weight: 2,
@@ -668,17 +674,33 @@ export default function SimpleMap({ onMapReady, onTerritorySelect, regionFilter,
         className="w-full h-full"
         style={{ minHeight: '500px' }}
       />
+      
+      {/* Map Loading Indicator */}
+      <MapLoadingIndicator
+        isLoading={loadingState.isLoading}
+        progress={loadingState.progress}
+        message={loadingState.message}
+      />
       {/* Enhanced Business Markers */}
       <EnhancedBusinessMarkers
         map={mapInstanceRef.current}
         searchQuery={businessSearchQuery || ''}
         onBusinessSelect={onBusinessSelect}
       />
-      {/* Mining Overlay */}
-      <MiningOverlay
+      {/* Enhanced Mining Overlay with Clustering */}
+      <EnhancedMiningOverlay
         map={mapInstanceRef.current}
         showMining={showMining}
         selectedTerritory={selectedTerritory}
+        onLoadingChange={(isLoading, progress) => {
+          setLoadingState({
+            isLoading,
+            progress,
+            message: progress !== undefined 
+              ? `Loading mining tenements... ${Math.round(progress)}%` 
+              : 'Processing mining data...'
+          });
+        }}
       />
       {/* Exploration Overlay with Authentic WA DMIRS Data */}
       <ExplorationOverlay

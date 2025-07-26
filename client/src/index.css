@@ -300,3 +300,44 @@
   font-family: serif !important;
   margin-bottom: 8px !important;
 }
+
+/* Marker Cluster Styles */
+.marker-cluster {
+  @apply text-white font-bold rounded-full flex items-center justify-center shadow-lg;
+  background: linear-gradient(to bottom right, #CD853F, #8B4513);
+  transition: transform 0.2s ease;
+}
+
+.marker-cluster:hover {
+  transform: translateY(-2px);
+}
+
+.marker-cluster-small {
+  background: linear-gradient(to bottom right, #4ade80, #16a34a);
+}
+
+.marker-cluster-medium {
+  background: linear-gradient(to bottom right, #facc15, #f97316);
+}
+
+.marker-cluster-large {
+  background: linear-gradient(to bottom right, #f87171, #dc2626);
+}
+
+.marker-cluster div {
+  @apply w-10 h-10 flex items-center justify-center;
+}
+
+.marker-cluster span {
+  @apply text-sm font-bold;
+}
+
+/* Mining marker styles */
+.mining-marker {
+  @apply rounded-full shadow-md cursor-pointer;
+  transition: transform 0.2s ease;
+}
+
+.mining-marker:hover {
+  transform: scale(1.1);
+}
