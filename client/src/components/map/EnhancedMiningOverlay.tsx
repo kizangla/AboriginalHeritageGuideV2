@@ -71,8 +71,28 @@ export default function EnhancedMiningOverlay({
   };
 
   // Query mining data with progressive loading
+  // Extract bounds to stable values
+  const [boundsKey, setBoundsKey] = useState<string>('');
+  
+  useEffect(() => {
+    if (!map) return;
+    
+    const updateBounds = () => {
+      const bounds = map.getBounds();
+      const key = `${bounds.getNorth()}_${bounds.getSouth()}_${bounds.getEast()}_${bounds.getWest()}`;
+      setBoundsKey(key);
+    };
+    
+    map.on('moveend', updateBounds);
+    updateBounds(); // Initial bounds
+    
+    return () => {
+      map.off('moveend', updateBounds);
+    };
+  }, [map]);
+
   const { data: miningData, isLoading, isFetching } = useQuery({
-    queryKey: ['/api/mining/map-bounds', showMining, map?.getBounds(), currentZoom],
+    queryKey: ['/api/mining/map-bounds', showMining, boundsKey, currentZoom],
     queryFn: async () => {
       if (!showMining || !map) return null;
       
@@ -129,8 +149,10 @@ export default function EnhancedMiningOverlay({
 
   // Update loading state
   useEffect(() => {
-    onLoadingChange?.(isLoading || isFetching);
-  }, [isLoading, isFetching, onLoadingChange]);
+    if (onLoadingChange) {
+      onLoadingChange(isLoading || isFetching);
+    }
+  }, [isLoading, isFetching]); // Removed onLoadingChange from deps to prevent infinite loop
 
   // Render mining data with clustering
   useEffect(() => {
