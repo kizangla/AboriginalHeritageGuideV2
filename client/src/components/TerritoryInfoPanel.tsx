@@ -86,20 +86,20 @@ export default function TerritoryInfoPanel({
   // console.log('Territory panel data:', { territoryName, coordinates, nativeTitleData });
 
   return (
-    <Card className="absolute bottom-4 right-4 sm:bottom-6 sm:right-6 z-[1000] w-[calc(100vw-2rem)] sm:w-96 max-w-md bg-white/95 backdrop-blur-sm shadow-xl border-0 rounded-2xl overflow-hidden">
-      <CardHeader className="pb-3 px-3 sm:px-6 bg-gradient-to-r from-orange-50 to-yellow-50">
+    <Card className="absolute bottom-20 right-4 sm:bottom-24 sm:right-6 z-[1000] w-[calc(100vw-2rem)] sm:w-96 max-w-md glass-effect rounded-2xl modern-shadow-lg animate-slide-in-left overflow-hidden">
+      <CardHeader className="pb-3 px-4 sm:px-6 bg-gradient-to-r from-earth-orange/10 to-earth-gold/10 border-b border-earth-brown/10">
         <div className="flex items-start justify-between gap-2">
           <div className="flex-1 min-w-0">
-            <CardTitle className="text-base sm:text-lg font-bold text-gray-900 mb-1 truncate">
+            <CardTitle className="text-lg sm:text-xl font-bold bg-gradient-to-r from-earth-brown to-earth-orange bg-clip-text text-transparent mb-1">
               {territoryName}
             </CardTitle>
-            <div className="flex items-center gap-1 sm:gap-2 flex-wrap">
-              <Badge variant="secondary" className="bg-orange-100 text-orange-800 border-orange-200 text-xs">
+            <div className="flex items-center gap-2 flex-wrap">
+              <Badge variant="secondary" className="bg-earth-orange/20 text-earth-brown border-0 text-xs px-2 py-0.5 hover-lift">
                 <MapPin className="w-3 h-3 mr-1" />
-                <span className="truncate max-w-16 sm:max-w-none">{region}</span>
+                <span className="font-medium">{region}</span>
               </Badge>
               {groupName && (
-                <Badge variant="outline" className="text-xs truncate max-w-20 sm:max-w-none">
+                <Badge variant="outline" className="text-xs border-earth-brown/20 text-earth-brown hover-lift">
                   {groupName}
                 </Badge>
               )}
@@ -109,20 +109,20 @@ export default function TerritoryInfoPanel({
             variant="ghost"
             size="sm"
             onClick={onClose}
-            className="h-7 w-7 sm:h-8 sm:w-8 p-0 hover:bg-white/50 flex-shrink-0"
+            className="h-8 w-8 p-0 hover:bg-gray-100 rounded-xl smooth-transition"
           >
-            <X className="w-3 h-3 sm:w-4 sm:h-4" />
+            <X className="w-4 h-4" />
           </Button>
         </div>
       </CardHeader>
 
-      <CardContent className="p-3 sm:p-4 space-y-3 sm:space-y-4 max-h-[70vh] overflow-y-auto">
+      <CardContent className="p-4 sm:p-5 space-y-4 max-h-[60vh] overflow-y-auto custom-scrollbar">
         {/* Cultural Information Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
-          <div className="flex items-center gap-2 p-2 bg-purple-50 rounded-lg border border-purple-200">
-            <Globe className="w-4 h-4 text-purple-600" />
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="flex items-center gap-3 p-3 bg-gradient-to-r from-purple-50 to-purple-100/50 rounded-xl border border-purple-200/50 hover-lift">
+            <Globe className="w-5 h-5 text-purple-600" />
             <div>
-              <div className="text-xs text-purple-600 font-medium">Language Data</div>
+              <div className="text-xs text-purple-600 font-semibold">Language Data</div>
               <div className="text-sm text-gray-800">Requires AIATSIS credentials</div>
             </div>
           </div>

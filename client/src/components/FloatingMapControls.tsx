@@ -73,35 +73,37 @@ function FloatingMapControls({
 
   return (
     <>
-      <div className="absolute bottom-4 sm:bottom-6 left-1/2 transform -translate-x-1/2 z-[1000] flex items-center gap-1 sm:gap-2">
-        {/* Floating Control Bar */}
-        <div className="bg-white/95 backdrop-blur-sm rounded-full shadow-lg border border-gray-200 px-2 sm:px-4 py-1.5 sm:py-2 flex items-center gap-1 sm:gap-2 max-w-[95vw] overflow-x-auto">
+      <div className="absolute bottom-6 sm:bottom-8 left-1/2 transform -translate-x-1/2 z-[1000] flex items-center gap-2 animate-fade-in-up">
+        {/* Modern Floating Control Bar with Glass Effect */}
+        <div className="glass-effect rounded-2xl modern-shadow-lg px-4 sm:px-6 py-3 sm:py-4 flex items-center gap-2 sm:gap-3 max-w-[95vw] overflow-x-auto smooth-transition">
         
         {/* Reset View */}
         <Button
           onClick={onResetView}
           size="sm"
           variant="ghost"
-          className="h-7 w-7 sm:h-8 sm:w-8 p-0 rounded-full hover:bg-gray-100"
+          className="h-9 w-9 sm:h-10 sm:w-10 p-0 rounded-xl hover:bg-earth-beige/50 hover:scale-110 smooth-transition group"
           title="Reset map view"
         >
-          <RotateCcw className="w-3 h-3 sm:w-4 sm:h-4" />
+          <RotateCcw className="w-4 h-4 sm:w-5 sm:h-5 text-earth-brown group-hover:rotate-180 smooth-transition duration-500" />
         </Button>
 
-        {/* Divider */}
-        <div className="h-4 sm:h-6 w-px bg-gray-300" />
+        {/* Elegant Divider */}
+        <div className="h-6 sm:h-8 w-px bg-gradient-to-b from-transparent via-earth-brown/20 to-transparent" />
 
         {/* Search Toggle */}
         <Button
           onClick={onToggleSearch}
           size="sm"
           variant={showSearch ? "default" : "ghost"}
-          className="h-7 sm:h-8 px-2 sm:px-3 rounded-full text-xs sm:text-sm"
+          className={`h-9 sm:h-10 px-3 sm:px-4 rounded-xl text-xs sm:text-sm smooth-transition ${
+            showSearch ? 'bg-earth-brown hover:bg-earth-brown/90 text-white' : 'hover:bg-earth-beige/50'
+          }`}
           title="Toggle search"
         >
-          <Search className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
-          <span className="hidden sm:inline">Search</span>
-          <span className="sm:hidden">Find</span>
+          <Search className="w-4 h-4 sm:w-5 sm:h-5 mr-1.5" />
+          <span className="hidden sm:inline font-medium">Search</span>
+          <span className="sm:hidden font-medium">Find</span>
         </Button>
 
         {/* Region Filter */}
@@ -109,18 +111,20 @@ function FloatingMapControls({
           <Button
             size="sm"
             variant={selectedRegion ? "default" : "ghost"}
-            className="h-7 sm:h-8 px-2 sm:px-3 rounded-full text-xs sm:text-sm"
+            className={`h-9 sm:h-10 px-3 sm:px-4 rounded-xl text-xs sm:text-sm smooth-transition ${
+              selectedRegion ? 'bg-earth-orange hover:bg-earth-orange/90 text-white' : 'hover:bg-earth-beige/50'
+            }`}
             title="Filter by region"
             onClick={() => {
               console.log('Region filter button clicked, current state:', showRegionFilter);
               setShowRegionFilter(!showRegionFilter);
             }}
           >
-            <Filter className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
-            <span className="hidden sm:inline">{selectedRegion || 'Regions'}</span>
-            <span className="sm:hidden">{selectedRegion || 'Area'}</span>
+            <Filter className="w-4 h-4 sm:w-5 sm:h-5 mr-1.5" />
+            <span className="hidden sm:inline font-medium">{selectedRegion || 'Regions'}</span>
+            <span className="sm:hidden font-medium">{selectedRegion || 'Area'}</span>
             {selectedRegion && (
-              <Badge variant="secondary" className="ml-1 text-xs px-1">
+              <Badge variant="secondary" className="ml-1.5 text-xs px-1.5 bg-white/20 border-0">
                 {territoryStats[selectedRegion.toLowerCase()] || 0}
               </Badge>
             )}
@@ -133,18 +137,20 @@ function FloatingMapControls({
           <Button
             size="sm"
             variant={Object.values(nativeTitleFilters).some(Boolean) ? "default" : "ghost"}
-            className="h-7 sm:h-8 px-2 sm:px-3 rounded-full text-xs sm:text-sm"
+            className={`h-9 sm:h-10 px-3 sm:px-4 rounded-xl text-xs sm:text-sm smooth-transition ${
+              Object.values(nativeTitleFilters).some(Boolean) ? 'bg-earth-sage hover:bg-earth-sage/90 text-white' : 'hover:bg-earth-beige/50'
+            }`}
             title="Filter by Native Title status"
             onClick={() => {
               console.log('Native Title filter button clicked, current state:', showNativeTitleFilter);
               setShowNativeTitleFilter(!showNativeTitleFilter);
             }}
           >
-            <Scale className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
-            <span className="hidden sm:inline">Native Title</span>
-            <span className="sm:hidden">Title</span>
+            <Scale className="w-4 h-4 sm:w-5 sm:h-5 mr-1.5" />
+            <span className="hidden sm:inline font-medium">Native Title</span>
+            <span className="sm:hidden font-medium">Title</span>
             {Object.values(nativeTitleFilters).some(Boolean) && (
-              <Badge variant="secondary" className="ml-1 text-xs px-1">
+              <Badge variant="secondary" className="ml-1.5 text-xs px-1.5 bg-white/20 border-0">
                 {Object.values(nativeTitleFilters).filter(Boolean).length}
               </Badge>
             )}
@@ -152,75 +158,92 @@ function FloatingMapControls({
           </Button>
         </div>
 
-        {/* RATSIB Boundaries Toggle */}
-        {onToggleRATSIB && (
-          <Button
-            onClick={() => onToggleRATSIB(!showRATSIBBoundaries)}
-            size="sm"
-            variant={showRATSIBBoundaries ? "default" : "ghost"}
-            className="h-7 sm:h-8 px-2 sm:px-3 rounded-full text-xs sm:text-sm"
-            title="Toggle RATSIB boundaries"
-          >
-            <Building2 className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
-            <span className="hidden sm:inline">RATSIB</span>
-            <span className="sm:hidden">Corp</span>
-          </Button>
-        )}
+        {/* Elegant Divider */}
+        <div className="h-6 sm:h-8 w-px bg-gradient-to-b from-transparent via-earth-brown/20 to-transparent" />
 
-        {/* Mining Overlay Toggle */}
-        {onToggleMining && (
-          <Button
-            onClick={() => onToggleMining(!showMining)}
-            size="sm"
-            variant={showMining ? "default" : "ghost"}
-            className="h-7 sm:h-8 px-2 sm:px-3 rounded-full text-xs sm:text-sm"
-            title="Toggle mining tenements overlay"
-          >
-            <Scale className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
-            <span className="hidden sm:inline">Mining</span>
-            <span className="sm:hidden">Mine</span>
-          </Button>
-        )}
+        {/* Layer Controls Group */}
+        <div className="flex items-center gap-1">
+          {/* RATSIB Boundaries Toggle */}
+          {onToggleRATSIB && (
+            <Button
+              onClick={() => onToggleRATSIB(!showRATSIBBoundaries)}
+              size="sm"
+              variant={showRATSIBBoundaries ? "default" : "ghost"}
+              className={`h-9 sm:h-10 px-3 sm:px-4 rounded-xl text-xs sm:text-sm smooth-transition ${
+                showRATSIBBoundaries ? 'bg-purple-600 hover:bg-purple-700 text-white' : 'hover:bg-earth-beige/50'
+              }`}
+              title="Toggle RATSIB boundaries"
+            >
+              <Building2 className="w-4 h-4 sm:w-5 sm:h-5 mr-1.5" />
+              <span className="hidden sm:inline font-medium">RATSIB</span>
+              <span className="sm:hidden font-medium">Corp</span>
+            </Button>
+          )}
 
-        {/* Exploration Overlay Toggle */}
-        {onToggleExploration && (
-          <Button
-            onClick={() => onToggleExploration(!showExploration)}
-            size="sm"
-            variant={showExploration ? "default" : "ghost"}
-            className="h-7 sm:h-8 px-2 sm:px-3 rounded-full text-xs sm:text-sm"
-            title="Toggle WA DMIRS exploration reports overlay"
-          >
-            <Search className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
-            <span className="hidden sm:inline">Exploration</span>
-            <span className="sm:hidden">Explore</span>
-          </Button>
-        )}
+          {/* Mining Overlay Toggle */}
+          {onToggleMining && (
+            <Button
+              onClick={() => onToggleMining(!showMining)}
+              size="sm"
+              variant={showMining ? "default" : "ghost"}
+              className={`h-9 sm:h-10 px-3 sm:px-4 rounded-xl text-xs sm:text-sm smooth-transition ${
+                showMining ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'hover:bg-earth-beige/50'
+              }`}
+              title="Toggle mining tenements overlay"
+            >
+              <Layers className="w-4 h-4 sm:w-5 sm:h-5 mr-1.5" />
+              <span className="hidden sm:inline font-medium">Mining</span>
+              <span className="sm:hidden font-medium">Mine</span>
+            </Button>
+          )}
 
-        {/* Divider */}
-        <div className="h-6 w-px bg-gray-300" />
+          {/* Exploration Overlay Toggle */}
+          {onToggleExploration && (
+            <Button
+              onClick={() => onToggleExploration(!showExploration)}
+              size="sm"
+              variant={showExploration ? "default" : "ghost"}
+              className={`h-9 sm:h-10 px-3 sm:px-4 rounded-xl text-xs sm:text-sm smooth-transition ${
+                showExploration ? 'bg-indigo-600 hover:bg-indigo-700 text-white' : 'hover:bg-earth-beige/50'
+              }`}
+              title="Toggle WA DMIRS exploration reports overlay"
+            >
+              <MapPin className="w-4 h-4 sm:w-5 sm:h-5 mr-1.5" />
+              <span className="hidden sm:inline font-medium">Exploration</span>
+              <span className="sm:hidden font-medium">Explore</span>
+            </Button>
+          )}
+        </div>
 
-        {/* Territory Count */}
-        <div className="flex items-center gap-1 text-sm text-gray-600">
-          <Building2 className="w-4 h-4" />
-          <span className="font-medium">{territoryStats.total}</span>
-          <span className="text-xs">territories</span>
+        {/* Elegant Divider */}
+        <div className="h-6 sm:h-8 w-px bg-gradient-to-b from-transparent via-earth-brown/20 to-transparent" />
+
+        {/* Territory Count Badge */}
+        <div className="flex items-center gap-2 px-3 py-1.5 bg-earth-beige/50 rounded-xl">
+          <Layers className="w-4 h-4 text-earth-brown" />
+          <span className="font-bold text-earth-brown">{territoryStats.total}</span>
+          <span className="text-xs text-earth-dark/70">territories</span>
         </div>
         </div>
       </div>
 
-      {/* Region Filter Popup - Outside control bar */}
+      {/* Modern Region Filter Popup */}
       {showRegionFilter && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/20">
-          <div className="bg-white rounded-lg shadow-xl border border-gray-300 w-96 max-w-[95vw] max-h-[80vh] overflow-y-auto m-4">
-            <div className="p-4 space-y-3">
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 backdrop-blur-sm animate-fade-in-up">
+          <div className="glass-effect rounded-2xl modern-shadow-lg w-[450px] max-w-[95vw] max-h-[80vh] overflow-hidden m-4 animate-slide-in-left">
+            <div className="p-6 space-y-4">
               <div className="flex items-center justify-between">
-                <h4 className="font-medium text-sm">Aboriginal Regions</h4>
+                <div>
+                  <h4 className="font-bold text-lg text-earth-brown">Aboriginal Regions</h4>
+                  <p className="text-sm text-gray-600 mt-1">Select a region to filter territories</p>
+                </div>
                 <button 
                   onClick={() => setShowRegionFilter(false)}
-                  className="text-gray-400 hover:text-gray-600"
+                  className="text-gray-400 hover:text-gray-600 p-2 rounded-lg hover:bg-gray-100 smooth-transition"
                 >
-                  ×
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
                 </button>
               </div>
 
@@ -229,15 +252,15 @@ function FloatingMapControls({
                   onRegionFilter(null);
                   setShowRegionFilter(false);
                 }}
-                size="sm"
+                size="default"
                 variant={!selectedRegion ? "default" : "outline"}
-                className="w-full h-8 text-xs"
+                className={`w-full h-10 ${!selectedRegion ? 'bg-earth-brown hover:bg-earth-brown/90' : 'hover:bg-earth-beige'} smooth-transition`}
               >
-                <Layers className="w-3 h-3 mr-1" />
+                <Layers className="w-4 h-4 mr-2" />
                 Show All Territories ({territoryStats.total})
               </Button>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-60 overflow-y-auto">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[400px] overflow-y-auto custom-scrollbar pr-2">
                 {quickRegions.map((region) => (
                   <Button
                     key={region.key}
@@ -245,16 +268,20 @@ function FloatingMapControls({
                       onRegionFilter(region.key);
                       setShowRegionFilter(false);
                     }}
-                    size="sm"
+                    size="default"
                     variant={selectedRegion === region.key ? "default" : "outline"}
-                    className="h-9 text-xs justify-between w-full px-3"
+                    className={`h-11 text-sm flex items-center justify-between hover-lift ${
+                      selectedRegion === region.key ? 'bg-earth-orange hover:bg-earth-orange/90' : 'hover:bg-earth-beige'
+                    }`}
                   >
-                    <span className="text-left">{region.name}</span>
-                    <Badge 
-                      variant="secondary" 
-                      className="text-xs px-1.5 ml-2"
-                      style={{ backgroundColor: `${region.color}20`, color: region.color }}
-                    >
+                    <div className="flex items-center gap-2">
+                      <div 
+                        className="w-4 h-4 rounded-full shadow-sm"
+                        style={{ backgroundColor: region.color }}
+                      />
+                      <span className="font-medium">{region.name}</span>
+                    </div>
+                    <Badge variant="secondary" className="text-xs bg-earth-brown/10 border-0">
                       {region.count}
                     </Badge>
                   </Button>
@@ -265,18 +292,23 @@ function FloatingMapControls({
         </div>
       )}
 
-      {/* Native Title Filter Popup - Outside control bar */}
+      {/* Modern Native Title Filter Popup */}
       {showNativeTitleFilter && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/20">
-          <div className="bg-white rounded-lg shadow-xl border border-gray-300 w-80 max-w-[95vw] max-h-[80vh] overflow-y-auto m-4">
-            <div className="p-4 space-y-4">
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 backdrop-blur-sm animate-fade-in-up">
+          <div className="glass-effect rounded-2xl modern-shadow-lg w-[400px] max-w-[95vw] max-h-[80vh] overflow-y-auto m-4 animate-slide-in-left">
+            <div className="p-6 space-y-4">
               <div className="flex items-center justify-between">
-                <h4 className="font-medium text-sm">Native Title Status</h4>
+                <div>
+                  <h4 className="font-bold text-lg text-earth-brown">Native Title Status</h4>
+                  <p className="text-sm text-gray-600 mt-1">Filter territories by legal status</p>
+                </div>
                 <button 
                   onClick={() => setShowNativeTitleFilter(false)}
-                  className="text-gray-400 hover:text-gray-600"
+                  className="text-gray-400 hover:text-gray-600 p-2 rounded-lg hover:bg-gray-100 smooth-transition"
                 >
-                  ×
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
                 </button>
               </div>
               
