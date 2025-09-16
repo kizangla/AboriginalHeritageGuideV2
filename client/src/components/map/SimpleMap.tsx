@@ -14,10 +14,12 @@ import { SaveShareMapView } from './SaveShareMapView';
 import { MapStateManager, type MapState } from '@/lib/map-state-manager';
 import { MobileMapControls } from './MobileMapControls';
 import { MobileLayerControl } from './MobileLayerControl';
+import { SearchAutocomplete } from './SearchAutocomplete';
 import { Button } from '@/components/ui/button';
 import { Filter, Layers } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { cn } from '@/lib/utils';
 
 interface SimpleMapProps {
   onMapReady?: (map: L.Map) => void;
@@ -750,6 +752,23 @@ export default function SimpleMap({ onMapReady, onTerritorySelect, regionFilter,
         className="w-full h-full"
         style={{ minHeight: '500px' }}
       />
+      
+      {/* Search Autocomplete */}
+      <div className={cn(
+        "absolute z-[500]",
+        isMobile ? "top-2 left-2 right-2" : "top-4 left-4 w-96"
+      )}>
+        <SearchAutocomplete
+          map={mapInstanceRef.current}
+          onSelectResult={(result) => {
+            console.log('Selected search result:', result);
+            // If it's a territory, trigger the onTerritorySelect callback
+            if (result.type === 'territory' && result.metadata) {
+              onTerritorySelect?.(result.metadata);
+            }
+          }}
+        />
+      </div>
       
       {/* Map Loading Indicator */}
       <MapLoadingIndicator
