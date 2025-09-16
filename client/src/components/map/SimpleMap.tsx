@@ -12,9 +12,12 @@ import { MiningFilterPanel, type MiningFilters } from './MiningFilterPanel';
 import { DataFreshnessIndicator } from './DataFreshnessIndicator';
 import { SaveShareMapView } from './SaveShareMapView';
 import { MapStateManager, type MapState } from '@/lib/map-state-manager';
+import { MobileMapControls } from './MobileMapControls';
+import { MobileLayerControl } from './MobileLayerControl';
 import { Button } from '@/components/ui/button';
-import { Filter } from 'lucide-react';
+import { Filter, Layers } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface SimpleMapProps {
   onMapReady?: (map: L.Map) => void;
@@ -31,6 +34,7 @@ interface SimpleMapProps {
 
 export default function SimpleMap({ onMapReady, onTerritorySelect, regionFilter, nativeTitleFilter, selectedTerritory, showRATSIBBoundaries = true, businessSearchQuery, onBusinessSelect, showMining = false, showExploration = false }: SimpleMapProps) {
   const { toast } = useToast();
+  const isMobile = useIsMobile();
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
   const territoryLayerRef = useRef<L.GeoJSON | null>(null);
@@ -43,6 +47,7 @@ export default function SimpleMap({ onMapReady, onTerritorySelect, regionFilter,
     message?: string;
   }>({ isLoading: false });
   const [showMiningFilters, setShowMiningFilters] = useState(false);
+  const [showLayerControl, setShowLayerControl] = useState(false);
   const [miningFilters, setMiningFilters] = useState<MiningFilters>({
     tenementTypes: [],
     status: [],
@@ -97,6 +102,17 @@ export default function SimpleMap({ onMapReady, onTerritorySelect, regionFilter,
       title: "View Loaded",
       description: state.name || "Map view has been restored successfully.",
     });
+  };
+
+  // Handler for layer toggle from mobile controls
+  const handleLayerToggle = (layerId: string, enabled: boolean) => {
+    setLayers(prev => ({ ...prev, [layerId]: enabled }));
+  };
+
+  // Handler for layer opacity change
+  const handleLayerOpacityChange = (layerId: string, opacity: number) => {
+    // This would need to be implemented with actual layer opacity control
+    console.log(`Setting ${layerId} opacity to ${opacity}%`);
   };
 
   useEffect(() => {
@@ -750,7 +766,7 @@ export default function SimpleMap({ onMapReady, onTerritorySelect, regionFilter,
       {/* Enhanced Mining Overlay with Clustering */}
       <EnhancedMiningOverlay
         map={mapInstanceRef.current}
-        showMining={showMining}
+        showMining={layers.mining}
         selectedTerritory={selectedTerritory}
         filters={miningFilters}
         onLoadingChange={(isLoading, progress) => {
@@ -766,25 +782,57 @@ export default function SimpleMap({ onMapReady, onTerritorySelect, regionFilter,
       {/* Exploration Overlay with Authentic WA DMIRS Data */}
       <ExplorationOverlay
         map={mapInstanceRef.current}
-        showExploration={showExploration}
+        showExploration={layers.exploration}
         selectedTerritory={selectedTerritory}
       />
       
-      {/* Mining filter toggle button */}
-      {showMining && (
+      {/* Mobile Map Controls */}
+      <MobileMapControls
+        map={mapInstanceRef.current}
+        onToggleLayers={() => setShowLayerControl(true)}
+        onToggleFilters={() => setShowMiningFilters(true)}
+        hasFilters={layers.mining || layers.exploration}
+      />
+      
+      {/* Layer Control Panel */}
+      <MobileLayerControl
+        open={showLayerControl}
+        onOpenChange={setShowLayerControl}
+        layers={layers}
+        onLayerToggle={handleLayerToggle}
+        onOpacityChange={handleLayerOpacityChange}
+      />
+      
+      {/* Desktop-only filter button */}
+      {!isMobile && layers.mining && (
         <Button
           onClick={() => setShowMiningFilters(!showMiningFilters)}
           className="absolute top-4 left-4 z-[999] shadow-lg"
           variant={showMiningFilters ? "default" : "outline"}
           size="sm"
+          data-testid="button-toggle-mining-filters-desktop"
         >
           <Filter className="h-4 w-4 mr-2" />
           Mining Filters
         </Button>
       )}
       
+      {/* Desktop-only layers button */}
+      {!isMobile && (
+        <Button
+          onClick={() => setShowLayerControl(true)}
+          className="absolute top-16 left-4 z-[999] shadow-lg"
+          variant="outline"
+          size="sm"
+          data-testid="button-toggle-layers-desktop"
+        >
+          <Layers className="h-4 w-4 mr-2" />
+          Map Layers
+        </Button>
+      )}
+      
       {/* Mining filter panel */}
-      {showMining && (
+      {layers.mining && (
         <MiningFilterPanel
           isOpen={showMiningFilters}
           onFiltersChange={setMiningFilters}
