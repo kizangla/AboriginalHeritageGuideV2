@@ -10,8 +10,11 @@ import ExplorationOverlay from './ExplorationOverlay';
 import MapLoadingIndicator from './MapLoadingIndicator';
 import { MiningFilterPanel, type MiningFilters } from './MiningFilterPanel';
 import { DataFreshnessIndicator } from './DataFreshnessIndicator';
+import { SaveShareMapView } from './SaveShareMapView';
+import { MapStateManager, type MapState } from '@/lib/map-state-manager';
 import { Button } from '@/components/ui/button';
 import { Filter } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 interface SimpleMapProps {
   onMapReady?: (map: L.Map) => void;
@@ -27,6 +30,7 @@ interface SimpleMapProps {
 }
 
 export default function SimpleMap({ onMapReady, onTerritorySelect, regionFilter, nativeTitleFilter, selectedTerritory, showRATSIBBoundaries = true, businessSearchQuery, onBusinessSelect, showMining = false, showExploration = false }: SimpleMapProps) {
+  const { toast } = useToast();
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
   const territoryLayerRef = useRef<L.GeoJSON | null>(null);
@@ -49,10 +53,51 @@ export default function SimpleMap({ onMapReady, onTerritorySelect, regionFilter,
     dateRange: { start: '', end: '' },
     search: ''
   });
+  
+  // Track all layer states for save/share functionality
+  const [layers, setLayers] = useState({
+    territories: true,
+    nativeTitle: false,
+    ratsib: showRATSIBBoundaries,
+    mining: showMining,
+    exploration: showExploration,
+    businesses: false
+  });
+  
+  // Update layers when props change
+  useEffect(() => {
+    setLayers(prev => ({
+      ...prev,
+      ratsib: showRATSIBBoundaries,
+      mining: showMining,
+      exploration: showExploration
+    }));
+  }, [showRATSIBBoundaries, showMining, showExploration]);
 
   const { data: territoriesGeoJSON, isLoading } = useQuery<any>({
     queryKey: ['/api/territories'],
   });
+
+  // Handler to load a saved map view
+  const handleLoadView = (state: MapState) => {
+    if (!mapInstanceRef.current) return;
+
+    // Set map center and zoom
+    mapInstanceRef.current.setView([state.center.lat, state.center.lng], state.zoom);
+
+    // Update layers
+    setLayers(state.layers);
+
+    // Update filters
+    if (state.filters.mining) {
+      setMiningFilters(state.filters.mining);
+    }
+
+    toast({
+      title: "View Loaded",
+      description: state.name || "Map view has been restored successfully.",
+    });
+  };
 
   useEffect(() => {
     if (!mapRef.current || mapInstanceRef.current) return;
@@ -754,6 +799,19 @@ export default function SimpleMap({ onMapReady, onTerritorySelect, regionFilter,
           console.log(`Refreshing data source: ${sourceId}`);
           // This would trigger a refresh of the specific data source
         }}
+      />
+      
+      {/* Save/Share Map View Controls */}
+      <SaveShareMapView
+        map={mapInstanceRef.current}
+        layers={layers}
+        filters={{
+          region: regionFilter || null,
+          nativeTitle: nativeTitleFilter || {},
+          mining: miningFilters
+        }}
+        selectedTerritory={selectedTerritory?.name || null}
+        onLoadView={handleLoadView}
       />
     </div>
   );
