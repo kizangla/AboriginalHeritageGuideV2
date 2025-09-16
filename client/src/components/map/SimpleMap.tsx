@@ -9,6 +9,7 @@ import EnhancedMiningOverlay from './EnhancedMiningOverlay';
 import ExplorationOverlay from './ExplorationOverlay';
 import MapLoadingIndicator from './MapLoadingIndicator';
 import { MiningFilterPanel, type MiningFilters } from './MiningFilterPanel';
+import { DataFreshnessIndicator } from './DataFreshnessIndicator';
 import { Button } from '@/components/ui/button';
 import { Filter } from 'lucide-react';
 
@@ -745,6 +746,15 @@ export default function SimpleMap({ onMapReady, onTerritorySelect, regionFilter,
           onClose={() => setShowMiningFilters(false)}
         />
       )}
+      
+      {/* Data freshness indicator */}
+      <DataFreshnessIndicator
+        isOpen={true}
+        onRefresh={(sourceId) => {
+          console.log(`Refreshing data source: ${sourceId}`);
+          // This would trigger a refresh of the specific data source
+        }}
+      />
     </div>
   );
 }
