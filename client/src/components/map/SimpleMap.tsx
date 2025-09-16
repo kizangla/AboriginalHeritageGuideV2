@@ -8,6 +8,9 @@ import EnhancedBusinessMarkers from './EnhancedBusinessMarkers';
 import EnhancedMiningOverlay from './EnhancedMiningOverlay';
 import ExplorationOverlay from './ExplorationOverlay';
 import MapLoadingIndicator from './MapLoadingIndicator';
+import { MiningFilterPanel, type MiningFilters } from './MiningFilterPanel';
+import { Button } from '@/components/ui/button';
+import { Filter } from 'lucide-react';
 
 interface SimpleMapProps {
   onMapReady?: (map: L.Map) => void;
@@ -34,6 +37,17 @@ export default function SimpleMap({ onMapReady, onTerritorySelect, regionFilter,
     progress?: number;
     message?: string;
   }>({ isLoading: false });
+  const [showMiningFilters, setShowMiningFilters] = useState(false);
+  const [miningFilters, setMiningFilters] = useState<MiningFilters>({
+    tenementTypes: [],
+    status: [],
+    holders: [],
+    mineralTypes: [],
+    majorCompaniesOnly: false,
+    areaRange: { min: 0, max: 100000 },
+    dateRange: { start: '', end: '' },
+    search: ''
+  });
 
   const { data: territoriesGeoJSON, isLoading } = useQuery<any>({
     queryKey: ['/api/territories'],
@@ -692,6 +706,7 @@ export default function SimpleMap({ onMapReady, onTerritorySelect, regionFilter,
         map={mapInstanceRef.current}
         showMining={showMining}
         selectedTerritory={selectedTerritory}
+        filters={miningFilters}
         onLoadingChange={(isLoading, progress) => {
           setLoadingState({
             isLoading,
@@ -708,6 +723,28 @@ export default function SimpleMap({ onMapReady, onTerritorySelect, regionFilter,
         showExploration={showExploration}
         selectedTerritory={selectedTerritory}
       />
+      
+      {/* Mining filter toggle button */}
+      {showMining && (
+        <Button
+          onClick={() => setShowMiningFilters(!showMiningFilters)}
+          className="absolute top-4 left-4 z-[999] shadow-lg"
+          variant={showMiningFilters ? "default" : "outline"}
+          size="sm"
+        >
+          <Filter className="h-4 w-4 mr-2" />
+          Mining Filters
+        </Button>
+      )}
+      
+      {/* Mining filter panel */}
+      {showMining && (
+        <MiningFilterPanel
+          isOpen={showMiningFilters}
+          onFiltersChange={setMiningFilters}
+          onClose={() => setShowMiningFilters(false)}
+        />
+      )}
     </div>
   );
 }

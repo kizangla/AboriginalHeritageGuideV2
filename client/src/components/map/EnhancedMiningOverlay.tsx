@@ -19,11 +19,14 @@ interface MiningTenement {
   majorCompany: boolean;
 }
 
+import type { MiningFilters } from './MiningFilterPanel';
+
 interface EnhancedMiningOverlayProps {
   map: L.Map | null;
   showMining: boolean;
   selectedTerritory?: any;
   onLoadingChange?: (isLoading: boolean, progress?: number) => void;
+  filters?: MiningFilters;
 }
 
 // Get style for tenement based on type
@@ -53,7 +56,8 @@ export default function EnhancedMiningOverlay({
   map, 
   showMining, 
   selectedTerritory,
-  onLoadingChange 
+  onLoadingChange,
+  filters 
 }: EnhancedMiningOverlayProps) {
   const [miningLayers, setMiningLayers] = useState<{
     polygons: L.LayerGroup | null;
@@ -92,7 +96,7 @@ export default function EnhancedMiningOverlay({
   }, [map]);
 
   const { data: miningData, isLoading, isFetching } = useQuery({
-    queryKey: ['/api/mining/map-bounds', showMining, boundsKey, currentZoom],
+    queryKey: ['/api/mining/map-bounds', showMining, boundsKey, currentZoom, filters],
     queryFn: async () => {
       if (!showMining || !map) return null;
       
@@ -112,6 +116,38 @@ export default function EnhancedMiningOverlay({
         detailLevel,
         zoom: zoom.toString()
       });
+      
+      // Add filters to the query
+      if (filters) {
+        if (filters.tenementTypes.length > 0) {
+          params.append('types', filters.tenementTypes.join(','));
+        }
+        if (filters.status.length > 0) {
+          params.append('status', filters.status.join(','));
+        }
+        if (filters.holders.length > 0) {
+          params.append('holders', filters.holders.join(','));
+        }
+        if (filters.mineralTypes.length > 0) {
+          params.append('minerals', filters.mineralTypes.join(','));
+        }
+        if (filters.majorCompaniesOnly) {
+          params.append('majorCompaniesOnly', 'true');
+        }
+        if (filters.search) {
+          params.append('search', filters.search);
+        }
+        if (filters.areaRange.min > 0 || filters.areaRange.max < 100000) {
+          params.append('areaMin', filters.areaRange.min.toString());
+          params.append('areaMax', filters.areaRange.max.toString());
+        }
+        if (filters.dateRange.start) {
+          params.append('grantDateFrom', filters.dateRange.start);
+        }
+        if (filters.dateRange.end) {
+          params.append('grantDateTo', filters.dateRange.end);
+        }
+      }
       
       onLoadingChange?.(true, 0);
       
@@ -167,6 +203,10 @@ export default function EnhancedMiningOverlay({
     }
 
     if (!miningData?.tenements) return;
+    
+    // Clear the loaded tenements set when data changes (filters, bounds, zoom)
+    // This ensures we don't skip tenements after filter/zoom changes
+    loadedTenementsRef.current.clear();
 
     const zoom = map.getZoom();
     const detailLevel = getDetailLevel(zoom);
@@ -217,8 +257,9 @@ export default function EnhancedMiningOverlay({
     miningData.tenements.forEach((tenement: MiningTenement) => {
       if (!tenement.coordinates || tenement.coordinates.length === 0) return;
       
-      // Skip if already loaded (prevents duplicates)
+      // Skip if already loaded (prevents duplicates within same render)
       if (loadedTenementsRef.current.has(tenement.id)) return;
+      loadedTenementsRef.current.add(tenement.id);
       
       const style = getTenementStyle(tenement);
       
