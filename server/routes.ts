@@ -24,6 +24,7 @@ import { registerMiningAPI } from "./wa-mining-api";
 import { explorationMineralService } from "./exploration-mineral-service";
 import { geoscienceAustraliaPlaceNames } from "./geoscience-australia-placenames";
 import { fetchMiningTenementsForTerritory, fetchAllMiningTenements } from "./wa-dmirs-tenements-service";
+import { waMinedexService } from "./wa-minedex-service";
 
 // Australian postcode coordinate lookup for business positioning
 function getPostcodeCoordinates(postcode: string, stateCode: string): { lat: number; lng: number } | null {
@@ -2066,6 +2067,150 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error('Map view mining tenements error:', error);
       res.status(500).json({ 
         error: 'Failed to fetch mining tenements for map view',
+        message: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
+  // MINEDEX - Mines and Mineral Deposits of Western Australia
+  app.get('/api/territories/:territoryName/minedex', async (req, res) => {
+    try {
+      const territoryName = decodeURIComponent(req.params.territoryName);
+      console.log(`Fetching MINEDEX sites for territory: ${territoryName}`);
+      
+      // Get territory details
+      const territories = await storage.getTerritories();
+      const territory = territories.find(t => 
+        t.name === territoryName || 
+        t.groupName === territoryName ||
+        t.name.toLowerCase() === territoryName.toLowerCase()
+      );
+      
+      if (!territory || !territory.geometry) {
+        return res.status(404).json({ 
+          success: false, 
+          error: 'Territory not found or missing geometry' 
+        });
+      }
+      
+      // Calculate territory bounds
+      const geometry = territory.geometry as any;
+      const coordinates = geometry.coordinates[0];
+      const lats = coordinates.map((coord: number[]) => coord[1]);
+      const lngs = coordinates.map((coord: number[]) => coord[0]);
+      
+      const bounds = {
+        minLat: Math.min(...lats),
+        maxLat: Math.max(...lats),
+        minLng: Math.min(...lngs),
+        maxLng: Math.max(...lngs)
+      };
+
+      // Check if territory is in Western Australia
+      const centerLng = (bounds.minLng + bounds.maxLng) / 2;
+      const isInWA = waMinedexService.territoryOverlapsWA(bounds);
+
+      if (!isInWA) {
+        return res.json({
+          success: true,
+          territoryName: territory.name,
+          minedexData: {
+            totalSites: 0,
+            sites: [],
+            bounds: bounds,
+            source: 'wa_dmirs_minedex',
+            serviceAvailable: true,
+            message: 'MINEDEX data is only available for territories in Western Australia. This territory is outside WA coverage.'
+          }
+        });
+      }
+
+      // Fetch MINEDEX sites from WA DMIRS
+      const minedexResult = await waMinedexService.getSitesForTerritory(
+        territory.name,
+        bounds
+      );
+
+      console.log(`Found ${minedexResult.totalCount} MINEDEX sites in ${territory.name}`);
+
+      // Group sites by type for summary
+      const typeSummary = minedexResult.sites.reduce((acc: any, site) => {
+        const type = site.siteType || 'Unknown';
+        if (!acc[type]) {
+          acc[type] = { type, count: 0, sites: [] };
+        }
+        acc[type].count++;
+        acc[type].sites.push(site);
+        return acc;
+      }, {} as Record<string, { type: string; count: number; sites: any[] }>);
+
+      // Group sites by commodity for summary
+      const commoditySummary = minedexResult.sites.reduce((acc: any, site) => {
+        const commodity = site.commodityCategory || 'Unknown';
+        if (!acc[commodity]) {
+          acc[commodity] = { commodity, count: 0 };
+        }
+        acc[commodity].count++;
+        return acc;
+      }, {} as Record<string, { commodity: string; count: number }>);
+
+      // Group sites by stage for summary
+      const stageSummary = minedexResult.sites.reduce((acc: any, site) => {
+        const stage = site.siteStage || 'Unknown';
+        if (!acc[stage]) {
+          acc[stage] = { stage, count: 0 };
+        }
+        acc[stage].count++;
+        return acc;
+      }, {} as Record<string, { stage: string; count: number }>);
+
+      res.json({
+        success: true,
+        territoryName: territory.name,
+        minedexData: {
+          totalSites: minedexResult.totalCount,
+          sites: minedexResult.sites,
+          typeSummary: Object.values(typeSummary).sort((a: any, b: any) => b.count - a.count),
+          commoditySummary: Object.values(commoditySummary).sort((a: any, b: any) => b.count - a.count),
+          stageSummary: Object.values(stageSummary).sort((a: any, b: any) => b.count - a.count),
+          bounds: bounds,
+          source: minedexResult.dataSource,
+          serviceUrl: minedexResult.serviceUrl,
+          serviceAvailable: true
+        }
+      });
+      
+    } catch (error) {
+      console.error('Territory MINEDEX error:', error);
+      res.status(500).json({ 
+        success: false,
+        error: 'Failed to fetch MINEDEX data',
+        message: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
+  // MINEDEX filter options
+  app.get('/api/minedex/filter-options', async (req, res) => {
+    try {
+      const [siteTypes, commodities, stages] = await Promise.all([
+        waMinedexService.getSiteTypes(),
+        waMinedexService.getCommodityCategories(),
+        waMinedexService.getSiteStages()
+      ]);
+
+      res.json({
+        success: true,
+        siteTypes,
+        commodities,
+        stages,
+        dataSource: 'WA Department of Mines, Industry Regulation and Safety (DMIRS) - MINEDEX'
+      });
+    } catch (error) {
+      console.error('MINEDEX filter options error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to fetch MINEDEX filter options',
         message: error instanceof Error ? error.message : 'Unknown error'
       });
     }

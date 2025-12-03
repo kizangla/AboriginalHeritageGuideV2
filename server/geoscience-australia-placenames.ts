@@ -3,6 +3,8 @@
  * Fetches authentic Aboriginal place names and their meanings from official Australian Government sources
  */
 
+import { DOMParser } from '@xmldom/xmldom';
+
 export interface AustralianPlaceName {
   id: string;
   name: string;
@@ -121,7 +123,6 @@ export class GeoscienceAustraliaPlaceNamesService {
       console.log('Parsing Geoscience Australia Gazetteer response...');
       
       // Use DOMParser to parse XML response
-      const { DOMParser } = require('@xmldom/xmldom');
       const parser = new DOMParser();
       const doc = parser.parseFromString(xmlData, 'text/xml');
       
