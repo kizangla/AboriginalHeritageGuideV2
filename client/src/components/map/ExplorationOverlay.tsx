@@ -1,12 +1,13 @@
 /**
  * Exploration Overlay - Displays WA DMIRS exploration report data with clustering
- * Uses marker clustering for better performance and cleaner visualization
+ * Uses marker clustering and stacked cards for overlapping reports
  */
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import L from 'leaflet';
 import 'leaflet.markercluster';
 import { useQuery } from '@tanstack/react-query';
+import StackedReportCards from './StackedReportCards';
 
 interface ExplorationOverlayProps {
   map: L.Map | null;
@@ -31,12 +32,6 @@ interface ExplorationData {
   reports: ExplorationReport[];
   totalInDatabase: number;
   totalDisplayed: number;
-  filters: {
-    commodity: string;
-    yearFrom: string | number;
-    yearTo: string | number;
-    limit: number;
-  };
 }
 
 // Commodity color mapping
@@ -56,29 +51,16 @@ const getCommodityColor = (commodity: string): string => {
   if (lowerCommodity.includes('tantalum')) return '#4B0082';
   if (lowerCommodity.includes('tin')) return '#D2691E';
   
-  return '#6366F1'; // Default indigo
-};
-
-// Get commodity icon/emoji for cluster display
-const getCommodityIcon = (commodity: string): string => {
-  const lowerCommodity = commodity.toLowerCase();
-  
-  if (lowerCommodity.includes('gold')) return '🥇';
-  if (lowerCommodity.includes('iron')) return '⚙️';
-  if (lowerCommodity.includes('lithium')) return '🔋';
-  if (lowerCommodity.includes('copper')) return '🔶';
-  if (lowerCommodity.includes('nickel')) return '⚪';
-  if (lowerCommodity.includes('diamond')) return '💎';
-  if (lowerCommodity.includes('uranium')) return '☢️';
-  if (lowerCommodity.includes('coal')) return '⬛';
-  
-  return '📋';
+  return '#6366F1';
 };
 
 export default function ExplorationOverlay({ map, showExploration, selectedTerritory }: ExplorationOverlayProps) {
   const clusterGroupRef = useRef<L.MarkerClusterGroup | null>(null);
   const polygonLayerRef = useRef<L.LayerGroup | null>(null);
   const [currentZoom, setCurrentZoom] = useState<number>(5);
+  const [selectedReports, setSelectedReports] = useState<ExplorationReport[]>([]);
+  const [cardPosition, setCardPosition] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  const allReportsRef = useRef<ExplorationReport[]>([]);
 
   // Query exploration data
   const { data: explorationData, isLoading } = useQuery({
@@ -86,15 +68,16 @@ export default function ExplorationOverlay({ map, showExploration, selectedTerri
     queryFn: () => fetch('/api/exploration/map-bounds?limit=2000').then(res => res.json()),
     enabled: showExploration && !!map,
     refetchOnWindowFocus: false,
-    staleTime: 5 * 60 * 1000, // 5 minutes cache
+    staleTime: 5 * 60 * 1000,
   });
 
-  // Track zoom level for progressive detail
+  // Track zoom level
   useEffect(() => {
     if (!map) return;
 
     const handleZoom = () => {
       setCurrentZoom(map.getZoom());
+      setSelectedReports([]); // Close cards on zoom
     };
 
     map.on('zoomend', handleZoom);
@@ -105,11 +88,32 @@ export default function ExplorationOverlay({ map, showExploration, selectedTerri
     };
   }, [map]);
 
-  // Main effect to render exploration data
+  // Find reports near a clicked location
+  const findReportsNearLocation = useCallback((lat: number, lng: number, radiusDegrees: number = 0.05): ExplorationReport[] => {
+    const reports = allReportsRef.current;
+    const nearbyReports: ExplorationReport[] = [];
+
+    reports.forEach(report => {
+      if (!report.coordinates || report.coordinates.length === 0) return;
+
+      const centerLat = report.coordinates.reduce((sum, coord) => sum + coord[0], 0) / report.coordinates.length;
+      const centerLng = report.coordinates.reduce((sum, coord) => sum + coord[1], 0) / report.coordinates.length;
+
+      const distance = Math.sqrt(Math.pow(centerLat - lat, 2) + Math.pow(centerLng - lng, 2));
+      
+      if (distance <= radiusDegrees) {
+        nearbyReports.push(report);
+      }
+    });
+
+    return nearbyReports;
+  }, []);
+
+  // Main render effect
   useEffect(() => {
     if (!map) return;
 
-    // Clean up existing layers
+    // Cleanup existing layers
     if (clusterGroupRef.current) {
       map.removeLayer(clusterGroupRef.current);
       clusterGroupRef.current = null;
@@ -120,11 +124,13 @@ export default function ExplorationOverlay({ map, showExploration, selectedTerri
     }
 
     if (!showExploration || isLoading || !explorationData) {
+      allReportsRef.current = [];
       return;
     }
 
     const typedData = explorationData as ExplorationData;
     const reports = typedData.reports || [];
+    allReportsRef.current = reports;
 
     if (reports.length === 0) {
       console.log('No exploration reports available');
@@ -133,18 +139,16 @@ export default function ExplorationOverlay({ map, showExploration, selectedTerri
 
     console.log(`Rendering ${reports.length} exploration reports with clustering...`);
 
-    // Create marker cluster group with custom styling
+    // Create cluster group
     const clusterGroup = L.markerClusterGroup({
       chunkedLoading: true,
-      maxClusterRadius: 60,
-      spiderfyOnMaxZoom: true,
+      maxClusterRadius: 50,
+      spiderfyOnMaxZoom: false,
       showCoverageOnHover: false,
       zoomToBoundsOnClick: true,
-      disableClusteringAtZoom: 12,
+      disableClusteringAtZoom: 13,
       iconCreateFunction: (cluster) => {
         const childCount = cluster.getChildCount();
-        
-        // Get dominant commodity in cluster
         const markers = cluster.getAllChildMarkers();
         const commodityCounts: Record<string, number> = {};
         
@@ -158,19 +162,10 @@ export default function ExplorationOverlay({ map, showExploration, selectedTerri
         
         const color = getCommodityColor(dominantCommodity);
         
-        // Size based on count
-        let size = 40;
-        let fontSize = 12;
-        if (childCount > 100) {
-          size = 55;
-          fontSize = 14;
-        } else if (childCount > 50) {
-          size = 50;
-          fontSize = 13;
-        } else if (childCount > 10) {
-          size = 45;
-          fontSize = 12;
-        }
+        let size = 36;
+        if (childCount > 100) size = 50;
+        else if (childCount > 50) size = 45;
+        else if (childCount > 10) size = 40;
 
         return L.divIcon({
           html: `
@@ -184,10 +179,11 @@ export default function ExplorationOverlay({ map, showExploration, selectedTerri
               justify-content: center;
               color: white;
               font-weight: bold;
-              font-size: ${fontSize}px;
+              font-size: ${size > 45 ? 14 : 12}px;
               border: 3px solid white;
-              box-shadow: 0 3px 10px rgba(0,0,0,0.3);
-              text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+              box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+              text-shadow: 1px 1px 2px rgba(0,0,0,0.4);
+              cursor: pointer;
             ">
               ${childCount}
             </div>
@@ -199,105 +195,138 @@ export default function ExplorationOverlay({ map, showExploration, selectedTerri
       }
     });
 
-    // Create polygon layer for detailed view
-    const polygonLayer = L.layerGroup();
-
-    // Add markers for each report
-    reports.forEach((report) => {
+    // Group reports by location for stacked display
+    const locationGroups = new Map<string, ExplorationReport[]>();
+    
+    reports.forEach(report => {
       if (!report.coordinates || report.coordinates.length === 0) return;
 
-      // Calculate center of polygon
       const centerLat = report.coordinates.reduce((sum, coord) => sum + coord[0], 0) / report.coordinates.length;
       const centerLng = report.coordinates.reduce((sum, coord) => sum + coord[1], 0) / report.coordinates.length;
 
       if (!Number.isFinite(centerLat) || !Number.isFinite(centerLng)) return;
 
-      const primaryCommodity = report.targetCommodity?.split(';')[0]?.trim() || 'Unknown';
+      // Group by rounded location (0.02 degree grid ~ 2km)
+      const locationKey = `${centerLat.toFixed(2)}_${centerLng.toFixed(2)}`;
+      
+      if (!locationGroups.has(locationKey)) {
+        locationGroups.set(locationKey, []);
+      }
+      locationGroups.get(locationKey)!.push(report);
+    });
+
+    // Create markers for each location group
+    locationGroups.forEach((groupReports, locationKey) => {
+      const [latStr, lngStr] = locationKey.split('_');
+      const lat = parseFloat(latStr);
+      const lng = parseFloat(lngStr);
+
+      // Calculate actual center from reports
+      let totalLat = 0, totalLng = 0, count = 0;
+      groupReports.forEach(report => {
+        const cLat = report.coordinates.reduce((sum, coord) => sum + coord[0], 0) / report.coordinates.length;
+        const cLng = report.coordinates.reduce((sum, coord) => sum + coord[1], 0) / report.coordinates.length;
+        totalLat += cLat;
+        totalLng += cLng;
+        count++;
+      });
+      const avgLat = totalLat / count;
+      const avgLng = totalLng / count;
+
+      const primaryCommodity = groupReports[0].targetCommodity?.split(';')[0]?.trim() || 'Unknown';
       const color = getCommodityColor(primaryCommodity);
 
-      // Create circle marker for clustering
-      const marker = L.circleMarker([centerLat, centerLng], {
-        radius: 8,
+      // Create marker
+      const markerSize = groupReports.length > 1 ? 12 : 8;
+      const marker = L.circleMarker([avgLat, avgLng], {
+        radius: markerSize,
         fillColor: color,
         color: '#ffffff',
         weight: 2,
         opacity: 1,
-        fillOpacity: 0.85,
-        commodity: primaryCommodity // Store for cluster icon
+        fillOpacity: 0.9,
+        commodity: primaryCommodity
       } as any);
 
-      // Create popup content
-      const popupContent = `
-        <div style="min-width: 260px; font-family: system-ui, -apple-system, sans-serif;">
-          <div style="background: linear-gradient(135deg, ${color}22, ${color}44); padding: 12px; margin: -14px -14px 12px -14px; border-radius: 4px 4px 0 0;">
-            <h3 style="margin: 0; color: #1e293b; font-size: 15px; font-weight: 600;">
-              ${report.project || 'Exploration Report'}
-            </h3>
-            <div style="color: #64748b; font-size: 11px; margin-top: 4px;">
-              Report ${report.aNumber || report.id} • ${report.reportYear || 'Unknown year'}
-            </div>
-          </div>
-          
-          <div style="display: grid; gap: 8px; font-size: 13px;">
-            <div style="display: flex; gap: 8px; align-items: flex-start;">
-              <span style="color: #64748b; min-width: 80px;">Operator:</span>
-              <span style="color: #1e293b; font-weight: 500;">${report.operator || 'Unknown'}</span>
-            </div>
-            
-            <div style="display: flex; gap: 8px; align-items: flex-start;">
-              <span style="color: #64748b; min-width: 80px;">Commodity:</span>
-              <span style="display: flex; align-items: center; gap: 6px;">
-                <span style="width: 12px; height: 12px; background: ${color}; border-radius: 50%; display: inline-block;"></span>
-                <span style="color: #1e293b; font-weight: 500;">${report.targetCommodity || 'Unknown'}</span>
-              </span>
-            </div>
-            
-            ${report.abstractUrl ? `
-            <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #e2e8f0;">
-              <a href="${report.abstractUrl}" target="_blank" rel="noopener noreferrer" 
-                 style="color: #6366F1; text-decoration: none; font-size: 12px; display: flex; align-items: center; gap: 4px;">
-                View Full Report →
-              </a>
-            </div>
-            ` : ''}
-          </div>
-          
-          <div style="margin-top: 10px; padding-top: 8px; border-top: 1px solid #e2e8f0; text-align: center;">
-            <span style="color: #64748b; font-size: 10px;">Source: WA Dept of Mines (DMIRS)</span>
-          </div>
-        </div>
-      `;
-
-      marker.bindPopup(popupContent, { maxWidth: 300 });
-      clusterGroup.addLayer(marker);
-
-      // Add polygon for detailed view at high zoom
-      if (currentZoom >= 11 && report.coordinates.length > 2) {
-        const polygon = L.polygon(report.coordinates, {
-          fillColor: color,
-          fillOpacity: 0.25,
-          color: color,
-          weight: 2,
-          opacity: 0.8,
-          dashArray: '5, 5'
+      // Handle click to show stacked cards
+      marker.on('click', (e: L.LeafletMouseEvent) => {
+        L.DomEvent.stopPropagation(e);
+        
+        const containerPoint = map.latLngToContainerPoint(e.latlng);
+        setCardPosition({ 
+          x: containerPoint.x + 20, 
+          y: containerPoint.y - 50 
         });
-        polygon.bindPopup(popupContent, { maxWidth: 300 });
-        polygonLayer.addLayer(polygon);
-      }
+        setSelectedReports(groupReports);
+      });
+
+      clusterGroup.addLayer(marker);
     });
 
-    // Add layers to map
+    // Add polygon layer for high zoom
+    const polygonLayer = L.layerGroup();
+    
+    if (currentZoom >= 12) {
+      reports.forEach(report => {
+        if (!report.coordinates || report.coordinates.length < 3) return;
+
+        const primaryCommodity = report.targetCommodity?.split(';')[0]?.trim() || 'Unknown';
+        const color = getCommodityColor(primaryCommodity);
+
+        const polygon = L.polygon(report.coordinates, {
+          fillColor: color,
+          fillOpacity: 0.2,
+          color: color,
+          weight: 2,
+          opacity: 0.7,
+          dashArray: '4, 4'
+        });
+
+        polygon.on('click', (e: L.LeafletMouseEvent) => {
+          L.DomEvent.stopPropagation(e);
+          
+          const nearbyReports = findReportsNearLocation(e.latlng.lat, e.latlng.lng, 0.03);
+          if (nearbyReports.length > 0) {
+            const containerPoint = map.latLngToContainerPoint(e.latlng);
+            setCardPosition({ 
+              x: containerPoint.x + 20, 
+              y: containerPoint.y - 50 
+            });
+            setSelectedReports(nearbyReports);
+          }
+        });
+
+        polygonLayer.addLayer(polygon);
+      });
+    }
+
+    // Add to map
     clusterGroup.addTo(map);
     clusterGroupRef.current = clusterGroup;
 
-    if (currentZoom >= 11) {
+    if (currentZoom >= 12) {
       polygonLayer.addTo(map);
       polygonLayerRef.current = polygonLayer;
     }
 
-    console.log(`Added ${reports.length} exploration reports with clustering`);
+    console.log(`Added ${reports.length} exploration reports with stacked card support`);
 
-  }, [map, showExploration, explorationData, isLoading, currentZoom]);
+  }, [map, showExploration, explorationData, isLoading, currentZoom, findReportsNearLocation]);
+
+  // Close cards when clicking elsewhere on map
+  useEffect(() => {
+    if (!map) return;
+
+    const handleMapClick = () => {
+      setSelectedReports([]);
+    };
+
+    map.on('click', handleMapClick);
+
+    return () => {
+      map.off('click', handleMapClick);
+    };
+  }, [map]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -311,8 +340,17 @@ export default function ExplorationOverlay({ map, showExploration, selectedTerri
     };
   }, [map]);
 
-  // Don't render any UI - stats are shown in the layer control
   if (!showExploration) return null;
 
-  return null;
+  return (
+    <>
+      {selectedReports.length > 0 && (
+        <StackedReportCards
+          reports={selectedReports}
+          onClose={() => setSelectedReports([])}
+          position={cardPosition}
+        />
+      )}
+    </>
+  );
 }
