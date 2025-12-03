@@ -163,14 +163,14 @@ class GeoscienceAustraliaService {
           if (!geometry || !geometry.x || !geometry.y) continue;
 
           deposits.push({
-            id: attrs.OBJECTID?.toString() || `ga_${deposits.length}`,
-            name: attrs.Name || attrs.Deposit_Name || 'Unknown Deposit',
-            state: attrs.State || 'Unknown',
-            commodities: attrs.Commodities || attrs.Commodity || '',
-            primaryCommodity: this.extractPrimaryCommodity(attrs.Commodities || attrs.Commodity || ''),
-            depositType: attrs.Deposit_Type || attrs.Type || 'Unknown',
-            status: attrs.Status || 'Unknown',
-            owner: attrs.Owner || attrs.Operator || 'Unknown',
+            id: attrs.objectid?.toString() || `ga_${deposits.length}`,
+            name: attrs.projectname || attrs.ProjectName || attrs.Name || 'Unknown Deposit',
+            state: attrs.state || attrs.State || 'Unknown',
+            commodities: attrs.commodities || attrs.Commodities || '',
+            primaryCommodity: this.extractPrimaryCommodity(attrs.commodities || attrs.Commodities || ''),
+            depositType: attrs.deposit_type || attrs.Deposit_Type || 'Mineral Deposit',
+            status: attrs.status || attrs.Status || 'Unknown',
+            owner: attrs.owner_operator || attrs.Owner_Operator || attrs.owner || attrs.Owner || 'Not specified',
             coordinates: {
               lat: geometry.y,
               lng: geometry.x
