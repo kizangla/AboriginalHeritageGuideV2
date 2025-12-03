@@ -1074,44 +1074,62 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       console.log('Fetching all RATSIB boundaries across Australia...');
       
-      // Fetch authentic RATSIB data from Australian Government WFS service
+      // Try to fetch authentic RATSIB data from Australian Government WFS service
+      // Note: The data.gov.au WFS service may be temporarily unavailable (HTTP 500)
       const wfsUrl = 'https://data.gov.au/geoserver/ratsib-boundaries/wfs?request=GetFeature&typeName=ckan_0d32262b_e13b_4475_adc6_3618811c029a&outputFormat=json';
       
-      const response = await fetch(wfsUrl);
-      if (!response.ok) {
-        throw new Error(`Failed to fetch RATSIB data from Australian Government: ${response.status}`);
-      }
+      let allBoundaries: any[] = [];
+      let dataSource = 'australian_government_wfs';
+      let serviceAvailable = false;
       
-      const data = await response.json();
-      
-      if (!data.features || !Array.isArray(data.features)) {
-        throw new Error('Invalid RATSIB data format from Australian Government');
-      }
-      
-      console.log(`Successfully fetched all RATSIB data from Australian Government`);
-      console.log(`RATSIB property keys from Australian Government: [${Object.keys(data.features[0]?.properties || {}).map(k => `'${k}'`).join(', ')}]`);
-      console.log(`Sample RATSIB properties:`, data.features[0]?.properties);
-      
-      // Process all RATSIB boundaries with proper data structure
-      const allBoundaries = data.features.map((feature: any) => {
-        const props = feature.properties || {};
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
         
-        return {
-          id: props.ID || `ratsib_${Math.random().toString(36).substr(2, 9)}`,
-          name: props.NAME || props.org || 'Aboriginal Organization',
-          organizationName: props.ORG || props.organizationName || props.NAME || 'Aboriginal Organization',
-          corporationType: props.RATSIBTYPE || props.corporationType || 'Aboriginal Corporation',
-          registrationDate: props.DT_EXTRACT || new Date().toISOString(),
-          status: props.COMMENTS || props.status || 'Active',
-          legislativeAuthority: props.LEGISAUTH || props.legislativeAuthority || 'Native Title Act 1993',
-          website: props.RATSIBLINK || props.website || null,
-          jurisdiction: props.JURIS || props.jurisdiction || 'Australia',
-          geometry: feature.geometry,
-          originalProperties: props
-        };
-      });
+        const response = await fetch(wfsUrl, {
+          signal: controller.signal,
+          headers: {
+            'User-Agent': 'Indigenous-Australia-App/1.0',
+            'Accept': 'application/json'
+          }
+        });
+        clearTimeout(timeoutId);
+        
+        if (response.ok) {
+          const data = await response.json();
+          
+          if (data.features && Array.isArray(data.features) && data.features.length > 0) {
+            console.log(`Successfully fetched all RATSIB data from Australian Government`);
+            console.log(`RATSIB property keys: [${Object.keys(data.features[0]?.properties || {}).map(k => `'${k}'`).join(', ')}]`);
+            
+            allBoundaries = data.features.map((feature: any) => {
+              const props = feature.properties || {};
+              
+              return {
+                id: props.ID || `ratsib_${Math.random().toString(36).substr(2, 9)}`,
+                name: props.NAME || props.org || 'Aboriginal Organization',
+                organizationName: props.ORG || props.organizationName || props.NAME || 'Aboriginal Organization',
+                corporationType: props.RATSIBTYPE || props.corporationType || 'Aboriginal Corporation',
+                registrationDate: props.DT_EXTRACT || new Date().toISOString(),
+                status: props.COMMENTS || props.status || 'Active',
+                legislativeAuthority: props.LEGISAUTH || props.legislativeAuthority || 'Native Title Act 1993',
+                website: props.RATSIBLINK || props.website || null,
+                jurisdiction: props.JURIS || props.jurisdiction || 'Australia',
+                geometry: feature.geometry,
+                originalProperties: props
+              };
+            });
+            serviceAvailable = true;
+          }
+        } else {
+          console.warn(`RATSIB WFS service returned HTTP ${response.status} - using graceful degradation`);
+        }
+      } catch (fetchError: any) {
+        console.warn(`RATSIB WFS service unavailable: ${fetchError.message} - returning empty result with service status`);
+        dataSource = 'service_unavailable';
+      }
       
-      console.log(`Found ${allBoundaries.length} RATSIB boundaries across Australia`);
+      console.log(`RATSIB boundaries result: ${allBoundaries.length} boundaries (service available: ${serviceAvailable})`);
       
       const result = {
         success: true,
@@ -1119,24 +1137,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
           boundaries: allBoundaries,
           totalFound: allBoundaries.length,
           bbox: 'australia_wide',
-          source: 'australian_government_wfs'
+          source: dataSource,
+          serviceAvailable: serviceAvailable,
+          message: serviceAvailable 
+            ? undefined 
+            : 'Australian Government RATSIB WFS service is temporarily unavailable. Data will be loaded when service is restored.'
         },
         timestamp: new Date().toISOString()
       };
       
-      // Add cache headers for better client-side caching
+      // Add cache headers - shorter cache time when service is unavailable
       res.set({
-        'Cache-Control': 'public, max-age=1800', // 30 minutes
-        'ETag': `"ratsib-all-${allBoundaries.length}"`
+        'Cache-Control': serviceAvailable ? 'public, max-age=1800' : 'public, max-age=300', // 30 min or 5 min
+        'ETag': `"ratsib-all-${allBoundaries.length}-${serviceAvailable}"`
       });
       
       res.json(result);
       
     } catch (error) {
       console.error('All RATSIB boundaries error:', error);
-      res.status(500).json({ 
-        error: 'Failed to fetch all RATSIB boundaries',
-        message: error instanceof Error ? error.message : 'Unknown error'
+      // Return graceful empty response instead of error
+      res.json({ 
+        success: true,
+        ratsib: {
+          boundaries: [],
+          totalFound: 0,
+          bbox: 'australia_wide',
+          source: 'service_error',
+          serviceAvailable: false,
+          message: 'RATSIB service temporarily unavailable'
+        },
+        timestamp: new Date().toISOString()
       });
     }
   });
