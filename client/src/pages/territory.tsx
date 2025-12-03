@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { ArrowLeft, MapPin, Users, Calendar, ExternalLink, Scale, Building2, Pickaxe } from 'lucide-react';
+import { ArrowLeft, MapPin, Users, Calendar, ExternalLink, Scale, Building2, Pickaxe, Sparkles, AlertCircle } from 'lucide-react';
 
 interface TerritoryDetails {
   name: string;
@@ -66,6 +66,11 @@ export default function TerritoryPage() {
   const { data: placeNamesData, isLoading: placeNamesLoading } = useQuery({
     queryKey: [`/api/territories/${territoryName}/place-names`],
     enabled: !!territoryName && !!territoryDetails?.geometry
+  });
+
+  const { data: aiContentData, isLoading: aiContentLoading } = useQuery({
+    queryKey: [`/api/territories/${territoryName}/ai-content`],
+    enabled: !!territoryName
   });
 
   // Debug log to check data
@@ -141,6 +146,9 @@ export default function TerritoryPage() {
   // Extract place names data from API response
   const placeNamesInfo = (placeNamesData as any)?.success ? (placeNamesData as any).placeNamesData : null;
   const aboriginalPlaces = placeNamesInfo?.places || [];
+
+  // Extract AI-generated content
+  const aiContent = (aiContentData as any)?.success ? (aiContentData as any).aiContent : null;
 
   // Filter exploration reports based on selected commodity - ensure matches backend logic
   const filteredExplorationReports = selectedCommodity 
@@ -236,79 +244,158 @@ export default function TerritoryPage() {
               </CardContent>
             </Card>
 
-            {/* Cultural Information */}
-            {(territoryDetails.culturalInfo || territoryDetails.historicalContext) && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Cultural Heritage</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {territoryDetails.culturalInfo && (
-                    <div>
-                      <label className="text-sm font-medium text-gray-500 mb-2 block">Cultural Information</label>
-                      <p className="text-gray-700 leading-relaxed">{territoryDetails.culturalInfo}</p>
-                    </div>
-                  )}
-                  
-                  {territoryDetails.historicalContext && (
-                    <div>
-                      <label className="text-sm font-medium text-gray-500 mb-2 block">Historical Context</label>
-                      <p className="text-gray-700 leading-relaxed">{territoryDetails.historicalContext}</p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            )}
+            {/* AI-Researched Cultural Information */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Sparkles className="w-5 h-5 text-purple-500" />
+                  Cultural Heritage
+                  <Badge variant="outline" className="ml-2 text-xs bg-purple-50 text-purple-700 border-purple-200">
+                    AI-Researched
+                  </Badge>
+                </CardTitle>
+                <CardDescription>
+                  Researched cultural information about {territoryDetails.name} territory
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {aiContentLoading ? (
+                  <div className="animate-pulse space-y-3">
+                    <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                    <div className="h-4 bg-gray-200 rounded w-full"></div>
+                    <div className="h-4 bg-gray-200 rounded w-5/6"></div>
+                    <p className="text-sm text-gray-500 mt-2">Researching cultural information...</p>
+                  </div>
+                ) : aiContent ? (
+                  <>
+                    {aiContent.languageFamily && (
+                      <div>
+                        <label className="text-sm font-medium text-gray-500 mb-2 block">Language Family</label>
+                        <p className="text-gray-700">{aiContent.languageFamily}</p>
+                      </div>
+                    )}
 
-            {/* Traditional Practices */}
-            {(territoryDetails.traditionalPractices?.length || territoryDetails.artStyles?.length || 
-              territoryDetails.ceremonies?.length || territoryDetails.songlines?.length) && (
+                    {aiContent.traditionalLanguages && aiContent.traditionalLanguages.length > 0 && (
+                      <div>
+                        <label className="text-sm font-medium text-gray-500 mb-2 block">Traditional Languages</label>
+                        <div className="flex flex-wrap gap-2">
+                          {aiContent.traditionalLanguages.map((lang: string, index: number) => (
+                            <Badge key={index} variant="secondary" className="bg-purple-50 text-purple-700">{lang}</Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {aiContent.culturalPractices && (
+                      <div>
+                        <label className="text-sm font-medium text-gray-500 mb-2 block">Cultural Practices</label>
+                        <p className="text-gray-700 leading-relaxed">{aiContent.culturalPractices}</p>
+                      </div>
+                    )}
+                    
+                    {aiContent.historicalContext && (
+                      <div>
+                        <label className="text-sm font-medium text-gray-500 mb-2 block">Historical Context</label>
+                        <p className="text-gray-700 leading-relaxed">{aiContent.historicalContext}</p>
+                      </div>
+                    )}
+
+                    {aiContent.connectionToCountry && (
+                      <div>
+                        <label className="text-sm font-medium text-gray-500 mb-2 block">Connection to Country</label>
+                        <p className="text-gray-700 leading-relaxed">{aiContent.connectionToCountry}</p>
+                      </div>
+                    )}
+
+                    {aiContent.disclaimer && (
+                      <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                        <div className="flex items-start gap-2">
+                          <AlertCircle className="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0" />
+                          <p className="text-xs text-amber-700">{aiContent.disclaimer}</p>
+                        </div>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <div className="text-center py-4 text-gray-500">
+                    <p>Cultural information is being researched...</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Traditional Practices from AI */}
+            {aiContent && (aiContent.traditionalPractices?.length > 0 || aiContent.artStyles?.length > 0 || 
+              aiContent.ceremonies?.length > 0 || aiContent.songlines?.length > 0 || aiContent.traditionalFoods?.length > 0) && (
               <Card>
                 <CardHeader>
-                  <CardTitle>Traditional Practices</CardTitle>
+                  <CardTitle className="flex items-center gap-2">
+                    Traditional Practices
+                    <Badge variant="outline" className="ml-2 text-xs bg-purple-50 text-purple-700 border-purple-200">
+                      AI-Researched
+                    </Badge>
+                  </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {territoryDetails.traditionalPractices && territoryDetails.traditionalPractices.length > 0 && (
+                  {aiContent.traditionalPractices && aiContent.traditionalPractices.length > 0 && (
                     <div>
                       <label className="text-sm font-medium text-gray-500 mb-2 block">Practices</label>
                       <div className="flex flex-wrap gap-2">
-                        {territoryDetails.traditionalPractices.map((practice, index) => (
+                        {aiContent.traditionalPractices.map((practice: string, index: number) => (
                           <Badge key={index} variant="outline">{practice}</Badge>
                         ))}
                       </div>
                     </div>
                   )}
 
-                  {territoryDetails.artStyles && territoryDetails.artStyles.length > 0 && (
+                  {aiContent.artStyles && aiContent.artStyles.length > 0 && (
                     <div>
                       <label className="text-sm font-medium text-gray-500 mb-2 block">Art Styles</label>
                       <div className="flex flex-wrap gap-2">
-                        {territoryDetails.artStyles.map((style, index) => (
+                        {aiContent.artStyles.map((style: string, index: number) => (
                           <Badge key={index} variant="outline">{style}</Badge>
                         ))}
                       </div>
                     </div>
                   )}
 
-                  {territoryDetails.ceremonies && territoryDetails.ceremonies.length > 0 && (
+                  {aiContent.ceremonies && aiContent.ceremonies.length > 0 && (
                     <div>
                       <label className="text-sm font-medium text-gray-500 mb-2 block">Ceremonies</label>
                       <div className="flex flex-wrap gap-2">
-                        {territoryDetails.ceremonies.map((ceremony, index) => (
+                        {aiContent.ceremonies.map((ceremony: string, index: number) => (
                           <Badge key={index} variant="outline">{ceremony}</Badge>
                         ))}
                       </div>
                     </div>
                   )}
 
-                  {territoryDetails.songlines && territoryDetails.songlines.length > 0 && (
+                  {aiContent.songlines && aiContent.songlines.length > 0 && (
                     <div>
                       <label className="text-sm font-medium text-gray-500 mb-2 block">Songlines</label>
                       <div className="flex flex-wrap gap-2">
-                        {territoryDetails.songlines.map((songline, index) => (
+                        {aiContent.songlines.map((songline: string, index: number) => (
                           <Badge key={index} variant="outline">{songline}</Badge>
                         ))}
                       </div>
+                    </div>
+                  )}
+
+                  {aiContent.traditionalFoods && aiContent.traditionalFoods.length > 0 && (
+                    <div>
+                      <label className="text-sm font-medium text-gray-500 mb-2 block">Traditional Foods (Bush Tucker)</label>
+                      <div className="flex flex-wrap gap-2">
+                        {aiContent.traditionalFoods.map((food: string, index: number) => (
+                          <Badge key={index} variant="outline" className="bg-green-50 text-green-700 border-green-200">{food}</Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {aiContent.seasonalCalendar && (
+                    <div>
+                      <label className="text-sm font-medium text-gray-500 mb-2 block">Seasonal Calendar</label>
+                      <p className="text-gray-700 leading-relaxed">{aiContent.seasonalCalendar}</p>
                     </div>
                   )}
                 </CardContent>
