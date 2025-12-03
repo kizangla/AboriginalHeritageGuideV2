@@ -709,8 +709,26 @@ export default function TerritoryPage() {
                 <CardDescription>Legal recognition status</CardDescription>
               </CardHeader>
               <CardContent>
-                {nativeTitleInfo ? (
+                {nativeTitleLoading ? (
+                  <div className="text-center py-4">
+                    <div className="animate-pulse">Loading native title data...</div>
+                  </div>
+                ) : nativeTitleInfo ? (
                   <div className="space-y-4">
+                    {nativeTitleInfo.totalRecords === 0 && activeApplications.length === 0 && activeDeterminations.length === 0 ? (
+                      <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                        <div className="flex items-start gap-2">
+                          <AlertCircle className="w-5 h-5 text-amber-600 mt-0.5 flex-shrink-0" />
+                          <div>
+                            <p className="text-sm font-medium text-amber-800">Government Service Temporarily Unavailable</p>
+                            <p className="text-xs text-amber-700 mt-1">
+                              The Australian Government Native Title Tribunal API is currently experiencing issues. 
+                              Data will be available once the service is restored.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
                     <div className="grid grid-cols-3 gap-3">
                       <div className="text-center p-3 bg-green-50 rounded-lg">
                         <div className="text-2xl font-bold text-green-700">{nativeTitleInfo.totalRecords || (activeApplications.length + activeDeterminations.length)}</div>
@@ -725,6 +743,7 @@ export default function TerritoryPage() {
                         <div className="text-sm text-purple-600">Determinations</div>
                       </div>
                     </div>
+                    )}
 
                     {(activeApplications.length > 0 || activeDeterminations.length > 0) && (
                       <div className="space-y-4">
@@ -821,6 +840,21 @@ export default function TerritoryPage() {
                   </div>
                 ) : explorationInfo ? (
                   <div className="space-y-4">
+                    {explorationInfo.totalReports === 0 ? (
+                      <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg">
+                        <div className="flex items-start gap-2">
+                          <MapPin className="w-5 h-5 text-gray-500 mt-0.5 flex-shrink-0" />
+                          <div>
+                            <p className="text-sm font-medium text-gray-700">No Exploration Reports Available</p>
+                            <p className="text-xs text-gray-600 mt-1">
+                              Exploration data is currently only available for territories in Western Australia (WA DMIRS database).
+                              This territory may be outside WA or have no registered exploration activity.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                    <>
                     <div className="text-center p-3 bg-yellow-50 rounded-lg">
                       <div className="text-2xl font-bold text-yellow-700">
                         {explorationInfo.totalReports}
@@ -912,6 +946,8 @@ export default function TerritoryPage() {
                         Authentic data from WA Department of Mines
                       </div>
                     </div>
+                    </>
+                    )}
                   </div>
                 ) : (
                   <div className="text-center py-4 text-gray-500">
@@ -931,11 +967,30 @@ export default function TerritoryPage() {
                 <CardDescription>Representative bodies and services</CardDescription>
               </CardHeader>
               <CardContent>
-                {ratsibInfo ? (
+                {ratsibLoading ? (
+                  <div className="text-center py-4">
+                    <div className="animate-pulse">Loading RATSIB data...</div>
+                  </div>
+                ) : ratsibInfo ? (
                   <div className="space-y-4">
+                    {ratsibBoundaries.length === 0 && (ratsibInfo.totalFound === 0 || ratsibInfo.totalBoundaries === 0 || (!ratsibInfo.totalFound && !ratsibInfo.totalBoundaries)) ? (
+                      <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                        <div className="flex items-start gap-2">
+                          <AlertCircle className="w-5 h-5 text-amber-600 mt-0.5 flex-shrink-0" />
+                          <div>
+                            <p className="text-sm font-medium text-amber-800">Government Service Temporarily Unavailable</p>
+                            <p className="text-xs text-amber-700 mt-1">
+                              The RATSIB (Regional Aboriginal and Torres Strait Islander Bodies) WFS service is currently experiencing issues.
+                              Data will be available once the service is restored.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                    <>
                     <div className="text-center p-3 bg-orange-50 rounded-lg">
                       <div className="text-2xl font-bold text-orange-700">
-                        {ratsibInfo.totalBoundaries || ratsibBoundaries.length}
+                        {ratsibInfo.totalFound || ratsibInfo.totalBoundaries || ratsibBoundaries.length}
                       </div>
                       <div className="text-sm text-orange-600">Service Areas</div>
                     </div>
@@ -1012,6 +1067,8 @@ export default function TerritoryPage() {
                     <div className="text-xs text-gray-500">
                       Source: Australian Government RATSIB Data
                     </div>
+                    </>
+                    )}
                   </div>
                 ) : (
                   <p className="text-gray-500 text-sm">Loading RATSIB information...</p>
