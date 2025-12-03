@@ -139,6 +139,7 @@ export function MobileLayerControl({
         side={isMobile ? "bottom" : "right"}
         className={cn(
           isMobile ? "h-[80vh]" : "w-[400px]",
+          "z-[1000]",
           className
         )}
       >

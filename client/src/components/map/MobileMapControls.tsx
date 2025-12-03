@@ -302,7 +302,7 @@ export function MobileMapControls({
             onClick={onToggleLayers}
             className="h-8 w-8 p-0"
             title="Toggle Layers"
-            data-testid="button-toggle-layers-desktop"
+            data-testid="button-toggle-layers-control"
           >
             <Layers className="w-4 h-4" />
           </Button>
