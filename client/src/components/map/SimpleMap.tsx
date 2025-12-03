@@ -15,8 +15,6 @@ import { MapStateManager, type MapState } from '@/lib/map-state-manager';
 import { MobileMapControls } from './MobileMapControls';
 import { MobileLayerControl } from './MobileLayerControl';
 import { SearchAutocomplete } from './SearchAutocomplete';
-import { Button } from '@/components/ui/button';
-import { Filter, Layers } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
@@ -122,7 +120,9 @@ export default function SimpleMap({ onMapReady, onTerritorySelect, regionFilter,
 
     console.log('SimpleMap: Creating map...');
     
-    const map = L.map(mapRef.current).setView([-25.2744, 133.7751], 5);
+    const map = L.map(mapRef.current, {
+      zoomControl: false  // Disable default left-side zoom control, using custom controls on right
+    }).setView([-25.2744, 133.7751], 5);
     mapInstanceRef.current = map;
 
     // Add basic tile layer
@@ -822,33 +822,6 @@ export default function SimpleMap({ onMapReady, onTerritorySelect, regionFilter,
         onOpacityChange={handleLayerOpacityChange}
       />
       
-      {/* Desktop-only filter button */}
-      {!isMobile && layers.mining && (
-        <Button
-          onClick={() => setShowMiningFilters(!showMiningFilters)}
-          className="absolute top-4 left-4 z-[999] shadow-lg"
-          variant={showMiningFilters ? "default" : "outline"}
-          size="sm"
-          data-testid="button-toggle-mining-filters-desktop"
-        >
-          <Filter className="h-4 w-4 mr-2" />
-          Mining Filters
-        </Button>
-      )}
-      
-      {/* Desktop-only layers button */}
-      {!isMobile && (
-        <Button
-          onClick={() => setShowLayerControl(true)}
-          className="absolute top-16 left-4 z-[999] shadow-lg"
-          variant="outline"
-          size="sm"
-          data-testid="button-toggle-layers-desktop"
-        >
-          <Layers className="h-4 w-4 mr-2" />
-          Map Layers
-        </Button>
-      )}
       
       {/* Mining filter panel */}
       {layers.mining && (
