@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { ArrowLeft, MapPin, Users, Calendar, ExternalLink, Scale, Building2, Pickaxe, Sparkles, AlertCircle } from 'lucide-react';
+import { ArrowLeft, MapPin, Users, Calendar, ExternalLink, Scale, Building2, Pickaxe, Sparkles, AlertCircle, Mountain } from 'lucide-react';
 
 interface TerritoryDetails {
   name: string;
@@ -65,6 +65,11 @@ export default function TerritoryPage() {
 
   const { data: tenementsData, isLoading: tenementsLoading } = useQuery({
     queryKey: [`/api/territories/${territoryName}/mining-tenements`],
+    enabled: !!territoryName && !!territoryDetails?.geometry
+  });
+
+  const { data: minedexData, isLoading: minedexLoading } = useQuery({
+    queryKey: [`/api/territories/${territoryName}/minedex`],
     enabled: !!territoryName && !!territoryDetails?.geometry
   });
 
@@ -1108,6 +1113,167 @@ export default function TerritoryPage() {
                 ) : (
                   <div className="text-center py-4 text-gray-500">
                     No mining tenement data available for this territory
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* MINEDEX - Mines and Mineral Deposits */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Mountain className="w-5 h-5" />
+                  Mines & Mineral Deposits
+                </CardTitle>
+                <CardDescription>WA MINEDEX database - mines, deposits, and prospects</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {minedexLoading ? (
+                  <div className="text-center py-4">
+                    <div className="animate-pulse">Loading MINEDEX data...</div>
+                  </div>
+                ) : (minedexData as any)?.minedexData ? (
+                  <div className="space-y-4" data-testid="minedex-section">
+                    {(minedexData as any).minedexData.message ? (
+                      <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                        <div className="flex items-start gap-2">
+                          <AlertCircle className="w-5 h-5 text-amber-600 mt-0.5 flex-shrink-0" />
+                          <div>
+                            <p className="text-sm font-medium text-amber-800">Outside WA Coverage</p>
+                            <p className="text-xs text-amber-700 mt-1">
+                              {(minedexData as any).minedexData.message}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                    <>
+                    <div className="text-center p-3 bg-teal-50 rounded-lg" data-testid="minedex-count">
+                      <div className="text-2xl font-bold text-teal-700">
+                        {(minedexData as any).minedexData.totalSites}
+                      </div>
+                      <div className="text-sm text-teal-600">Mines & Deposits</div>
+                    </div>
+
+                    {(minedexData as any).minedexData.typeSummary?.length > 0 && (
+                      <div>
+                        <label className="text-sm font-medium text-gray-500 mb-2 block">
+                          By Site Type
+                        </label>
+                        <div className="grid grid-cols-2 gap-2 mb-4">
+                          {(minedexData as any).minedexData.typeSummary.slice(0, 6).map((item: any, index: number) => (
+                            <div
+                              key={index}
+                              className="flex justify-between items-center p-2 rounded bg-teal-50"
+                              data-testid={`minedex-type-${index}`}
+                            >
+                              <span className="text-xs font-medium text-teal-800 truncate">{item.type}</span>
+                              <span className="text-xs bg-teal-200 text-teal-700 px-2 py-0.5 rounded ml-1">
+                                {item.count}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {(minedexData as any).minedexData.commoditySummary?.length > 0 && (
+                      <div>
+                        <label className="text-sm font-medium text-gray-500 mb-2 block">
+                          By Commodity
+                        </label>
+                        <div className="flex flex-wrap gap-2">
+                          {(minedexData as any).minedexData.commoditySummary.slice(0, 8).map((item: any, index: number) => (
+                            <span
+                              key={index}
+                              className="text-xs bg-amber-100 text-amber-800 px-2 py-1 rounded"
+                              data-testid={`minedex-commodity-${index}`}
+                            >
+                              {item.commodity} ({item.count})
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {(minedexData as any).minedexData.sites?.length > 0 && (
+                      <div>
+                        <label className="text-sm font-medium text-gray-500 mb-2 block">
+                          Recent Sites
+                          <span className="text-xs text-gray-400 ml-2">
+                            (showing {Math.min((minedexData as any).minedexData.sites.length, 8)} of {(minedexData as any).minedexData.sites.length})
+                          </span>
+                        </label>
+                        <ScrollArea className="h-48">
+                          {(minedexData as any).minedexData.sites.slice(0, 8).map((site: any, index: number) => (
+                            <div 
+                              key={index} 
+                              className="text-sm text-gray-600 mb-3 p-3 bg-teal-50 rounded-lg border-l-3 border-teal-400"
+                              data-testid={`minedex-site-${index}`}
+                            >
+                              <div className="font-semibold text-gray-800 mb-1">
+                                {site.shortName || site.siteTitle}
+                              </div>
+                              
+                              <div className="space-y-1">
+                                <div className="text-xs">
+                                  <span className="font-medium">Code:</span> {site.siteCode}
+                                </div>
+                                
+                                <div className="text-xs">
+                                  <span className="font-medium">Type:</span> {site.siteType}
+                                  {site.siteSubType && ` (${site.siteSubType})`}
+                                </div>
+                                
+                                <div className="text-xs">
+                                  <span className="font-medium">Stage:</span> 
+                                  <span className={`ml-1 px-2 py-0.5 rounded text-xs ${
+                                    site.siteStage === 'Operating' 
+                                      ? 'bg-green-100 text-green-700' 
+                                      : site.siteStage === 'Care and Maintenance'
+                                      ? 'bg-amber-100 text-amber-700'
+                                      : 'bg-gray-100 text-gray-600'
+                                  }`}>
+                                    {site.siteStage}
+                                  </span>
+                                </div>
+                                
+                                {site.siteCommodities && (
+                                  <div className="text-xs">
+                                    <span className="font-medium">Commodities:</span> {site.siteCommodities}
+                                  </div>
+                                )}
+
+                                {site.webLink && (
+                                  <a 
+                                    href={site.webLink}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-xs text-teal-600 hover:underline flex items-center gap-1 mt-1"
+                                    data-testid={`minedex-link-${index}`}
+                                  >
+                                    <ExternalLink className="w-3 h-3" />
+                                    View on MINEDEX
+                                  </a>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </ScrollArea>
+                      </div>
+                    )}
+
+                    <div className="mt-4 pt-3 border-t text-center">
+                      <div className="text-xs text-gray-500">
+                        Authentic data from WA Department of Mines (DMIRS) MINEDEX
+                      </div>
+                    </div>
+                    </>
+                    )}
+                  </div>
+                ) : (
+                  <div className="text-center py-4 text-gray-500">
+                    No mine or deposit data available for this territory
                   </div>
                 )}
               </CardContent>
