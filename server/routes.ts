@@ -23,6 +23,7 @@ import { initializeMiningData } from "./complete-mining-import";
 import { registerMiningAPI } from "./wa-mining-api";
 import { explorationMineralService } from "./exploration-mineral-service";
 import { geoscienceAustraliaPlaceNames } from "./geoscience-australia-placenames";
+import { fetchMiningTenementsForTerritory, fetchAllMiningTenements } from "./wa-dmirs-tenements-service";
 
 // Australian postcode coordinate lookup for business positioning
 function getPostcodeCoordinates(postcode: string, stateCode: string): { lat: number; lng: number } | null {
@@ -1904,6 +1905,167 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error('Territory exploration data error:', error);
       res.status(500).json({ 
         error: 'Failed to fetch exploration data',
+        message: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
+  // Territory mining tenements endpoint - WA DMIRS authentic data
+  app.get('/api/territories/:territoryName/mining-tenements', async (req, res) => {
+    try {
+      const { territoryName } = req.params;
+      const decodedName = decodeURIComponent(territoryName);
+      
+      console.log(`Fetching mining tenements for territory: ${decodedName}`);
+      
+      // Get territory geometry
+      const allTerritories = await storage.getTerritories();
+      const territory = allTerritories.find(t => 
+        t.name === decodedName || 
+        t.groupName === decodedName ||
+        t.name.toLowerCase() === decodedName.toLowerCase() ||
+        t.groupName.toLowerCase() === decodedName.toLowerCase()
+      );
+      
+      if (!territory || !territory.geometry) {
+        return res.status(404).json({ 
+          error: 'Territory not found or no geometry available',
+          searchedName: decodedName
+        });
+      }
+
+      // Calculate territory bounds from geometry
+      const geometry = territory.geometry as any;
+      const coords = geometry.type === 'Polygon' 
+        ? geometry.coordinates[0] 
+        : geometry.coordinates.flat();
+      
+      const lats = coords.map((coord: any) => coord[1]);
+      const lngs = coords.map((coord: any) => coord[0]);
+      
+      const bounds = {
+        minLat: Math.min(...lats),
+        maxLat: Math.max(...lats),
+        minLng: Math.min(...lngs),
+        maxLng: Math.max(...lngs)
+      };
+
+      // Check if territory is in Western Australia (WA DMIRS only covers WA)
+      const centerLng = (bounds.minLng + bounds.maxLng) / 2;
+      const isInWA = centerLng >= 112 && centerLng <= 129;
+
+      if (!isInWA) {
+        return res.json({
+          success: true,
+          territoryName: territory.name,
+          tenementsData: {
+            totalTenements: 0,
+            tenements: [],
+            bounds: bounds,
+            source: 'wa_dmirs_arcgis',
+            serviceAvailable: true,
+            message: 'Mining tenement data is only available for territories in Western Australia. This territory is outside WA coverage.'
+          }
+        });
+      }
+
+      // Calculate center point for spatial query
+      const centerLat = (bounds.minLat + bounds.maxLat) / 2;
+
+      // Fetch mining tenements from WA DMIRS
+      const tenementsResult = await fetchMiningTenementsForTerritory(
+        centerLat,
+        centerLng,
+        territory.name,
+        bounds
+      );
+
+      console.log(`Found ${tenementsResult.totalFound} mining tenements in ${territory.name}`);
+
+      // Group tenements by type for summary
+      const typeSummary = tenementsResult.tenements.reduce((acc: any, tenement: any) => {
+        const type = tenement.type || 'Unknown';
+        if (!acc[type]) {
+          acc[type] = { type, count: 0, tenements: [] };
+        }
+        acc[type].count++;
+        acc[type].tenements.push(tenement);
+        return acc;
+      }, {} as Record<string, { type: string; count: number; tenements: any[] }>);
+
+      res.json({
+        success: true,
+        territoryName: territory.name,
+        tenementsData: {
+          totalTenements: tenementsResult.totalFound,
+          tenements: tenementsResult.tenements,
+          typeSummary: Object.values(typeSummary).sort((a: any, b: any) => b.count - a.count),
+          bounds: bounds,
+          source: tenementsResult.source,
+          serviceAvailable: tenementsResult.serviceAvailable
+        }
+      });
+      
+    } catch (error) {
+      console.error('Territory mining tenements error:', error);
+      res.status(500).json({ 
+        error: 'Failed to fetch mining tenements',
+        message: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
+  // Map view mining tenements endpoint
+  app.get('/api/mining-tenements/map-view', async (req, res) => {
+    try {
+      const { minLat, maxLat, minLng, maxLng } = req.query;
+      
+      if (!minLat || !maxLat || !minLng || !maxLng) {
+        return res.status(400).json({ 
+          error: 'Bounds required',
+          message: 'minLat, maxLat, minLng, maxLng query parameters are required'
+        });
+      }
+
+      const bounds = {
+        minLat: parseFloat(minLat as string),
+        maxLat: parseFloat(maxLat as string),
+        minLng: parseFloat(minLng as string),
+        maxLng: parseFloat(maxLng as string)
+      };
+
+      // Check if bounds are in Western Australia
+      if (bounds.maxLng < 112 || bounds.minLng > 129) {
+        return res.json({
+          success: true,
+          tenements: [],
+          totalFound: 0,
+          message: 'Mining tenement data is only available for Western Australia',
+          source: 'wa_dmirs_arcgis',
+          serviceAvailable: true
+        });
+      }
+
+      const tenementsResult = await fetchAllMiningTenements(bounds);
+
+      res.set({
+        'Cache-Control': 'public, max-age=600',
+        'ETag': `"tenements-${bounds.minLng.toFixed(1)}-${bounds.minLat.toFixed(1)}-${tenementsResult.totalFound}"`
+      });
+
+      res.json({
+        success: true,
+        tenements: tenementsResult.tenements,
+        totalFound: tenementsResult.totalFound,
+        bounds: tenementsResult.bbox,
+        source: tenementsResult.source,
+        serviceAvailable: tenementsResult.serviceAvailable
+      });
+      
+    } catch (error) {
+      console.error('Map view mining tenements error:', error);
+      res.status(500).json({ 
+        error: 'Failed to fetch mining tenements for map view',
         message: error instanceof Error ? error.message : 'Unknown error'
       });
     }
