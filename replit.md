@@ -38,6 +38,15 @@ Preferred communication style: Simple, everyday language.
 8. **Cultural Data**: AIATSIS language boundaries and heritage sites
 9. **Place Names**: Geoscience Australia Gazetteer for geographic naming
 
+### National Mining Data Services (All States)
+10. **Geoscience Australia**: National critical minerals deposits (381+ deposits) - primary nationwide data source
+11. **Northern Territory STRIKE**: NT mineral tenements via WFS endpoint
+12. **South Australia SARIG**: SA mineral tenements (service framework in place)
+13. **Queensland GSQ**: QLD exploration reports via CKAN API (service framework in place)
+14. **NSW MinView**: NSW mining titles via WFS (service framework in place)
+15. **Victoria GeoVic**: VIC mineral sites via WFS (service framework in place)
+16. **Tasmania MRT**: TAS mining leases via ArcGIS REST (service framework in place)
+
 ### Geographic Services
 - **Geocoding**: Address-to-coordinate conversion for business locations
 - **Spatial Analysis**: Territory boundary intersections and overlap detection
