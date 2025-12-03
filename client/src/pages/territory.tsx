@@ -63,6 +63,11 @@ export default function TerritoryPage() {
     enabled: !!territoryName && !!territoryDetails?.geometry
   });
 
+  const { data: tenementsData, isLoading: tenementsLoading } = useQuery({
+    queryKey: [`/api/territories/${territoryName}/mining-tenements`],
+    enabled: !!territoryName && !!territoryDetails?.geometry
+  });
+
   const { data: placeNamesData, isLoading: placeNamesLoading } = useQuery({
     queryKey: [`/api/territories/${territoryName}/place-names`],
     enabled: !!territoryName && !!territoryDetails?.geometry
@@ -142,6 +147,11 @@ export default function TerritoryPage() {
   const explorationInfo = (explorationData as any)?.success ? (explorationData as any).explorationData : null;
   const explorationReports = explorationInfo?.reports || [];
   const commoditySummary = explorationInfo?.commoditySummary || [];
+
+  // Extract mining tenements data from API response
+  const tenementsInfo = (tenementsData as any)?.success ? (tenementsData as any).tenementsData : null;
+  const tenementsList = tenementsInfo?.tenements || [];
+  const tenementTypeSummary = tenementsInfo?.typeSummary || [];
 
   // Extract place names data from API response
   const placeNamesInfo = (placeNamesData as any)?.success ? (placeNamesData as any).placeNamesData : null;
@@ -952,6 +962,152 @@ export default function TerritoryPage() {
                 ) : (
                   <div className="text-center py-4 text-gray-500">
                     No exploration data available for this territory
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Mining Tenements */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2" data-testid="tenements-title">
+                  <Scale className="w-5 h-5" />
+                  Mining Tenements
+                </CardTitle>
+                <CardDescription>WA DMIRS mining lease and licence data</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {tenementsLoading ? (
+                  <div className="text-center py-4">
+                    <div className="animate-pulse">Loading mining tenements...</div>
+                  </div>
+                ) : tenementsInfo ? (
+                  <div className="space-y-4">
+                    {tenementsInfo.message ? (
+                      <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg">
+                        <div className="flex items-start gap-2">
+                          <MapPin className="w-5 h-5 text-gray-500 mt-0.5 flex-shrink-0" />
+                          <div>
+                            <p className="text-sm font-medium text-gray-700">Outside WA Coverage</p>
+                            <p className="text-xs text-gray-600 mt-1">
+                              {tenementsInfo.message}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    ) : !tenementsInfo.serviceAvailable ? (
+                      <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                        <div className="flex items-start gap-2">
+                          <AlertCircle className="w-5 h-5 text-amber-600 mt-0.5 flex-shrink-0" />
+                          <div>
+                            <p className="text-sm font-medium text-amber-800">Service Temporarily Unavailable</p>
+                            <p className="text-xs text-amber-700 mt-1">
+                              The WA DMIRS mining tenements service is currently experiencing issues.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    ) : tenementsInfo.totalTenements === 0 ? (
+                      <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg">
+                        <div className="flex items-start gap-2">
+                          <MapPin className="w-5 h-5 text-gray-500 mt-0.5 flex-shrink-0" />
+                          <div>
+                            <p className="text-sm font-medium text-gray-700">No Active Tenements</p>
+                            <p className="text-xs text-gray-600 mt-1">
+                              No mining tenements found within this territory's boundaries.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                    <>
+                    <div className="text-center p-3 bg-purple-50 rounded-lg" data-testid="tenements-count">
+                      <div className="text-2xl font-bold text-purple-700">
+                        {tenementsInfo.totalTenements}
+                      </div>
+                      <div className="text-sm text-purple-600">Active Mining Tenements</div>
+                    </div>
+
+                    {tenementTypeSummary.length > 0 && (
+                      <div>
+                        <label className="text-sm font-medium text-gray-500 mb-2 block">
+                          Tenement Types
+                        </label>
+                        <div className="grid grid-cols-1 gap-2 mb-4">
+                          {tenementTypeSummary.map((item: any, index: number) => (
+                            <div
+                              key={index}
+                              className="flex justify-between items-center p-2 rounded bg-purple-50"
+                              data-testid={`tenement-type-${index}`}
+                            >
+                              <span className="text-sm font-medium text-purple-800">{item.type}</span>
+                              <span className="text-xs bg-purple-200 text-purple-700 px-2 py-1 rounded">
+                                {item.count}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {tenementsList.length > 0 && (
+                      <div>
+                        <label className="text-sm font-medium text-gray-500 mb-2 block">
+                          Recent Tenements
+                          <span className="text-xs text-gray-400 ml-2">
+                            (showing {Math.min(tenementsList.length, 10)} of {tenementsList.length})
+                          </span>
+                        </label>
+                        <ScrollArea className="h-48">
+                          {tenementsList.slice(0, 10).map((tenement: any, index: number) => (
+                            <div 
+                              key={index} 
+                              className="text-sm text-gray-600 mb-3 p-3 bg-purple-50 rounded-lg border-l-3 border-purple-400"
+                              data-testid={`tenement-item-${index}`}
+                            >
+                              <div className="font-semibold text-gray-800 mb-1">
+                                {tenement.tenementId}
+                              </div>
+                              
+                              <div className="space-y-1">
+                                <div className="text-xs">
+                                  <span className="font-medium">Type:</span> {tenement.type}
+                                </div>
+                                
+                                <div className="text-xs">
+                                  <span className="font-medium">Status:</span> 
+                                  <span className={`ml-1 px-2 py-0.5 rounded text-xs ${
+                                    tenement.status === 'LIVE' 
+                                      ? 'bg-green-100 text-green-700' 
+                                      : 'bg-gray-100 text-gray-600'
+                                  }`}>
+                                    {tenement.status}
+                                  </span>
+                                </div>
+                                
+                                {tenement.holders && tenement.holders.length > 0 && (
+                                  <div className="text-xs">
+                                    <span className="font-medium">Holder:</span> {tenement.holders[0].name}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </ScrollArea>
+                      </div>
+                    )}
+
+                    <div className="mt-4 pt-3 border-t text-center">
+                      <div className="text-xs text-gray-500">
+                        Authentic data from WA Department of Mines (DMIRS)
+                      </div>
+                    </div>
+                    </>
+                    )}
+                  </div>
+                ) : (
+                  <div className="text-center py-4 text-gray-500">
+                    No mining tenement data available for this territory
                   </div>
                 )}
               </CardContent>
