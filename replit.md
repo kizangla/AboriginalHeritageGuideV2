@@ -30,10 +30,13 @@ Preferred communication style: Simple, everyday language.
 ### Data Integration Services
 1. **Aboriginal Territory Data**: Core GeoJSON territories with cultural information
 2. **Native Title Service**: Australian Government Native Title Tribunal data
-3. **RATSIB Service**: Regional Aboriginal and Torres Strait Islander Bodies boundaries
-4. **Mining Tenements**: WA DMIRS mining lease and exploration data
-5. **Business Directory**: ABR (Australian Business Register) integration with Indigenous business verification
-6. **Cultural Data**: AIATSIS language boundaries and heritage sites
+3. **RATSIB Service**: Regional Aboriginal and Torres Strait Islander Bodies boundaries (NNTT ArcGIS)
+4. **Mining Tenements**: WA DMIRS mining lease and exploration data (ArcGIS REST API)
+5. **MINEDEX Service**: WA mines and mineral deposits database - site types (Mine, Deposit, Prospect), commodities, operating stages
+6. **Exploration Reports**: WA DMIRS exploration and mineral reports
+7. **Business Directory**: ABR (Australian Business Register) integration with Indigenous business verification
+8. **Cultural Data**: AIATSIS language boundaries and heritage sites
+9. **Place Names**: Geoscience Australia Gazetteer for geographic naming
 
 ### Geographic Services
 - **Geocoding**: Address-to-coordinate conversion for business locations
