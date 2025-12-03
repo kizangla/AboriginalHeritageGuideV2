@@ -401,6 +401,299 @@ export default function TerritoryPage() {
                 </CardContent>
               </Card>
             )}
+
+            {/* Social Structure & Kinship */}
+            {aiContent && (aiContent.kinshipSystem || aiContent.moietySystem || aiContent.skinNames?.length > 0 || 
+              aiContent.traditionalGovernance || aiContent.elderStructure) && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Users className="w-5 h-5 text-blue-500" />
+                    Social Structure & Kinship
+                    <Badge variant="outline" className="ml-2 text-xs bg-purple-50 text-purple-700 border-purple-200">
+                      AI-Researched
+                    </Badge>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {aiContent.kinshipSystem && (
+                    <div>
+                      <label className="text-sm font-medium text-gray-500 mb-2 block">Kinship System</label>
+                      <p className="text-gray-700 leading-relaxed">{aiContent.kinshipSystem}</p>
+                    </div>
+                  )}
+                  {aiContent.moietySystem && (
+                    <div>
+                      <label className="text-sm font-medium text-gray-500 mb-2 block">Moiety System</label>
+                      <p className="text-gray-700 leading-relaxed">{aiContent.moietySystem}</p>
+                    </div>
+                  )}
+                  {aiContent.skinNames && aiContent.skinNames.length > 0 && (
+                    <div>
+                      <label className="text-sm font-medium text-gray-500 mb-2 block">Skin Names / Sections</label>
+                      <div className="flex flex-wrap gap-2">
+                        {aiContent.skinNames.map((name: string, index: number) => (
+                          <Badge key={index} variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">{name}</Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {aiContent.traditionalGovernance && (
+                    <div>
+                      <label className="text-sm font-medium text-gray-500 mb-2 block">Traditional Governance</label>
+                      <p className="text-gray-700 leading-relaxed">{aiContent.traditionalGovernance}</p>
+                    </div>
+                  )}
+                  {aiContent.elderStructure && (
+                    <div>
+                      <label className="text-sm font-medium text-gray-500 mb-2 block">Role of Elders</label>
+                      <p className="text-gray-700 leading-relaxed">{aiContent.elderStructure}</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Environmental Knowledge & Land Management */}
+            {aiContent && (aiContent.environmentalKnowledge || aiContent.landManagement || aiContent.waterKnowledge) && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <MapPin className="w-5 h-5 text-green-500" />
+                    Environmental Knowledge
+                    <Badge variant="outline" className="ml-2 text-xs bg-purple-50 text-purple-700 border-purple-200">
+                      AI-Researched
+                    </Badge>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {aiContent.environmentalKnowledge && (
+                    <div>
+                      <label className="text-sm font-medium text-gray-500 mb-2 block">Traditional Ecological Knowledge</label>
+                      <p className="text-gray-700 leading-relaxed">{aiContent.environmentalKnowledge}</p>
+                    </div>
+                  )}
+                  {aiContent.landManagement && (
+                    <div>
+                      <label className="text-sm font-medium text-gray-500 mb-2 block">Land Management & Cultural Burning</label>
+                      <p className="text-gray-700 leading-relaxed">{aiContent.landManagement}</p>
+                    </div>
+                  )}
+                  {aiContent.waterKnowledge && (
+                    <div>
+                      <label className="text-sm font-medium text-gray-500 mb-2 block">Water Knowledge</label>
+                      <p className="text-gray-700 leading-relaxed">{aiContent.waterKnowledge}</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Trade Networks & Connections */}
+            {aiContent && (aiContent.tradeNetworks || aiContent.neighboringGroups?.length > 0 || aiContent.tradeGoods?.length > 0) && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    Trade Networks & Connections
+                    <Badge variant="outline" className="ml-2 text-xs bg-purple-50 text-purple-700 border-purple-200">
+                      AI-Researched
+                    </Badge>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {aiContent.tradeNetworks && (
+                    <div>
+                      <label className="text-sm font-medium text-gray-500 mb-2 block">Trade Routes & Exchange</label>
+                      <p className="text-gray-700 leading-relaxed">{aiContent.tradeNetworks}</p>
+                    </div>
+                  )}
+                  {aiContent.neighboringGroups && aiContent.neighboringGroups.length > 0 && (
+                    <div>
+                      <label className="text-sm font-medium text-gray-500 mb-2 block">Neighboring Groups</label>
+                      <div className="flex flex-wrap gap-2">
+                        {aiContent.neighboringGroups.map((group: string, index: number) => (
+                          <Badge key={index} variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">{group}</Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {aiContent.tradeGoods && aiContent.tradeGoods.length > 0 && (
+                    <div>
+                      <label className="text-sm font-medium text-gray-500 mb-2 block">Trade Goods</label>
+                      <div className="flex flex-wrap gap-2">
+                        {aiContent.tradeGoods.map((good: string, index: number) => (
+                          <Badge key={index} variant="outline">{good}</Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Music, Dance & Storytelling */}
+            {aiContent && (aiContent.musicInstruments?.length > 0 || aiContent.danceStyles?.length > 0 || aiContent.storytellingTraditions) && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    Music, Dance & Storytelling
+                    <Badge variant="outline" className="ml-2 text-xs bg-purple-50 text-purple-700 border-purple-200">
+                      AI-Researched
+                    </Badge>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {aiContent.musicInstruments && aiContent.musicInstruments.length > 0 && (
+                    <div>
+                      <label className="text-sm font-medium text-gray-500 mb-2 block">Traditional Instruments</label>
+                      <div className="flex flex-wrap gap-2">
+                        {aiContent.musicInstruments.map((instrument: string, index: number) => (
+                          <Badge key={index} variant="outline" className="bg-indigo-50 text-indigo-700 border-indigo-200">{instrument}</Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {aiContent.danceStyles && aiContent.danceStyles.length > 0 && (
+                    <div>
+                      <label className="text-sm font-medium text-gray-500 mb-2 block">Dance Traditions</label>
+                      <div className="flex flex-wrap gap-2">
+                        {aiContent.danceStyles.map((dance: string, index: number) => (
+                          <Badge key={index} variant="outline" className="bg-pink-50 text-pink-700 border-pink-200">{dance}</Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {aiContent.storytellingTraditions && (
+                    <div>
+                      <label className="text-sm font-medium text-gray-500 mb-2 block">Oral Traditions</label>
+                      <p className="text-gray-700 leading-relaxed">{aiContent.storytellingTraditions}</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Tools, Technology & Crafts */}
+            {aiContent && (aiContent.toolsTechnology?.length > 0 || aiContent.weavingTextiles?.length > 0) && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    Tools & Crafts
+                    <Badge variant="outline" className="ml-2 text-xs bg-purple-50 text-purple-700 border-purple-200">
+                      AI-Researched
+                    </Badge>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {aiContent.toolsTechnology && aiContent.toolsTechnology.length > 0 && (
+                    <div>
+                      <label className="text-sm font-medium text-gray-500 mb-2 block">Traditional Tools & Technology</label>
+                      <div className="flex flex-wrap gap-2">
+                        {aiContent.toolsTechnology.map((tool: string, index: number) => (
+                          <Badge key={index} variant="outline" className="bg-slate-50 text-slate-700 border-slate-200">{tool}</Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {aiContent.weavingTextiles && aiContent.weavingTextiles.length > 0 && (
+                    <div>
+                      <label className="text-sm font-medium text-gray-500 mb-2 block">Weaving & Textiles</label>
+                      <div className="flex flex-wrap gap-2">
+                        {aiContent.weavingTextiles.map((item: string, index: number) => (
+                          <Badge key={index} variant="outline" className="bg-orange-50 text-orange-700 border-orange-200">{item}</Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Dreamtime & Significant Places */}
+            {aiContent && (aiContent.dreamtimeBeings?.length > 0 || aiContent.significantSites?.length > 0) && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    Dreamtime & Country
+                    <Badge variant="outline" className="ml-2 text-xs bg-purple-50 text-purple-700 border-purple-200">
+                      AI-Researched
+                    </Badge>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {aiContent.dreamtimeBeings && aiContent.dreamtimeBeings.length > 0 && (
+                    <div>
+                      <label className="text-sm font-medium text-gray-500 mb-2 block">Ancestral Beings</label>
+                      <div className="flex flex-wrap gap-2">
+                        {aiContent.dreamtimeBeings.map((being: string, index: number) => (
+                          <Badge key={index} variant="outline" className="bg-violet-50 text-violet-700 border-violet-200">{being}</Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {aiContent.significantSites && aiContent.significantSites.length > 0 && (
+                    <div>
+                      <label className="text-sm font-medium text-gray-500 mb-2 block">Types of Significant Places</label>
+                      <div className="flex flex-wrap gap-2">
+                        {aiContent.significantSites.map((site: string, index: number) => (
+                          <Badge key={index} variant="outline" className="bg-teal-50 text-teal-700 border-teal-200">{site}</Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Contemporary Culture */}
+            {aiContent && (aiContent.contemporaryCulture || aiContent.languageRevival || 
+              aiContent.culturalCentres?.length > 0 || aiContent.notableFigures?.length > 0) && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Calendar className="w-5 h-5 text-purple-500" />
+                    Contemporary Culture
+                    <Badge variant="outline" className="ml-2 text-xs bg-purple-50 text-purple-700 border-purple-200">
+                      AI-Researched
+                    </Badge>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {aiContent.contemporaryCulture && (
+                    <div>
+                      <label className="text-sm font-medium text-gray-500 mb-2 block">Keeping Culture Strong</label>
+                      <p className="text-gray-700 leading-relaxed">{aiContent.contemporaryCulture}</p>
+                    </div>
+                  )}
+                  {aiContent.languageRevival && (
+                    <div>
+                      <label className="text-sm font-medium text-gray-500 mb-2 block">Language Revival</label>
+                      <p className="text-gray-700 leading-relaxed">{aiContent.languageRevival}</p>
+                    </div>
+                  )}
+                  {aiContent.culturalCentres && aiContent.culturalCentres.length > 0 && (
+                    <div>
+                      <label className="text-sm font-medium text-gray-500 mb-2 block">Cultural Centres & Keeping Places</label>
+                      <div className="flex flex-wrap gap-2">
+                        {aiContent.culturalCentres.map((centre: string, index: number) => (
+                          <Badge key={index} variant="outline" className="bg-rose-50 text-rose-700 border-rose-200">{centre}</Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {aiContent.notableFigures && aiContent.notableFigures.length > 0 && (
+                    <div>
+                      <label className="text-sm font-medium text-gray-500 mb-2 block">Notable Figures</label>
+                      <div className="flex flex-wrap gap-2">
+                        {aiContent.notableFigures.map((figure: string, index: number) => (
+                          <Badge key={index} variant="outline" className="bg-cyan-50 text-cyan-700 border-cyan-200">{figure}</Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
           </div>
 
           {/* Sidebar */}
