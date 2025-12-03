@@ -15,6 +15,7 @@ import { SaveShareMapView } from './SaveShareMapView';
 import { MapStateManager, type MapState } from '@/lib/map-state-manager';
 import { MobileMapControls } from './MobileMapControls';
 import { MobileLayerControl } from './MobileLayerControl';
+import { MapLegend } from './MapLegend';
 import { SearchAutocomplete } from './SearchAutocomplete';
 import { useToast } from '@/hooks/use-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -49,6 +50,7 @@ export default function SimpleMap({ onMapReady, onTerritorySelect, regionFilter,
   }>({ isLoading: false });
   const [showMiningFilters, setShowMiningFilters] = useState(false);
   const [showLayerControl, setShowLayerControl] = useState(false);
+  const [showLegend, setShowLegend] = useState(false);
   const [miningFilters, setMiningFilters] = useState<MiningFilters>({
     tenementTypes: [],
     status: [],
@@ -92,8 +94,12 @@ export default function SimpleMap({ onMapReady, onTerritorySelect, regionFilter,
     // Set map center and zoom
     mapInstanceRef.current.setView([state.center.lat, state.center.lng], state.zoom);
 
-    // Update layers
-    setLayers(state.layers);
+    // Update layers (ensure nationalMining is included)
+    setLayers(prev => ({
+      ...prev,
+      ...state.layers,
+      nationalMining: (state.layers as any).nationalMining ?? prev.nationalMining
+    }));
 
     // Update filters
     if (state.filters.mining) {
@@ -860,6 +866,31 @@ export default function SimpleMap({ onMapReady, onTerritorySelect, regionFilter,
         selectedTerritory={selectedTerritory?.name || null}
         onLoadView={handleLoadView}
       />
+      
+      {/* Map Legend */}
+      <MapLegend
+        isVisible={showLegend}
+        onClose={() => setShowLegend(false)}
+        showNationalMining={layers.nationalMining}
+        showExploration={layers.exploration}
+        showMining={layers.mining}
+      />
+      
+      {/* Legend Toggle Button */}
+      {(layers.nationalMining || layers.exploration || layers.mining) && !showLegend && (
+        <button
+          onClick={() => setShowLegend(true)}
+          className="absolute right-4 bottom-24 z-[400] bg-background/95 backdrop-blur-sm rounded-lg shadow-lg border p-2 hover:bg-accent transition-colors"
+          title="Show Legend"
+          data-testid="button-show-legend"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10"/>
+            <path d="M12 16v-4"/>
+            <path d="M12 8h.01"/>
+          </svg>
+        </button>
+      )}
     </div>
   );
 }
