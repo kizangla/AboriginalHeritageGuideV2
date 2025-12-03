@@ -13,18 +13,22 @@ import {
   Users,
   Briefcase,
   Loader2,
-  Navigation
+  Navigation,
+  Mountain,
+  FileText,
+  Map
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import debounce from 'lodash.debounce';
 
 interface SearchResult {
   id: string;
-  type: 'territory' | 'place' | 'business' | 'address';
+  type: 'territory' | 'place' | 'business' | 'address' | 'mining' | 'exploration';
   name: string;
   description?: string;
   coordinates?: { lat: number; lng: number };
   metadata?: any;
+  webLink?: string;
 }
 
 interface SearchAutocompleteProps {
@@ -47,19 +51,21 @@ export function SearchAutocomplete({
   const inputRef = useRef<HTMLInputElement>(null);
   const resultsRef = useRef<HTMLDivElement>(null);
 
+  const [apiResults, setApiResults] = useState<SearchResult[]>([]);
+  
   // Fetch territories data
   const { data: territories } = useQuery<any>({
     queryKey: ['/api/territories'],
   });
 
-  // Search function to filter results
-  const searchResults = useMemo(() => {
+  // Search function to filter local territory results
+  const localResults = useMemo(() => {
     if (!query || query.length < 2) return [];
 
     const results: SearchResult[] = [];
     const lowerQuery = query.toLowerCase();
 
-    // Search territories
+    // Search territories from locally loaded data
     if (territories?.features) {
       const territoryMatches = territories.features
         .filter((feature: any) => 
@@ -85,31 +91,16 @@ export function SearchAutocomplete({
       results.push(...territoryMatches);
     }
 
-    // Mock place search (in production, this would call a geocoding API)
-    if (lowerQuery.includes('sydney') || lowerQuery.includes('melbourne') || 
-        lowerQuery.includes('brisbane') || lowerQuery.includes('perth')) {
-      const places = [
-        { name: 'Sydney', lat: -33.8688, lng: 151.2093 },
-        { name: 'Melbourne', lat: -37.8136, lng: 144.9631 },
-        { name: 'Brisbane', lat: -27.4698, lng: 153.0251 },
-        { name: 'Perth', lat: -31.9505, lng: 115.8605 }
-      ];
-      
-      const placeMatches = places
-        .filter(place => place.name.toLowerCase().includes(lowerQuery))
-        .map(place => ({
-          id: `place-${place.name}`,
-          type: 'place' as const,
-          name: place.name,
-          description: 'Major city',
-          coordinates: { lat: place.lat, lng: place.lng }
-        }));
-      
-      results.push(...placeMatches);
-    }
+    return results;
+  }, [query, territories]);
 
+  // Combine local and API results
+  const searchResults = useMemo(() => {
+    const allResults = [...localResults, ...apiResults];
+    
     // Sort results by relevance (exact matches first)
-    results.sort((a, b) => {
+    const lowerQuery = query.toLowerCase();
+    allResults.sort((a, b) => {
       const aExact = a.name.toLowerCase() === lowerQuery;
       const bExact = b.name.toLowerCase() === lowerQuery;
       if (aExact && !bExact) return -1;
@@ -117,21 +108,117 @@ export function SearchAutocomplete({
       return 0;
     });
 
-    return results.slice(0, 10); // Limit to 10 results
-  }, [query, territories]);
+    return allResults.slice(0, 15);
+  }, [localResults, apiResults, query]);
 
-  // Debounced search for external APIs
+  // Debounced search for external APIs (MINEDEX, WAMEX, geocoding)
   const performExternalSearch = useMemo(
     () => debounce(async (searchQuery: string) => {
-      if (!searchQuery || searchQuery.length < 3) return;
+      if (!searchQuery || searchQuery.length < 2) {
+        setApiResults([]);
+        setIsSearching(false);
+        return;
+      }
       
       setIsSearching(true);
+      const results: SearchResult[] = [];
       
-      // Here you would call external geocoding or business search APIs
-      // For now, we'll just use a timeout to simulate async search
-      setTimeout(() => {
+      // Helper function to safely fetch and parse JSON
+      const safeFetch = async (url: string): Promise<any> => {
+        try {
+          const response = await fetch(url);
+          if (!response.ok) return null;
+          return await response.json();
+        } catch (error) {
+          console.warn(`Search fetch failed for ${url}:`, error);
+          return null;
+        }
+      };
+      
+      try {
+        // Fetch from multiple APIs in parallel with individual error handling
+        const [minedexData, wamexData, geocodeData] = await Promise.all([
+          safeFetch(`/api/minedex/search?q=${encodeURIComponent(searchQuery)}`),
+          safeFetch(`/api/wamex/search?q=${encodeURIComponent(searchQuery)}`),
+          safeFetch(`/api/geocode?q=${encodeURIComponent(searchQuery)}`)
+        ]);
+        
+        // Helper to validate coordinates with proper finite checks
+        const validateCoords = (lat: any, lng: any): { lat: number; lng: number } | undefined => {
+          const parsedLat = Number(lat);
+          const parsedLng = Number(lng);
+          if (Number.isFinite(parsedLat) && Number.isFinite(parsedLng) && 
+              parsedLat >= -90 && parsedLat <= 90 && parsedLng >= -180 && parsedLng <= 180) {
+            return { lat: parsedLat, lng: parsedLng };
+          }
+          return undefined;
+        };
+        
+        // Process MINEDEX results (mining sites)
+        if (minedexData?.sites && Array.isArray(minedexData.sites)) {
+          const miningResults = minedexData.sites
+            .filter((site: any) => site?.siteTitle || site?.shortName)
+            .slice(0, 5)
+            .map((site: any) => ({
+              id: site.id || `mining-${site.siteCode || Math.random()}`,
+              type: 'mining' as const,
+              name: site.siteTitle || site.shortName || 'Unknown Site',
+              description: `${site.siteType || 'Mining Site'} - ${site.siteCommodities || 'Unknown'} (${site.siteStage || 'Unknown stage'})`,
+              coordinates: validateCoords(site.coordinates?.lat, site.coordinates?.lng),
+              webLink: site.webLink,
+              metadata: site
+            }));
+          results.push(...miningResults);
+        }
+        
+        // Process WAMEX results (exploration reports)
+        if (wamexData?.reports && Array.isArray(wamexData.reports)) {
+          const explorationResults = wamexData.reports
+            .filter((report: any) => report?.project || report?.title)
+            .slice(0, 5)
+            .map((report: any) => {
+              const coords = Array.isArray(report.coordinates) && report.coordinates[0]?.length >= 2
+                ? validateCoords(report.coordinates[0][1], report.coordinates[0][0])
+                : undefined;
+              return {
+                id: report.id || `exploration-${report.aNumber || Math.random()}`,
+                type: 'exploration' as const,
+                name: report.project || report.title || 'Unknown Report',
+                description: `${report.reportType || 'Report'} - ${report.targetCommodity || 'Various'} (${report.operator || 'Unknown operator'})`,
+                coordinates: coords,
+                webLink: report.abstractUrl,
+                metadata: report
+              };
+            });
+          results.push(...explorationResults);
+        }
+        
+        // Process geocode results (places)
+        if (Array.isArray(geocodeData)) {
+          const placeResults = geocodeData
+            .filter((place: any) => place?.display_name || place?.name)
+            .slice(0, 3)
+            .map((place: any) => {
+              const coords = validateCoords(place.lat, place.lon);
+              return {
+                id: `place-${place.place_id || place.display_name || Math.random()}`,
+                type: 'place' as const,
+                name: place.display_name?.split(',')[0] || place.name || 'Unknown Place',
+                description: place.display_name || 'Location',
+                coordinates: coords,
+                metadata: place
+              };
+            });
+          results.push(...placeResults);
+        }
+        
+        setApiResults(results);
+      } catch (error) {
+        console.error('Search API error:', error);
+        setApiResults([]);
+      } finally {
         setIsSearching(false);
-      }, 500);
+      }
     }, 300),
     []
   );
@@ -214,31 +301,52 @@ export function SearchAutocomplete({
   const getResultIcon = (type: SearchResult['type']) => {
     switch (type) {
       case 'territory':
-        return <Users className="w-4 h-4" />;
+        return <Map className="w-4 h-4 text-orange-600" />;
       case 'place':
-        return <MapPin className="w-4 h-4" />;
+        return <MapPin className="w-4 h-4 text-blue-600" />;
       case 'business':
-        return <Briefcase className="w-4 h-4" />;
+        return <Briefcase className="w-4 h-4 text-green-600" />;
       case 'address':
-        return <Building2 className="w-4 h-4" />;
+        return <Building2 className="w-4 h-4 text-gray-600" />;
+      case 'mining':
+        return <Mountain className="w-4 h-4 text-purple-600" />;
+      case 'exploration':
+        return <FileText className="w-4 h-4 text-indigo-600" />;
       default:
         return <Navigation className="w-4 h-4" />;
     }
   };
 
-  // Get type badge color
-  const getTypeBadgeVariant = (type: SearchResult['type']) => {
+  // Get type badge styling
+  const getTypeBadgeClass = (type: SearchResult['type']) => {
     switch (type) {
       case 'territory':
-        return 'default';
+        return 'bg-orange-100 text-orange-700 border-orange-200';
       case 'place':
-        return 'secondary';
+        return 'bg-blue-100 text-blue-700 border-blue-200';
       case 'business':
-        return 'outline';
+        return 'bg-green-100 text-green-700 border-green-200';
       case 'address':
-        return 'outline';
+        return 'bg-gray-100 text-gray-700 border-gray-200';
+      case 'mining':
+        return 'bg-purple-100 text-purple-700 border-purple-200';
+      case 'exploration':
+        return 'bg-indigo-100 text-indigo-700 border-indigo-200';
       default:
-        return 'outline';
+        return 'bg-gray-100 text-gray-700 border-gray-200';
+    }
+  };
+
+  // Get human-readable type label
+  const getTypeLabel = (type: SearchResult['type']) => {
+    switch (type) {
+      case 'territory': return 'Territory';
+      case 'place': return 'Place';
+      case 'business': return 'Business';
+      case 'address': return 'Address';
+      case 'mining': return 'Mining Site';
+      case 'exploration': return 'Report';
+      default: return type;
     }
   };
 
@@ -314,10 +422,10 @@ export function SearchAutocomplete({
                               {result.name}
                             </span>
                             <Badge 
-                              variant={getTypeBadgeVariant(result.type) as any}
-                              className="text-xs"
+                              variant="outline"
+                              className={cn("text-xs", getTypeBadgeClass(result.type))}
                             >
-                              {result.type}
+                              {getTypeLabel(result.type)}
                             </Badge>
                           </div>
                           {result.description && (
