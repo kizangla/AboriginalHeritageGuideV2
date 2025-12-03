@@ -7,6 +7,7 @@ import { dataOptimizationService } from '@/lib/data-optimization';
 import EnhancedBusinessMarkers from './EnhancedBusinessMarkers';
 import EnhancedMiningOverlay from './EnhancedMiningOverlay';
 import ExplorationOverlay from './ExplorationOverlay';
+import NationalMiningOverlay from './NationalMiningOverlay';
 import MapLoadingIndicator from './MapLoadingIndicator';
 import { MiningFilterPanel, type MiningFilters } from './MiningFilterPanel';
 import { DataFreshnessIndicator } from './DataFreshnessIndicator';
@@ -66,6 +67,7 @@ export default function SimpleMap({ onMapReady, onTerritorySelect, regionFilter,
     ratsib: showRATSIBBoundaries,
     mining: showMining,
     exploration: showExploration,
+    nationalMining: false,
     businesses: false
   });
   
@@ -803,6 +805,11 @@ export default function SimpleMap({ onMapReady, onTerritorySelect, regionFilter,
         map={mapInstanceRef.current}
         showExploration={layers.exploration}
         selectedTerritory={selectedTerritory}
+      />
+      {/* National Mining Overlay - All Australian States */}
+      <NationalMiningOverlay
+        map={mapInstanceRef.current}
+        showNationalMining={layers.nationalMining}
       />
       
       {/* Mobile Map Controls */}

@@ -54,6 +54,7 @@ export function MobileLayerControl({
     ratsib: 50,
     mining: 80,
     exploration: 80,
+    nationalMining: 80,
     businesses: 100
   });
 
@@ -102,6 +103,15 @@ export function MobileLayerControl({
       opacity: layerOpacities.exploration,
       color: 'bg-purple-500',
       description: 'Exploration permits and prospecting areas'
+    },
+    {
+      id: 'nationalMining',
+      name: 'National Mining',
+      icon: <Mountain className="w-4 h-4" />,
+      enabled: layers.nationalMining ?? false,
+      opacity: layerOpacities.nationalMining,
+      color: 'bg-indigo-500',
+      description: 'Mining deposits from all Australian states'
     },
     {
       id: 'businesses',
