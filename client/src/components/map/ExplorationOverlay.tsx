@@ -1,11 +1,12 @@
 /**
- * Exploration Overlay - Displays WA DMIRS exploration report boundaries with authentic mineral data
+ * Exploration Overlay - Displays WA DMIRS exploration report data with clustering
+ * Uses marker clustering for better performance and cleaner visualization
  */
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import L from 'leaflet';
+import 'leaflet.markercluster';
 import { useQuery } from '@tanstack/react-query';
-import { ExplorationFilters, type ExplorationFilters as ExplorationFiltersType } from '../ExplorationFilters';
 
 interface ExplorationOverlayProps {
   map: L.Map | null;
@@ -21,6 +22,8 @@ interface ExplorationReport {
   reportYear: number;
   keywords: string;
   coordinates: [number, number][];
+  aNumber?: string;
+  abstractUrl?: string;
 }
 
 interface ExplorationData {
@@ -36,257 +39,280 @@ interface ExplorationData {
   };
 }
 
+// Commodity color mapping
+const getCommodityColor = (commodity: string): string => {
+  const lowerCommodity = commodity.toLowerCase();
+  
+  if (lowerCommodity.includes('gold')) return '#FFD700';
+  if (lowerCommodity.includes('iron')) return '#B22222';
+  if (lowerCommodity.includes('lithium')) return '#9370DB';
+  if (lowerCommodity.includes('copper')) return '#B87333';
+  if (lowerCommodity.includes('nickel')) return '#71797E';
+  if (lowerCommodity.includes('zinc')) return '#708090';
+  if (lowerCommodity.includes('uranium')) return '#32CD32';
+  if (lowerCommodity.includes('diamond')) return '#B9F2FF';
+  if (lowerCommodity.includes('coal')) return '#36454F';
+  if (lowerCommodity.includes('rare earth')) return '#FF69B4';
+  if (lowerCommodity.includes('tantalum')) return '#4B0082';
+  if (lowerCommodity.includes('tin')) return '#D2691E';
+  
+  return '#6366F1'; // Default indigo
+};
+
+// Get commodity icon/emoji for cluster display
+const getCommodityIcon = (commodity: string): string => {
+  const lowerCommodity = commodity.toLowerCase();
+  
+  if (lowerCommodity.includes('gold')) return '🥇';
+  if (lowerCommodity.includes('iron')) return '⚙️';
+  if (lowerCommodity.includes('lithium')) return '🔋';
+  if (lowerCommodity.includes('copper')) return '🔶';
+  if (lowerCommodity.includes('nickel')) return '⚪';
+  if (lowerCommodity.includes('diamond')) return '💎';
+  if (lowerCommodity.includes('uranium')) return '☢️';
+  if (lowerCommodity.includes('coal')) return '⬛';
+  
+  return '📋';
+};
+
 export default function ExplorationOverlay({ map, showExploration, selectedTerritory }: ExplorationOverlayProps) {
-  const [explorationLayer, setExplorationLayer] = useState<L.LayerGroup | null>(null);
-  const [showFilters, setShowFilters] = useState(false);
-  const [filters, setFilters] = useState<ExplorationFiltersType>({ limit: 2000 });
+  const clusterGroupRef = useRef<L.MarkerClusterGroup | null>(null);
+  const polygonLayerRef = useRef<L.LayerGroup | null>(null);
+  const [currentZoom, setCurrentZoom] = useState<number>(5);
 
-  // Build query parameters for filtering
-  const buildQueryParams = () => {
-    const params = new URLSearchParams();
-    if (filters.commodity) {
-      console.log('Adding commodity filter:', filters.commodity);
-      params.append('commodity', filters.commodity);
-    }
-    if (filters.yearFrom) {
-      console.log('Adding yearFrom filter:', filters.yearFrom);
-      params.append('yearFrom', filters.yearFrom.toString());
-    }
-    if (filters.yearTo) {
-      console.log('Adding yearTo filter:', filters.yearTo);
-      params.append('yearTo', filters.yearTo.toString());
-    }
-    if (filters.limit) {
-      params.append('limit', filters.limit.toString());
-    }
-    console.log('Built query params:', params.toString());
-    return params.toString();
-  };
-
-  // Query exploration data for map bounds with filtering
-  const { data: explorationData, isLoading, refetch } = useQuery({
-    queryKey: ['/api/exploration/map-bounds', JSON.stringify(filters)],
-    queryFn: () => fetch(`/api/exploration/map-bounds?${buildQueryParams()}`).then(res => res.json()),
+  // Query exploration data
+  const { data: explorationData, isLoading } = useQuery({
+    queryKey: ['/api/exploration/map-bounds'],
+    queryFn: () => fetch('/api/exploration/map-bounds?limit=2000').then(res => res.json()),
     enabled: showExploration && !!map,
     refetchOnWindowFocus: false,
-    staleTime: 0, // Always fetch fresh data when filters change
+    staleTime: 5 * 60 * 1000, // 5 minutes cache
   });
 
+  // Track zoom level for progressive detail
   useEffect(() => {
-    if (!map || !showExploration) {
-      // Remove exploration layer if hidden
-      if (explorationLayer && map) {
-        map.removeLayer(explorationLayer);
-        setExplorationLayer(null);
+    if (!map) return;
+
+    const handleZoom = () => {
+      setCurrentZoom(map.getZoom());
+    };
+
+    map.on('zoomend', handleZoom);
+    setCurrentZoom(map.getZoom());
+
+    return () => {
+      map.off('zoomend', handleZoom);
+    };
+  }, [map]);
+
+  // Main effect to render exploration data
+  useEffect(() => {
+    if (!map) return;
+
+    // Clean up existing layers
+    if (clusterGroupRef.current) {
+      map.removeLayer(clusterGroupRef.current);
+      clusterGroupRef.current = null;
+    }
+    if (polygonLayerRef.current) {
+      map.removeLayer(polygonLayerRef.current);
+      polygonLayerRef.current = null;
+    }
+
+    if (!showExploration || isLoading || !explorationData) {
+      return;
+    }
+
+    const typedData = explorationData as ExplorationData;
+    const reports = typedData.reports || [];
+
+    if (reports.length === 0) {
+      console.log('No exploration reports available');
+      return;
+    }
+
+    console.log(`Rendering ${reports.length} exploration reports with clustering...`);
+
+    // Create marker cluster group with custom styling
+    const clusterGroup = L.markerClusterGroup({
+      chunkedLoading: true,
+      maxClusterRadius: 60,
+      spiderfyOnMaxZoom: true,
+      showCoverageOnHover: false,
+      zoomToBoundsOnClick: true,
+      disableClusteringAtZoom: 12,
+      iconCreateFunction: (cluster) => {
+        const childCount = cluster.getChildCount();
+        
+        // Get dominant commodity in cluster
+        const markers = cluster.getAllChildMarkers();
+        const commodityCounts: Record<string, number> = {};
+        
+        markers.forEach((marker: any) => {
+          const commodity = marker.options.commodity || 'other';
+          commodityCounts[commodity] = (commodityCounts[commodity] || 0) + 1;
+        });
+        
+        const dominantCommodity = Object.entries(commodityCounts)
+          .sort((a, b) => b[1] - a[1])[0]?.[0] || 'other';
+        
+        const color = getCommodityColor(dominantCommodity);
+        
+        // Size based on count
+        let size = 40;
+        let fontSize = 12;
+        if (childCount > 100) {
+          size = 55;
+          fontSize = 14;
+        } else if (childCount > 50) {
+          size = 50;
+          fontSize = 13;
+        } else if (childCount > 10) {
+          size = 45;
+          fontSize = 12;
+        }
+
+        return L.divIcon({
+          html: `
+            <div style="
+              background: ${color};
+              width: ${size}px;
+              height: ${size}px;
+              border-radius: 50%;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              color: white;
+              font-weight: bold;
+              font-size: ${fontSize}px;
+              border: 3px solid white;
+              box-shadow: 0 3px 10px rgba(0,0,0,0.3);
+              text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+            ">
+              ${childCount}
+            </div>
+          `,
+          className: 'exploration-cluster-icon',
+          iconSize: L.point(size, size),
+          iconAnchor: L.point(size / 2, size / 2)
+        });
       }
-      return;
-    }
+    });
 
-    if (isLoading || !explorationData) {
-      return;
-    }
+    // Create polygon layer for detailed view
+    const polygonLayer = L.layerGroup();
 
-    // Remove existing layer
-    if (explorationLayer) {
-      map.removeLayer(explorationLayer);
-    }
+    // Add markers for each report
+    reports.forEach((report) => {
+      if (!report.coordinates || report.coordinates.length === 0) return;
 
-    const typedExplorationData = explorationData as ExplorationData;
-    console.log('Adding exploration reports overlay with authentic WA DMIRS data...');
-    
-    // Create new layer group for exploration reports
-    const newExplorationLayer = L.layerGroup();
-
-    // Use authentic exploration reports from WA DMIRS data
-    const explorationReports = typedExplorationData.reports || [];
-    
-    if (explorationReports.length === 0) {
-      console.log('No exploration reports available for current map bounds');
-      // Add empty layer to map and set state
-      newExplorationLayer.addTo(map);
-      setExplorationLayer(newExplorationLayer);
-      return;
-    }
-
-    // Group reports by location to handle overlapping markers
-    const locationGroups = new Map<string, typeof explorationReports>();
-    
-    explorationReports.forEach(report => {
+      // Calculate center of polygon
       const centerLat = report.coordinates.reduce((sum, coord) => sum + coord[0], 0) / report.coordinates.length;
       const centerLng = report.coordinates.reduce((sum, coord) => sum + coord[1], 0) / report.coordinates.length;
-      const locationKey = `${centerLat.toFixed(3)}_${centerLng.toFixed(3)}`;
-      
-      if (!locationGroups.has(locationKey)) {
-        locationGroups.set(locationKey, []);
-      }
-      locationGroups.get(locationKey)!.push(report);
-    });
 
-    // Process each location group
-    locationGroups.forEach((reports) => {
-      reports.forEach((report, index) => {
-        // Parse authentic commodities
-        const commodities = report.targetCommodity.split(';').map(c => c.trim());
-        
-        // Style based on primary commodity with enhanced color palette
-        const primaryCommodity = commodities[0].toLowerCase();
-        let fillColor = '#8B4513'; // Default brown for other minerals
-      
-        if (primaryCommodity.includes('gold')) {
-          fillColor = '#FFD700'; // Gold
-        } else if (primaryCommodity.includes('iron')) {
-          fillColor = '#B22222'; // Fire Brick Red
-        } else if (primaryCommodity.includes('lithium')) {
-          fillColor = '#9370DB'; // Medium Purple
-        } else if (primaryCommodity.includes('copper')) {
-          fillColor = '#B87333'; // Dark Goldenrod
-        } else if (primaryCommodity.includes('nickel')) {
-          fillColor = '#C0C0C0'; // Silver
-        } else if (primaryCommodity.includes('aluminum') || primaryCommodity.includes('aluminium')) {
-          fillColor = '#87CEEB'; // Sky Blue
-        } else if (primaryCommodity.includes('zinc')) {
-          fillColor = '#708090'; // Slate Gray
-        } else if (primaryCommodity.includes('lead')) {
-          fillColor = '#2F4F4F'; // Dark Slate Gray
-        } else if (primaryCommodity.includes('uranium')) {
-          fillColor = '#00FF00'; // Bright Green
-        } else if (primaryCommodity.includes('diamond')) {
-          fillColor = '#E6E6FA'; // Lavender
-        } else if (primaryCommodity.includes('coal')) {
-          fillColor = '#2F2F2F'; // Very Dark Gray
-        } else if (primaryCommodity.includes('tin')) {
-          fillColor = '#D2691E'; // Chocolate
-        } else if (primaryCommodity.includes('tantalum')) {
-          fillColor = '#4B0082'; // Indigo
-        } else if (primaryCommodity.includes('bismuth')) {
-          fillColor = '#FF1493'; // Deep Pink
-        } else if (primaryCommodity.includes('rare earth')) {
-          fillColor = '#FF69B4'; // Hot Pink
-        } else if (primaryCommodity.includes('oil') || primaryCommodity.includes('petroleum')) {
-          fillColor = '#000000'; // Black
-        }
+      if (!Number.isFinite(centerLat) || !Number.isFinite(centerLng)) return;
 
-        // Apply offset for overlapping markers to prevent complete overlap
-        let polygonCoords = report.coordinates;
-        if (reports.length > 1 && index > 0) {
-          const offsetAmount = 0.002 * index; // Small offset for overlapping markers
-          polygonCoords = report.coordinates.map(coord => [
-            coord[0] + offsetAmount,
-            coord[1] + offsetAmount
-          ]);
-        }
+      const primaryCommodity = report.targetCommodity?.split(';')[0]?.trim() || 'Unknown';
+      const color = getCommodityColor(primaryCommodity);
 
-        // Create polygon with offset coordinates for enhanced visibility
-        const explorationPolygon = L.polygon(polygonCoords, {
-          fillColor: fillColor,
-          fillOpacity: 0.9,
-          color: '#ffffff',
-          weight: 5,
-          opacity: 1.0,
-          interactive: true,
-          dashArray: '8, 4',
-          lineCap: 'round',
-          lineJoin: 'round'
-        });
+      // Create circle marker for clustering
+      const marker = L.circleMarker([centerLat, centerLng], {
+        radius: 8,
+        fillColor: color,
+        color: '#ffffff',
+        weight: 2,
+        opacity: 1,
+        fillOpacity: 0.85,
+        commodity: primaryCommodity // Store for cluster icon
+      } as any);
 
-        // Add detailed popup with authentic WA DMIRS data showing clustering info
-        explorationPolygon.bindPopup(`
-          <div style="min-width: 280px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
-            <div style="border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; margin-bottom: 12px;">
-              <h3 style="margin: 0; color: #1e293b; font-size: 16px; font-weight: bold; line-height: 1.3;">
-                ${report.project}
-              </h3>
-              <div style="color: #64748b; font-size: 12px; margin-top: 4px; font-weight: 500;">
-                WA DMIRS Report #${report.id} ${reports.length > 1 ? `(${index + 1} of ${reports.length} in area)` : ''}
-              </div>
-            </div>
-            
-            <div style="display: grid; gap: 8px; font-size: 13px;">
-              <div style="display: flex; justify-content: space-between; align-items: center;">
-                <span style="color: #475569; font-weight: 500;">Operator:</span>
-                <span style="color: #1e293b; font-weight: 600; text-align: right; max-width: 150px;">${report.operator}</span>
-              </div>
-              
-              <div style="display: flex; justify-content: space-between; align-items: center;">
-                <span style="color: #475569; font-weight: 500;">Target Commodities:</span>
-                <span style="color: #1e293b; font-weight: 600; text-align: right; max-width: 150px;">${report.targetCommodity}</span>
-              </div>
-              
-              <div style="display: flex; justify-content: space-between; align-items: center;">
-                <span style="color: #475569; font-weight: 500;">Report Year:</span>
-                <span style="color: #1e293b; font-weight: 600;">${report.reportYear}</span>
-              </div>
-              
-              <div style="display: flex; justify-content: space-between; align-items: center;">
-                <span style="color: #475569; font-weight: 500;">Primary Commodity:</span>
-                <span style="color: ${fillColor}; font-weight: 700;">${primaryCommodity.toUpperCase()}</span>
-              </div>
-            </div>
-            
-            <div style="margin-top: 14px; padding-top: 10px; border-top: 1px solid #e2e8f0; text-align: center;">
-              <div style="color: #64748b; font-size: 11px; margin-bottom: 2px;">Authentic Government Data</div>
-              <div style="color: #059669; font-size: 12px; font-weight: 600;">WA Department of Mines & Petroleum</div>
+      // Create popup content
+      const popupContent = `
+        <div style="min-width: 260px; font-family: system-ui, -apple-system, sans-serif;">
+          <div style="background: linear-gradient(135deg, ${color}22, ${color}44); padding: 12px; margin: -14px -14px 12px -14px; border-radius: 4px 4px 0 0;">
+            <h3 style="margin: 0; color: #1e293b; font-size: 15px; font-weight: 600;">
+              ${report.project || 'Exploration Report'}
+            </h3>
+            <div style="color: #64748b; font-size: 11px; margin-top: 4px;">
+              Report ${report.aNumber || report.id} • ${report.reportYear || 'Unknown year'}
             </div>
           </div>
-        `, {
-          maxWidth: 320,
-          closeButton: true
-        });
+          
+          <div style="display: grid; gap: 8px; font-size: 13px;">
+            <div style="display: flex; gap: 8px; align-items: flex-start;">
+              <span style="color: #64748b; min-width: 80px;">Operator:</span>
+              <span style="color: #1e293b; font-weight: 500;">${report.operator || 'Unknown'}</span>
+            </div>
+            
+            <div style="display: flex; gap: 8px; align-items: flex-start;">
+              <span style="color: #64748b; min-width: 80px;">Commodity:</span>
+              <span style="display: flex; align-items: center; gap: 6px;">
+                <span style="width: 12px; height: 12px; background: ${color}; border-radius: 50%; display: inline-block;"></span>
+                <span style="color: #1e293b; font-weight: 500;">${report.targetCommodity || 'Unknown'}</span>
+              </span>
+            </div>
+            
+            ${report.abstractUrl ? `
+            <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #e2e8f0;">
+              <a href="${report.abstractUrl}" target="_blank" rel="noopener noreferrer" 
+                 style="color: #6366F1; text-decoration: none; font-size: 12px; display: flex; align-items: center; gap: 4px;">
+                View Full Report →
+              </a>
+            </div>
+            ` : ''}
+          </div>
+          
+          <div style="margin-top: 10px; padding-top: 8px; border-top: 1px solid #e2e8f0; text-align: center;">
+            <span style="color: #64748b; font-size: 10px;">Source: WA Dept of Mines (DMIRS)</span>
+          </div>
+        </div>
+      `;
 
-        newExplorationLayer.addLayer(explorationPolygon);
-      });
+      marker.bindPopup(popupContent, { maxWidth: 300 });
+      clusterGroup.addLayer(marker);
+
+      // Add polygon for detailed view at high zoom
+      if (currentZoom >= 11 && report.coordinates.length > 2) {
+        const polygon = L.polygon(report.coordinates, {
+          fillColor: color,
+          fillOpacity: 0.25,
+          color: color,
+          weight: 2,
+          opacity: 0.8,
+          dashArray: '5, 5'
+        });
+        polygon.bindPopup(popupContent, { maxWidth: 300 });
+        polygonLayer.addLayer(polygon);
+      }
     });
 
-    console.log(`Added ${explorationReports.length} exploration reports to map with authentic commodity data`);
+    // Add layers to map
+    clusterGroup.addTo(map);
+    clusterGroupRef.current = clusterGroup;
 
-    // Add to map
-    newExplorationLayer.addTo(map);
-    setExplorationLayer(newExplorationLayer);
+    if (currentZoom >= 11) {
+      polygonLayer.addTo(map);
+      polygonLayerRef.current = polygonLayer;
+    }
 
-  }, [map, showExploration, explorationData, isLoading]);
+    console.log(`Added ${reports.length} exploration reports with clustering`);
+
+  }, [map, showExploration, explorationData, isLoading, currentZoom]);
 
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      if (explorationLayer && map) {
-        map.removeLayer(explorationLayer);
+      if (clusterGroupRef.current && map) {
+        map.removeLayer(clusterGroupRef.current);
+      }
+      if (polygonLayerRef.current && map) {
+        map.removeLayer(polygonLayerRef.current);
       }
     };
-  }, []);
+  }, [map]);
 
-  const handleFilterChange = (newFilters: ExplorationFiltersType) => {
-    console.log('Applying exploration filters:', newFilters);
-    setFilters(newFilters);
-  };
+  // Don't render any UI - stats are shown in the layer control
+  if (!showExploration) return null;
 
-  return (
-    <>
-      {showExploration && (
-        <>
-          <ExplorationFilters
-            onFilterChange={handleFilterChange}
-            isVisible={showFilters}
-            currentFilters={filters}
-          />
-          <div className="absolute top-4 left-4 z-[1000]">
-            <button
-              onClick={() => setShowFilters(!showFilters)}
-              className="bg-white/90 backdrop-blur border border-gray-300 rounded px-3 py-2 shadow-lg hover:bg-white/95 transition-colors"
-            >
-              {showFilters ? 'Hide Filters' : 'Filter Exploration Data'}
-            </button>
-            {explorationData && (
-              <div className="mt-2 bg-white/90 backdrop-blur border border-gray-300 rounded px-3 py-2 shadow-lg text-sm">
-                <div>Showing: {explorationData.totalDisplayed || 0} reports</div>
-                <div>Database: {explorationData.totalInDatabase || 113850} total</div>
-                <div className="text-xs text-gray-600 mt-1">
-                  Source: WA Department of Mines
-                </div>
-              </div>
-            )}
-          </div>
-        </>
-      )}
-    </>
-  );
+  return null;
 }
