@@ -238,6 +238,29 @@ export const culturalSitesRelations = relations(culturalSites, ({ one }) => ({
   }),
 }));
 
+export const aiTerritoryContent = pgTable("ai_territory_content", {
+  id: serial("id").primaryKey(),
+  territoryName: text("territory_name").notNull().unique(),
+  languageFamily: text("language_family"),
+  traditionalLanguages: text("traditional_languages").array().default([]),
+  culturalPractices: text("cultural_practices"),
+  historicalContext: text("historical_context"),
+  connectionToCountry: text("connection_to_country"),
+  traditionalPractices: text("traditional_practices").array().default([]),
+  artStyles: text("art_styles").array().default([]),
+  ceremonies: text("ceremonies").array().default([]),
+  songlines: text("songlines").array().default([]),
+  traditionalFoods: text("traditional_foods").array().default([]),
+  seasonalCalendar: text("seasonal_calendar"),
+  sourcesUsed: text("sources_used").array().default([]),
+  generatedAt: text("generated_at").notNull(),
+  modelUsed: text("model_used").default("gpt-4o-mini"),
+});
+
+export const insertAITerritoryContentSchema = createInsertSchema(aiTerritoryContent).omit({ id: true });
+export type AITerritoryContent = typeof aiTerritoryContent.$inferSelect;
+export type InsertAITerritoryContent = z.infer<typeof insertAITerritoryContentSchema>;
+
 export type Territory = typeof territories.$inferSelect;
 export type InsertTerritory = z.infer<typeof insertTerritorySchema>;
 export type Business = typeof businesses.$inferSelect;
