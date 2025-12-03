@@ -1,10 +1,24 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { MapPin, Building2, Navigation, Search } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { 
+  MapPin, 
+  Building2, 
+  Navigation, 
+  Search, 
+  Map, 
+  Mountain, 
+  FileText,
+  X,
+  Users,
+  ChevronDown
+} from 'lucide-react';
 import L from 'leaflet';
 import type { SearchResult } from '@shared/schema';
+import { cn } from '@/lib/utils';
 
 interface BusinessLocation {
   abn: string;
@@ -20,57 +34,106 @@ interface BusinessLocation {
     fullAddress: string;
   };
   supplyNationVerified?: boolean;
-  supplyNationData?: {
-    companyName: string;
-    categories: string[];
-    description?: string;
-  };
+  verificationConfidence?: string;
+  supplyNationData?: any;
 }
 
-interface BusinessSearchResult {
-  businesses: BusinessLocation[];
-  totalResults: number;
+interface TerritorySearchResult {
+  id: number;
+  name: string;
+  groupName: string;
+  region: string;
+  regionType: string;
+  centerLat: number;
+  centerLng: number;
+  languageFamily: string;
+}
+
+interface MinedexSite {
+  id: string;
+  siteTitle: string;
+  shortName: string;
+  siteType: string;
+  siteCommodities: string;
+  siteStage: string;
+  targetCommodity: string;
+  commodityCategory: string;
+  coordinates: {
+    lat: number;
+    lng: number;
+  };
+  webLink?: string;
+}
+
+interface WamexReport {
+  project: string;
+  operator: string;
+  targetCommodity: string;
+  reportYear: number;
+  reportType: string;
+  latitude?: number;
+  longitude?: number;
+  abstractUrl?: string;
 }
 
 interface UnifiedSearchProps {
   map: L.Map | null;
   onLocationSelect: (lat: number, lng: number) => void;
   onBusinessSelect?: (business: BusinessLocation) => void;
+  onTerritorySelect?: (territory: TerritorySearchResult) => void;
 }
 
-type SearchType = 'places' | 'businesses';
+type SearchCategory = 'all' | 'territories' | 'places' | 'businesses' | 'mining' | 'exploration';
 
-export default function UnifiedSearch({ map, onLocationSelect, onBusinessSelect }: UnifiedSearchProps) {
+const categoryConfig: Record<SearchCategory, { label: string; icon: any; color: string }> = {
+  all: { label: 'All', icon: Search, color: 'bg-gray-100 text-gray-700' },
+  territories: { label: 'Territories', icon: Map, color: 'bg-orange-100 text-orange-700' },
+  places: { label: 'Places', icon: MapPin, color: 'bg-blue-100 text-blue-700' },
+  businesses: { label: 'Businesses', icon: Building2, color: 'bg-green-100 text-green-700' },
+  mining: { label: 'Mining Sites', icon: Mountain, color: 'bg-purple-100 text-purple-700' },
+  exploration: { label: 'Reports', icon: FileText, color: 'bg-indigo-100 text-indigo-700' }
+};
+
+export default function UnifiedSearch({ map, onLocationSelect, onBusinessSelect, onTerritorySelect }: UnifiedSearchProps) {
   const [searchQuery, setSearchQuery] = useState('');
-  const [searchType, setSearchType] = useState<SearchType>('places');
+  const [category, setCategory] = useState<SearchCategory>('all');
   const [shouldSearch, setShouldSearch] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [showCategories, setShowCategories] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
 
-  // Place search query
+  // Territory search
+  const { data: territoryResults, isLoading: isLoadingTerritories } = useQuery({
+    queryKey: ['/api/territories/search', searchQuery],
+    queryFn: async () => {
+      if (!searchQuery.trim()) return { territories: [], totalResults: 0 };
+      const response = await fetch(`/api/territories/search?q=${encodeURIComponent(searchQuery)}`);
+      if (!response.ok) throw new Error('Territory search failed');
+      return response.json();
+    },
+    enabled: shouldSearch && (category === 'all' || category === 'territories') && searchQuery.trim().length >= 2
+  });
+
+  // Place search
   const { data: placeResults, isLoading: isLoadingPlaces } = useQuery({
     queryKey: ['/api/geocode', searchQuery],
     queryFn: async () => {
       if (!searchQuery.trim()) return [];
       const response = await fetch(`/api/geocode?q=${encodeURIComponent(searchQuery)}`);
-      if (!response.ok) {
-        throw new Error('Search failed');
-      }
+      if (!response.ok) throw new Error('Search failed');
       return response.json() as Promise<SearchResult[]>;
     },
-    enabled: shouldSearch && searchType === 'places' && searchQuery.trim().length > 0,
+    enabled: shouldSearch && (category === 'all' || category === 'places') && searchQuery.trim().length >= 2
   });
 
-  // Business search query using integrated ABR + Supply Nation system
+  // Business search
   const { data: businessResults, isLoading: isLoadingBusinesses } = useQuery({
     queryKey: ['/api/indigenous-businesses/integrated-search', searchQuery],
     queryFn: async () => {
       if (!searchQuery.trim()) return { businesses: [], totalResults: 0 };
       const response = await fetch(`/api/indigenous-businesses/integrated-search?name=${encodeURIComponent(searchQuery)}&includeSupplyNation=true`);
-      if (!response.ok) {
-        throw new Error('Business search failed');
-      }
+      if (!response.ok) throw new Error('Business search failed');
       const data = await response.json();
-      
-      // Transform integrated business data to match expected format
       const businesses = data.businesses?.map((business: any) => ({
         abn: business.abn,
         entityName: business.entityName,
@@ -86,23 +149,52 @@ export default function UnifiedSearch({ map, onLocationSelect, onBusinessSelect 
         },
         supplyNationVerified: business.supplyNationVerified,
         verificationConfidence: business.verificationConfidence,
-        verificationSource: business.verificationSource,
         supplyNationData: business.supplyNationData
       })) || [];
-      
       return { businesses, totalResults: data.totalResults || 0 };
     },
-    enabled: shouldSearch && searchType === 'businesses' && searchQuery.trim().length > 0,
+    enabled: shouldSearch && (category === 'all' || category === 'businesses') && searchQuery.trim().length >= 2
   });
 
-  const isLoading = searchType === 'places' ? isLoadingPlaces : isLoadingBusinesses;
-  const hasResults = searchType === 'places' 
-    ? placeResults && placeResults.length > 0
-    : businessResults && businessResults.totalResults > 0;
+  // MINEDEX search (mining sites)
+  const { data: minedexResults, isLoading: isLoadingMinedex } = useQuery({
+    queryKey: ['/api/minedex/search', searchQuery],
+    queryFn: async () => {
+      if (!searchQuery.trim()) return { sites: [], totalResults: 0 };
+      const response = await fetch(`/api/minedex/search?q=${encodeURIComponent(searchQuery)}`);
+      if (!response.ok) throw new Error('MINEDEX search failed');
+      return response.json();
+    },
+    enabled: shouldSearch && (category === 'all' || category === 'mining') && searchQuery.trim().length >= 2
+  });
+
+  // WAMEX search (exploration reports)
+  const { data: wamexResults, isLoading: isLoadingWamex } = useQuery({
+    queryKey: ['/api/wamex/search', searchQuery],
+    queryFn: async () => {
+      if (!searchQuery.trim()) return { reports: [], totalResults: 0 };
+      const response = await fetch(`/api/wamex/search?q=${encodeURIComponent(searchQuery)}`);
+      if (!response.ok) throw new Error('WAMEX search failed');
+      return response.json();
+    },
+    enabled: shouldSearch && (category === 'all' || category === 'exploration') && searchQuery.trim().length >= 2
+  });
+
+  const isLoading = isLoadingTerritories || isLoadingPlaces || isLoadingBusinesses || isLoadingMinedex || isLoadingWamex;
+
+  const totalResults = 
+    (territoryResults?.totalResults || 0) +
+    (placeResults?.length || 0) +
+    (businessResults?.totalResults || 0) +
+    (minedexResults?.totalResults || 0) +
+    (wamexResults?.totalResults || 0);
+
+  const hasResults = totalResults > 0;
 
   const handleSearch = () => {
-    if (searchQuery.trim()) {
+    if (searchQuery.trim().length >= 2) {
       setShouldSearch(true);
+      setIsExpanded(true);
     }
   };
 
@@ -112,385 +204,444 @@ export default function UnifiedSearch({ map, onLocationSelect, onBusinessSelect 
     }
   };
 
+  const handleClear = () => {
+    setSearchQuery('');
+    setShouldSearch(false);
+    setIsExpanded(false);
+  };
+
+  const handleTerritorySelect = (territory: TerritorySearchResult) => {
+    if (territory.centerLat && territory.centerLng) {
+      onLocationSelect(territory.centerLat, territory.centerLng);
+      if (onTerritorySelect) {
+        onTerritorySelect(territory);
+      }
+    }
+    handleClear();
+  };
+
   const handlePlaceSelect = (result: SearchResult) => {
     const lat = parseFloat(result.lat);
     const lng = parseFloat(result.lon);
     onLocationSelect(lat, lng);
-    setShouldSearch(false);
-    setSearchQuery('');
+    handleClear();
   };
 
   const handleBusinessSelect = (business: BusinessLocation) => {
-    onLocationSelect(business.lat, business.lng);
+    if (business.lat && business.lng) {
+      onLocationSelect(business.lat, business.lng);
+    }
     if (onBusinessSelect) {
       onBusinessSelect(business);
     }
-    
-    // Add business marker to map
-    if (map) {
-      const marker = L.marker([business.lat, business.lng], {
-        icon: L.divIcon({
-          className: 'business-marker',
-          html: `
-            <div class="bg-orange-600 text-white rounded-full w-8 h-8 flex items-center justify-center shadow-lg border-2 border-white">
-              <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M12 2l3.09 6.26L22 9l-5.91 0.74L12 22l-4.09-6.26L2 15l5.91-0.74L12 2z"/>
-              </svg>
-            </div>
-          `,
-          iconSize: [32, 32],
-          iconAnchor: [16, 32]
-        })
-      }).addTo(map);
-      
-      // Enhanced popup with Supply Nation contact information
-      const getVerificationBadge = () => {
-        if (business.supplyNationVerified) {
-          return `<div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; flex-wrap: wrap;">
-            <div style="background: #2ECC71; color: white; padding: 4px 8px; border-radius: 12px; font-size: 11px; font-weight: bold; display: inline-block;">
-              ✓ Supply Nation Verified
-            </div>
-            <img src="https://ibd.supplynation.org.au/public/resource/1651046831000/sna/certifiled_new.png" 
-                 alt="Supply Nation Certified" 
-                 style="height: 24px; width: auto; border-radius: 4px;" />
-          </div>`;
-        }
-        const confidence = (business as any).verificationConfidence || 'low';
-        const badgeColor = confidence === 'high' ? '#F39C12' : confidence === 'medium' ? '#3498DB' : '#95A5A6';
-        return `<div style="background: ${badgeColor}; color: white; padding: 4px 8px; border-radius: 12px; font-size: 11px; font-weight: bold; display: inline-block; margin-bottom: 8px;">
-          ${confidence.toUpperCase()} Confidence Indigenous
-        </div>`;
-      };
+    handleClear();
+  };
 
-      const getContactInfo = () => {
-        if (!business.supplyNationData) return '';
-        
-        let contactHtml = '';
-        const contactInfo = business.supplyNationData.contactInfo || {};
-        const detailedAddress = business.supplyNationData.detailedAddress;
-        
-        // Trading name
-        if (business.supplyNationData.tradingName) {
-          contactHtml += `
-            <p style="margin: 0 0 6px 0; font-size: 12px; color: #666;">
-              <strong>Trading as:</strong> ${business.supplyNationData.tradingName}
-            </p>`;
-        }
-        
-        // Contact person
-        if (contactInfo.contactPerson) {
-          contactHtml += `
-            <p style="margin: 0 0 6px 0; font-size: 12px; color: #666;">
-              <strong>Contact:</strong> ${contactInfo.contactPerson}
-            </p>`;
-        }
-        
-        // Phone
-        if (contactInfo.phone) {
-          contactHtml += `
-            <p style="margin: 0 0 6px 0; font-size: 12px; color: #666;">
-              <strong>Phone:</strong> <a href="tel:${contactInfo.phone}" style="color: #3498db; text-decoration: none;">${contactInfo.phone}</a>
-            </p>`;
-        }
-        
-        // Email
-        if (contactInfo.email) {
-          contactHtml += `
-            <p style="margin: 0 0 6px 0; font-size: 12px; color: #666;">
-              <strong>Email:</strong> <a href="mailto:${contactInfo.email}" style="color: #3498db; text-decoration: none;">${contactInfo.email}</a>
-            </p>`;
-        }
-        
-        // Website
-        if (contactInfo.website) {
-          contactHtml += `
-            <p style="margin: 0 0 6px 0; font-size: 12px; color: #666;">
-              <strong>Website:</strong> <a href="${contactInfo.website}" target="_blank" style="color: #3498db; text-decoration: none;">Visit Website</a>
-            </p>`;
-        }
-        
-        // Detailed address
-        if (detailedAddress && detailedAddress.streetAddress) {
-          contactHtml += `
-            <p style="margin: 0 0 6px 0; font-size: 12px; color: #666;">
-              <strong>Address:</strong> ${detailedAddress.streetAddress}, ${detailedAddress.suburb} ${detailedAddress.state} ${detailedAddress.postcode}
-            </p>`;
-        }
-        
-        // Services
-        if (business.supplyNationData.categories && business.supplyNationData.categories.length > 0) {
-          contactHtml += `
-            <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #eee;">
-              <p style="margin: 0 0 4px 0; font-size: 11px; font-weight: bold; color: #666;">SERVICES:</p>
-              <p style="margin: 0; font-size: 11px; color: #666; line-height: 1.4;">
-                ${business.supplyNationData.categories.slice(0, 3).join(' • ')}
-              </p>
-            </div>`;
-        }
-        
-        return contactHtml;
-      };
+  const handleMinedexSelect = (site: MinedexSite) => {
+    if (site.coordinates?.lat && site.coordinates?.lng) {
+      onLocationSelect(site.coordinates.lat, site.coordinates.lng);
       
-      marker.bindPopup(`
-        <div style="min-width: 280px; font-family: system-ui, -apple-system, sans-serif;">
-          ${getVerificationBadge()}
-          <h3 style="margin: 0 0 8px 0; font-size: 16px; font-weight: bold; color: #2c3e50; line-height: 1.3;">
-            ${business.entityName}
-          </h3>
-          <p style="margin: 0 0 4px 0; font-size: 12px; color: #666;">
-            <strong>ABN:</strong> ${business.abn}
-          </p>
-          <p style="margin: 0 0 4px 0; font-size: 12px; color: #666;">
-            <strong>Status:</strong> ${business.status}
-          </p>
-          ${getContactInfo()}
-        </div>
-      `, {
-        offset: [120, -10], // Move popup to the right to avoid search component overlap
-        maxWidth: 300,
-        className: 'business-popup'
-      }).openPopup();
-      
-      // Store marker for cleanup
-      (marker as any).businessABN = business.abn;
+      if (map) {
+        const marker = L.marker([site.coordinates.lat, site.coordinates.lng], {
+          icon: L.divIcon({
+            className: 'minedex-marker',
+            html: `<div class="bg-purple-600 text-white rounded-full w-8 h-8 flex items-center justify-center shadow-lg border-2 border-white">
+              <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2L2 12h3v8h6v-6h2v6h6v-8h3L12 2z"/></svg>
+            </div>`,
+            iconSize: [32, 32],
+            iconAnchor: [16, 32]
+          })
+        }).addTo(map);
+        
+        marker.bindPopup(`
+          <div style="min-width: 200px;">
+            <h3 style="font-weight: bold; margin-bottom: 8px;">${site.siteTitle}</h3>
+            <p style="margin: 4px 0; font-size: 12px;"><strong>Type:</strong> ${site.siteType}</p>
+            <p style="margin: 4px 0; font-size: 12px;"><strong>Commodities:</strong> ${site.siteCommodities}</p>
+            <p style="margin: 4px 0; font-size: 12px;"><strong>Stage:</strong> ${site.siteStage}</p>
+            ${site.webLink ? `<a href="${site.webLink}" target="_blank" style="color: #7c3aed; font-size: 12px;">View on MINEDEX</a>` : ''}
+          </div>
+        `).openPopup();
+
+        setTimeout(() => map.removeLayer(marker), 30000);
+      }
     }
-    
-    setShouldSearch(false);
-    setSearchQuery('');
+    handleClear();
+  };
+
+  const handleWamexSelect = (report: WamexReport) => {
+    if (report.abstractUrl) {
+      window.open(report.abstractUrl, '_blank');
+    }
+    handleClear();
   };
 
   const getCurrentLocation = () => {
-    if (!navigator.geolocation) {
-      alert('Geolocation is not supported by this browser.');
-      return;
+    if ('geolocation' in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          onLocationSelect(position.coords.latitude, position.coords.longitude);
+        },
+        (error) => console.error('Geolocation error:', error)
+      );
     }
-
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const lat = position.coords.latitude;
-        const lng = position.coords.longitude;
-        onLocationSelect(lat, lng);
-        if (map) {
-          map.setView([lat, lng], 15);
-        }
-      },
-      (error) => {
-        console.error('Error getting location:', error);
-        alert('Unable to get your current location.');
-      }
-    );
   };
 
+  // Close expanded view when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest('.unified-search-container')) {
+        setShowCategories(false);
+      }
+    };
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, []);
+
   return (
-    <div className="absolute top-20 right-4 z-[1000] w-80">
-      <div className="bg-white rounded-xl shadow-md">
-        {/* Search Bar */}
-        <div className="flex gap-1 p-1">
-          <Input
-            type="text"
-            placeholder={searchType === 'places' ? 'Search places...' : 'Search Indigenous businesses...'}
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            onKeyPress={handleKeyPress}
-            className="flex-1 border-0 focus:ring-0 focus-visible:ring-0 text-sm h-10"
-          />
-          <Button 
+    <div className="unified-search-container absolute top-4 left-1/2 -translate-x-1/2 z-[1000] w-full max-w-2xl px-4">
+      <div className="bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden">
+        {/* Main Search Bar */}
+        <div className="flex items-center gap-2 p-3">
+          {/* Category Selector */}
+          <div className="relative">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowCategories(!showCategories)}
+              className={cn(
+                "h-10 px-3 rounded-xl flex items-center gap-2",
+                categoryConfig[category].color
+              )}
+              data-testid="search-category-button"
+            >
+              {(() => {
+                const Icon = categoryConfig[category].icon;
+                return <Icon className="w-4 h-4" />;
+              })()}
+              <span className="hidden sm:inline text-sm font-medium">{categoryConfig[category].label}</span>
+              <ChevronDown className="w-3 h-3" />
+            </Button>
+
+            {/* Category Dropdown */}
+            {showCategories && (
+              <div className="absolute top-full left-0 mt-2 bg-white rounded-xl shadow-lg border p-2 min-w-[180px] z-50">
+                {(Object.keys(categoryConfig) as SearchCategory[]).map((cat) => {
+                  const config = categoryConfig[cat];
+                  const Icon = config.icon;
+                  return (
+                    <button
+                      key={cat}
+                      onClick={() => {
+                        setCategory(cat);
+                        setShowCategories(false);
+                        if (searchQuery.trim()) handleSearch();
+                      }}
+                      className={cn(
+                        "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors",
+                        category === cat ? config.color : "hover:bg-gray-50"
+                      )}
+                      data-testid={`search-category-${cat}`}
+                    >
+                      <Icon className="w-4 h-4" />
+                      <span>{config.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* Search Input */}
+          <div className="flex-1 relative">
+            <Input
+              ref={inputRef}
+              type="text"
+              placeholder={category === 'all' 
+                ? 'Search territories, places, businesses, mining...' 
+                : `Search ${categoryConfig[category].label.toLowerCase()}...`
+              }
+              value={searchQuery}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                if (e.target.value.length >= 2) {
+                  setShouldSearch(true);
+                }
+              }}
+              onKeyPress={handleKeyPress}
+              onFocus={() => setIsExpanded(true)}
+              className="w-full border-0 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-orange-200 rounded-xl h-10 pr-8"
+              data-testid="search-input"
+            />
+            {searchQuery && (
+              <button
+                onClick={handleClear}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                data-testid="search-clear"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+
+          {/* Search Button */}
+          <Button
             onClick={handleSearch}
-            disabled={isLoading || !searchQuery.trim()}
+            disabled={isLoading || searchQuery.trim().length < 2}
             size="sm"
-            className="h-10 w-10 p-0 bg-transparent hover:bg-gray-100 text-gray-600"
-            variant="ghost"
+            className="h-10 w-10 p-0 bg-orange-500 hover:bg-orange-600 rounded-xl"
+            data-testid="search-button"
           >
             {isLoading ? (
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-400"></div>
+              <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
             ) : (
-              <Search className="h-4 w-4" />
+              <Search className="h-4 w-4 text-white" />
             )}
           </Button>
-        </div>
 
-        {/* Filter Buttons */}
-        <div className="flex items-center gap-1 px-2 pb-2">
-          <Button
-            onClick={() => setSearchType('places')}
-            size="sm"
-            variant={searchType === 'places' ? 'default' : 'outline'}
-            className="h-8 text-xs"
-          >
-            <MapPin className="w-3 h-3 mr-1" />
-            Places
-          </Button>
-          <Button
-            onClick={() => setSearchType('businesses')}
-            size="sm"
-            variant={searchType === 'businesses' ? 'default' : 'outline'}
-            className="h-8 text-xs"
-          >
-            <Building2 className="w-3 h-3 mr-1" />
-            Businesses
-          </Button>
+          {/* Location Button */}
           <Button
             onClick={getCurrentLocation}
             size="sm"
             variant="outline"
-            className="h-8 text-xs ml-auto"
-            title="Get current location"
+            className="h-10 w-10 p-0 rounded-xl"
+            title="Use my location"
+            data-testid="search-location"
           >
-            <Navigation className="w-3 h-3" />
+            <Navigation className="h-4 w-4" />
           </Button>
         </div>
 
-        {/* Results Count */}
-        {hasResults && (
-          <div className="px-3 pb-2 text-xs text-gray-500">
-            {searchType === 'places' 
-              ? `${placeResults?.length} places found`
-              : `${businessResults?.totalResults} businesses found`
-            }
-          </div>
-        )}
+        {/* Results Section */}
+        {isExpanded && shouldSearch && searchQuery.trim().length >= 2 && (
+          <div className="border-t">
+            {/* Results Count */}
+            {hasResults && (
+              <div className="px-4 py-2 bg-gray-50 flex items-center justify-between">
+                <span className="text-sm text-gray-600">
+                  {totalResults} results found
+                </span>
+                <div className="flex gap-1">
+                  {territoryResults?.totalResults > 0 && (
+                    <Badge variant="outline" className="text-xs bg-orange-50">
+                      <Map className="w-3 h-3 mr-1" />
+                      {territoryResults.totalResults}
+                    </Badge>
+                  )}
+                  {(placeResults?.length || 0) > 0 && (
+                    <Badge variant="outline" className="text-xs bg-blue-50">
+                      <MapPin className="w-3 h-3 mr-1" />
+                      {placeResults?.length}
+                    </Badge>
+                  )}
+                  {(businessResults?.totalResults ?? 0) > 0 && (
+                    <Badge variant="outline" className="text-xs bg-green-50">
+                      <Building2 className="w-3 h-3 mr-1" />
+                      {businessResults?.totalResults}
+                    </Badge>
+                  )}
+                  {minedexResults?.totalResults > 0 && (
+                    <Badge variant="outline" className="text-xs bg-purple-50">
+                      <Mountain className="w-3 h-3 mr-1" />
+                      {minedexResults.totalResults}
+                    </Badge>
+                  )}
+                  {wamexResults?.totalResults > 0 && (
+                    <Badge variant="outline" className="text-xs bg-indigo-50">
+                      <FileText className="w-3 h-3 mr-1" />
+                      {wamexResults.totalResults}
+                    </Badge>
+                  )}
+                </div>
+              </div>
+            )}
 
-        {/* Search Results */}
-        {hasResults && (
-          <div className="border-t border-gray-100">
-            <div className="max-h-60 overflow-y-auto">
-              {searchType === 'places' && placeResults?.map((result, index) => (
-                <button
-                  key={index}
-                  onClick={() => handlePlaceSelect(result)}
-                  className="w-full text-left p-3 text-sm hover:bg-gray-50 border-b border-gray-50 last:border-b-0 transition-colors"
-                >
-                  <div className="flex items-start gap-2">
-                    <MapPin className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
-                    <div className="flex-1 min-w-0">
-                      <div className="font-medium text-gray-900 truncate">{result.display_name}</div>
+            <ScrollArea className="max-h-80">
+              {/* Territory Results */}
+              {(category === 'all' || category === 'territories') && territoryResults?.territories?.length > 0 && (
+                <div>
+                  {category === 'all' && (
+                    <div className="px-4 py-2 bg-orange-50 text-xs font-medium text-orange-700 flex items-center gap-2">
+                      <Map className="w-3 h-3" />
+                      Aboriginal Territories
                     </div>
-                  </div>
-                </button>
-              ))}
-              
-              {searchType === 'businesses' && businessResults?.businesses.map((business: any, index: number) => (
-                <button
-                  key={index}
-                  onClick={() => handleBusinessSelect(business)}
-                  className="w-full text-left p-3 text-sm hover:bg-gray-50 border-b border-gray-50 last:border-b-0 transition-colors hover:bg-orange-50"
-                >
-                  <div className="flex items-start gap-3">
-                    {/* Business Icon with Verification Indicator */}
-                    <div className="relative flex-shrink-0">
-                      <Building2 className="w-5 h-5 text-orange-600 mt-0.5" />
-                      {business.supplyNationVerified && (
-                        <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full flex items-center justify-center">
-                          <svg className="w-2 h-2 text-white" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                          </svg>
+                  )}
+                  {territoryResults.territories.map((territory: TerritorySearchResult, index: number) => (
+                    <button
+                      key={territory.id}
+                      onClick={() => handleTerritorySelect(territory)}
+                      className="w-full text-left p-3 text-sm hover:bg-orange-50 border-b border-gray-100 last:border-b-0 transition-colors"
+                      data-testid={`territory-result-${index}`}
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className="w-8 h-8 rounded-lg bg-orange-100 flex items-center justify-center flex-shrink-0">
+                          <Map className="w-4 h-4 text-orange-600" />
                         </div>
-                      )}
-                    </div>
-                    
-                    <div className="flex-1 min-w-0 space-y-1">
-                      {/* Business Name and Verification */}
-                      <div className="flex items-center gap-2 mb-1">
-                        <div className="font-medium text-gray-900 truncate text-sm">{business.entityName}</div>
-                        {business.supplyNationVerified && (
-                          <div className="flex items-center gap-1 bg-green-100 text-green-800 px-1.5 py-0.5 rounded-full text-xs font-medium">
-                            <svg className="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 20 20">
-                              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                            </svg>
-                            Supply Nation
+                        <div className="flex-1 min-w-0">
+                          <div className="font-medium text-gray-900">{territory.name}</div>
+                          <div className="text-xs text-gray-500 mt-0.5">
+                            {territory.groupName} • {territory.region}
                           </div>
-                        )}
-                      </div>
-                      
-                      {/* Business Status and Confidence */}
-                      <div className="flex items-center gap-1 mb-1">
-                        <span className={`inline-block px-1.5 py-0.5 rounded text-xs font-medium ${
-                          business.status === 'Active' 
-                            ? 'bg-blue-100 text-blue-800' 
-                            : 'bg-gray-100 text-gray-600'
-                        }`}>
-                          {business.status}
-                        </span>
-                        {business.verificationConfidence && (
-                          <span className={`inline-block px-1.5 py-0.5 rounded text-xs ${
-                            business.verificationConfidence === 'high' 
-                              ? 'bg-orange-100 text-orange-700'
-                              : business.verificationConfidence === 'medium'
-                              ? 'bg-yellow-100 text-yellow-700'
-                              : 'bg-gray-100 text-gray-600'
-                          }`}>
-                            {business.verificationConfidence} confidence
-                          </span>
-                        )}
-                      </div>
-                      
-                      {/* Location - Prioritize Supply Nation address */}
-                      <div className="text-xs text-gray-500 flex items-center gap-1">
-                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                        </svg>
-                        <span>
-                          {business.supplyNationData?.location ? 
-                           business.supplyNationData.location.trim().replace(/\s+/g, ' ') : 
-                           business.displayAddress}
-                        </span>
-                        {business.supplyNationData?.location && (
-                          <span className="text-xs bg-green-100 text-green-700 px-1 py-0.5 rounded text-[10px] font-medium">
-                            SN
-                          </span>
-                        )}
-                      </div>
-                      
-                      {/* Owner/Founder Information */}
-                      {business.supplyNationData?.companyName && 
-                       business.supplyNationData.companyName.includes(',') && 
-                       !business.supplyNationData.companyName.includes('PTY') && 
-                       !business.supplyNationData.companyName.includes('LTD') && (
-                        <div className="text-xs text-orange-700 mt-1 flex items-center gap-1 bg-orange-50 px-1.5 py-0.5 rounded">
-                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                          </svg>
-                          <span className="font-medium">Owner:</span> {business.supplyNationData.companyName}
                         </div>
-                      )}
-                      
-                      {/* Supply Nation Categories */}
-                      {business.supplyNationData?.categories && business.supplyNationData.categories.length > 0 && (
-                        <div className="text-xs text-gray-400 mt-1">
-                          <span className="font-medium">Services:</span> {business.supplyNationData.categories.slice(0, 2).join(', ')}
-                          {business.supplyNationData.categories.length > 2 && ' +more'}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* Place Results */}
+              {(category === 'all' || category === 'places') && placeResults && placeResults.length > 0 && (
+                <div>
+                  {category === 'all' && (
+                    <div className="px-4 py-2 bg-blue-50 text-xs font-medium text-blue-700 flex items-center gap-2">
+                      <MapPin className="w-3 h-3" />
+                      Places
+                    </div>
+                  )}
+                  {placeResults.slice(0, 5).map((result, index) => (
+                    <button
+                      key={index}
+                      onClick={() => handlePlaceSelect(result)}
+                      className="w-full text-left p-3 text-sm hover:bg-blue-50 border-b border-gray-100 last:border-b-0 transition-colors"
+                      data-testid={`place-result-${index}`}
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center flex-shrink-0">
+                          <MapPin className="w-4 h-4 text-blue-600" />
                         </div>
-                      )}
-                      
-                      {/* Supply Nation Description (truncated) */}
-                      {business.supplyNationData?.description && (
-                        <div className="text-xs text-gray-500 mt-1 line-clamp-2">
-                          {business.supplyNationData.description.substring(0, 80)}
-                          {business.supplyNationData.description.length > 80 && '...'}
+                        <div className="flex-1 min-w-0">
+                          <div className="font-medium text-gray-900 truncate">{result.display_name}</div>
                         </div>
-                      )}
-                      
-                      {/* Certifications */}
-                      {business.supplyNationData?.certifications && business.supplyNationData.certifications.length > 0 && (
-                        <div className="flex flex-wrap gap-1 mt-1">
-                          {business.supplyNationData.certifications.slice(0, 2).map((cert: string, certIndex: number) => (
-                            <span key={certIndex} className="inline-block bg-green-50 text-green-700 px-1.5 py-0.5 rounded text-xs font-medium">
-                              {cert}
-                            </span>
-                          ))}
-                          {business.supplyNationData.certifications.length > 2 && (
-                            <span className="inline-block bg-gray-50 text-gray-600 px-1.5 py-0.5 rounded text-xs">
-                              +{business.supplyNationData.certifications.length - 2}
-                            </span>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* Business Results */}
+              {(category === 'all' || category === 'businesses') && (businessResults?.businesses?.length ?? 0) > 0 && (
+                <div>
+                  {category === 'all' && (
+                    <div className="px-4 py-2 bg-green-50 text-xs font-medium text-green-700 flex items-center gap-2">
+                      <Building2 className="w-3 h-3" />
+                      Indigenous Businesses
+                    </div>
+                  )}
+                  {businessResults?.businesses?.slice(0, 5).map((business: BusinessLocation, index: number) => (
+                    <button
+                      key={index}
+                      onClick={() => handleBusinessSelect(business)}
+                      className="w-full text-left p-3 text-sm hover:bg-green-50 border-b border-gray-100 last:border-b-0 transition-colors"
+                      data-testid={`business-result-${index}`}
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className="w-8 h-8 rounded-lg bg-green-100 flex items-center justify-center flex-shrink-0 relative">
+                          <Building2 className="w-4 h-4 text-green-600" />
+                          {business.supplyNationVerified && (
+                            <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 rounded-full flex items-center justify-center">
+                              <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                              </svg>
+                            </div>
                           )}
                         </div>
-                      )}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium text-gray-900 truncate">{business.entityName}</span>
+                            {business.supplyNationVerified && (
+                              <Badge className="bg-green-100 text-green-700 text-xs">Verified</Badge>
+                            )}
+                          </div>
+                          <div className="text-xs text-gray-500 mt-0.5 truncate">
+                            {business.displayAddress}
+                          </div>
+                        </div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* MINEDEX Results */}
+              {(category === 'all' || category === 'mining') && minedexResults?.sites?.length > 0 && (
+                <div>
+                  {category === 'all' && (
+                    <div className="px-4 py-2 bg-purple-50 text-xs font-medium text-purple-700 flex items-center gap-2">
+                      <Mountain className="w-3 h-3" />
+                      Mining Sites (WA MINEDEX)
                     </div>
-                  </div>
-                </button>
-              ))}
-            </div>
+                  )}
+                  {minedexResults.sites.slice(0, 5).map((site: MinedexSite, index: number) => (
+                    <button
+                      key={index}
+                      onClick={() => handleMinedexSelect(site)}
+                      className="w-full text-left p-3 text-sm hover:bg-purple-50 border-b border-gray-100 last:border-b-0 transition-colors"
+                      data-testid={`minedex-result-${index}`}
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className="w-8 h-8 rounded-lg bg-purple-100 flex items-center justify-center flex-shrink-0">
+                          <Mountain className="w-4 h-4 text-purple-600" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="font-medium text-gray-900">{site.siteTitle}</div>
+                          <div className="text-xs text-gray-500 mt-0.5">
+                            {site.siteType} • {site.siteStage}
+                          </div>
+                          <div className="text-xs text-purple-600 mt-0.5 truncate">
+                            {site.siteCommodities}
+                          </div>
+                        </div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* WAMEX Results */}
+              {(category === 'all' || category === 'exploration') && wamexResults?.reports?.length > 0 && (
+                <div>
+                  {category === 'all' && (
+                    <div className="px-4 py-2 bg-indigo-50 text-xs font-medium text-indigo-700 flex items-center gap-2">
+                      <FileText className="w-3 h-3" />
+                      Exploration Reports (WA WAMEX)
+                    </div>
+                  )}
+                  {wamexResults.reports.slice(0, 5).map((report: WamexReport, index: number) => (
+                    <button
+                      key={index}
+                      onClick={() => handleWamexSelect(report)}
+                      className="w-full text-left p-3 text-sm hover:bg-indigo-50 border-b border-gray-100 last:border-b-0 transition-colors"
+                      data-testid={`wamex-result-${index}`}
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className="w-8 h-8 rounded-lg bg-indigo-100 flex items-center justify-center flex-shrink-0">
+                          <FileText className="w-4 h-4 text-indigo-600" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="font-medium text-gray-900 truncate">{report.project}</div>
+                          <div className="text-xs text-gray-500 mt-0.5">
+                            {report.operator} • {report.reportYear}
+                          </div>
+                          <div className="text-xs text-indigo-600 mt-0.5 truncate">
+                            {report.targetCommodity}
+                          </div>
+                        </div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* No Results */}
+              {!isLoading && shouldSearch && !hasResults && (
+                <div className="p-8 text-center text-gray-500">
+                  <Search className="w-8 h-8 mx-auto mb-2 text-gray-300" />
+                  <p className="text-sm">No results found for "{searchQuery}"</p>
+                  <p className="text-xs mt-1">Try different keywords or search category</p>
+                </div>
+              )}
+            </ScrollArea>
           </div>
         )}
       </div>

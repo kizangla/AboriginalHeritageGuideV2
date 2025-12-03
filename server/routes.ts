@@ -174,6 +174,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Search territories by name (must be before :id route)
+  app.get("/api/territories/search", async (req, res) => {
+    try {
+      const query = (req.query.q as string || '').toLowerCase().trim();
+      if (!query || query.length < 2) {
+        return res.json({ territories: [], totalResults: 0 });
+      }
+
+      const allTerritories = await storage.getTerritories();
+      
+      // Search by name, group name, language family, or region
+      const matchingTerritories = allTerritories.filter(t => 
+        t.name.toLowerCase().includes(query) ||
+        (t.groupName && t.groupName.toLowerCase().includes(query)) ||
+        (t.languageFamily && t.languageFamily.toLowerCase().includes(query)) ||
+        (t.region && t.region.toLowerCase().includes(query))
+      ).slice(0, 20); // Limit results
+
+      const territories = matchingTerritories.map(t => ({
+        id: t.id,
+        name: t.name,
+        groupName: t.groupName,
+        region: t.region,
+        regionType: t.regionType,
+        centerLat: t.centerLat,
+        centerLng: t.centerLng,
+        languageFamily: t.languageFamily
+      }));
+
+      res.json({ 
+        territories, 
+        totalResults: territories.length,
+        source: 'Aboriginal Territory Database'
+      });
+    } catch (error) {
+      console.error('Territory search error:', error);
+      res.status(500).json({ error: 'Territory search failed' });
+    }
+  });
+
   // Get territory by ID
   app.get("/api/territories/:id", async (req, res) => {
     try {
@@ -211,6 +251,66 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(territory);
     } catch (error) {
       res.status(500).json({ message: "Failed to find territory" });
+    }
+  });
+
+  // Search MINEDEX sites (mines, deposits, prospects)
+  app.get("/api/minedex/search", async (req, res) => {
+    try {
+      const query = (req.query.q as string || '').toLowerCase().trim();
+      if (!query || query.length < 2) {
+        return res.json({ sites: [], totalResults: 0 });
+      }
+
+      // Get MINEDEX data for all of WA and filter by query
+      const bounds = { minLat: -35, maxLat: -14, minLng: 112, maxLng: 129 };
+      const result = await waMinedexService.getSitesForTerritory('Western Australia', bounds);
+      
+      // Search by site name or commodity
+      const matchingSites = result.sites.filter(site => 
+        site.siteTitle.toLowerCase().includes(query) ||
+        (site.siteCommodities && site.siteCommodities.toLowerCase().includes(query)) ||
+        (site.siteStage && site.siteStage.toLowerCase().includes(query))
+      ).slice(0, 20);
+
+      res.json({ 
+        sites: matchingSites, 
+        totalResults: matchingSites.length,
+        source: 'WA Department of Mines (DMIRS) MINEDEX'
+      });
+    } catch (error) {
+      console.error('MINEDEX search error:', error);
+      res.status(500).json({ error: 'MINEDEX search failed' });
+    }
+  });
+
+  // Search WAMEX exploration reports
+  app.get("/api/wamex/search", async (req, res) => {
+    try {
+      const query = (req.query.q as string || '').toLowerCase().trim();
+      if (!query || query.length < 2) {
+        return res.json({ reports: [], totalResults: 0 });
+      }
+
+      // Get WAMEX data for all of WA and filter by query
+      const bounds = { minLat: -35, maxLat: -14, minLng: 112, maxLng: 129 };
+      const result = await waWamexService.getReportsForTerritory('Western Australia', bounds);
+      
+      // Search by project name, operator, or commodity
+      const matchingReports = result.reports.filter(report => 
+        (report.project && report.project.toLowerCase().includes(query)) ||
+        (report.operator && report.operator.toLowerCase().includes(query)) ||
+        (report.targetCommodity && report.targetCommodity.toLowerCase().includes(query))
+      ).slice(0, 20);
+
+      res.json({ 
+        reports: matchingReports, 
+        totalResults: matchingReports.length,
+        source: 'WA Department of Mines (DMIRS) WAMEX'
+      });
+    } catch (error) {
+      console.error('WAMEX search error:', error);
+      res.status(500).json({ error: 'WAMEX search failed' });
     }
   });
 
