@@ -25,6 +25,7 @@ import { explorationMineralService } from "./exploration-mineral-service";
 import { geoscienceAustraliaPlaceNames } from "./geoscience-australia-placenames";
 import { fetchMiningTenementsForTerritory, fetchAllMiningTenements } from "./wa-dmirs-tenements-service";
 import { waMinedexService } from "./wa-minedex-service";
+import { waWamexService } from "./wa-wamex-service";
 
 // Australian postcode coordinate lookup for business positioning
 function getPostcodeCoordinates(postcode: string, stateCode: string): { lat: number; lng: number } | null {
@@ -2211,6 +2212,159 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({
         success: false,
         error: 'Failed to fetch MINEDEX filter options',
+        message: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
+  // WAMEX - Mineral Exploration Reports of Western Australia
+  app.get('/api/territories/:territoryName/wamex', async (req, res) => {
+    try {
+      const territoryName = decodeURIComponent(req.params.territoryName);
+      console.log(`Fetching WAMEX reports for territory: ${territoryName}`);
+      
+      // Get territory details
+      const territories = await storage.getTerritories();
+      const territory = territories.find(t => 
+        t.name === territoryName || 
+        t.groupName === territoryName ||
+        t.name.toLowerCase() === territoryName.toLowerCase()
+      );
+      
+      if (!territory || !territory.geometry) {
+        return res.status(404).json({ 
+          success: false, 
+          error: 'Territory not found or missing geometry' 
+        });
+      }
+      
+      // Calculate territory bounds
+      const geometry = territory.geometry as any;
+      const coordinates = geometry.coordinates[0];
+      const lats = coordinates.map((coord: number[]) => coord[1]);
+      const lngs = coordinates.map((coord: number[]) => coord[0]);
+      
+      const bounds = {
+        minLat: Math.min(...lats),
+        maxLat: Math.max(...lats),
+        minLng: Math.min(...lngs),
+        maxLng: Math.max(...lngs)
+      };
+
+      // Check if territory is in Western Australia
+      const isInWA = waWamexService.territoryOverlapsWA(bounds);
+
+      if (!isInWA) {
+        return res.json({
+          success: true,
+          territoryName: territory.name,
+          wamexData: {
+            totalReports: 0,
+            reports: [],
+            bounds: bounds,
+            source: 'wa_dmirs_wamex',
+            serviceAvailable: true,
+            message: 'WAMEX exploration reports are only available for territories in Western Australia. This territory is outside WA coverage.'
+          }
+        });
+      }
+
+      // Fetch WAMEX reports from WA DMIRS
+      const wamexResult = await waWamexService.getReportsForTerritory(
+        territory.name,
+        bounds
+      );
+
+      console.log(`Found ${wamexResult.totalCount} WAMEX reports in ${territory.name}`);
+
+      // Group reports by type for summary
+      const typeSummary = wamexResult.reports.reduce((acc: any, report) => {
+        const type = report.reportType || 'Unknown';
+        if (!acc[type]) {
+          acc[type] = { type, count: 0 };
+        }
+        acc[type].count++;
+        return acc;
+      }, {} as Record<string, { type: string; count: number }>);
+
+      // Group reports by commodity for summary
+      const commoditySummary: Record<string, number> = {};
+      wamexResult.reports.forEach(report => {
+        if (report.targetCommodity) {
+          report.targetCommodity.split(';').forEach(c => {
+            const commodity = c.trim();
+            if (commodity) {
+              commoditySummary[commodity] = (commoditySummary[commodity] || 0) + 1;
+            }
+          });
+        }
+      });
+
+      // Group reports by decade for summary
+      const decadeSummary = wamexResult.reports.reduce((acc: any, report) => {
+        if (report.reportYear) {
+          const decade = Math.floor(report.reportYear / 10) * 10;
+          const decadeLabel = `${decade}s`;
+          if (!acc[decadeLabel]) {
+            acc[decadeLabel] = { decade: decadeLabel, count: 0 };
+          }
+          acc[decadeLabel].count++;
+        }
+        return acc;
+      }, {} as Record<string, { decade: string; count: number }>);
+
+      res.json({
+        success: true,
+        territoryName: territory.name,
+        wamexData: {
+          totalReports: wamexResult.totalCount,
+          reports: wamexResult.reports,
+          typeSummary: Object.values(typeSummary).sort((a: any, b: any) => b.count - a.count),
+          commoditySummary: Object.entries(commoditySummary)
+            .map(([commodity, count]) => ({ commodity, count }))
+            .sort((a, b) => b.count - a.count)
+            .slice(0, 10),
+          decadeSummary: Object.values(decadeSummary).sort((a: any, b: any) => {
+            const aDecade = parseInt(a.decade);
+            const bDecade = parseInt(b.decade);
+            return bDecade - aDecade;
+          }),
+          bounds: bounds,
+          source: wamexResult.dataSource,
+          serviceUrl: wamexResult.serviceUrl,
+          serviceAvailable: true
+        }
+      });
+      
+    } catch (error) {
+      console.error('Territory WAMEX error:', error);
+      res.status(500).json({ 
+        success: false,
+        error: 'Failed to fetch WAMEX data',
+        message: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
+  // WAMEX filter options
+  app.get('/api/wamex/filter-options', async (req, res) => {
+    try {
+      const [reportTypes, commodities] = await Promise.all([
+        waWamexService.getReportTypes(),
+        waWamexService.getTargetCommodities()
+      ]);
+
+      res.json({
+        success: true,
+        reportTypes,
+        commodities,
+        dataSource: 'WA Department of Mines, Industry Regulation and Safety (DMIRS) - WAMEX'
+      });
+    } catch (error) {
+      console.error('WAMEX filter options error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to fetch WAMEX filter options',
         message: error instanceof Error ? error.message : 'Unknown error'
       });
     }

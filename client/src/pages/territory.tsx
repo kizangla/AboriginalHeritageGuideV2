@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { ArrowLeft, MapPin, Users, Calendar, ExternalLink, Scale, Building2, Pickaxe, Sparkles, AlertCircle, Mountain } from 'lucide-react';
+import { ArrowLeft, MapPin, Users, Calendar, ExternalLink, Scale, Building2, Pickaxe, Sparkles, AlertCircle, Mountain, FileText } from 'lucide-react';
 
 interface TerritoryDetails {
   name: string;
@@ -70,6 +70,11 @@ export default function TerritoryPage() {
 
   const { data: minedexData, isLoading: minedexLoading } = useQuery({
     queryKey: [`/api/territories/${territoryName}/minedex`],
+    enabled: !!territoryName && !!territoryDetails?.geometry
+  });
+
+  const { data: wamexData, isLoading: wamexLoading } = useQuery({
+    queryKey: [`/api/territories/${territoryName}/wamex`],
     enabled: !!territoryName && !!territoryDetails?.geometry
   });
 
@@ -1274,6 +1279,186 @@ export default function TerritoryPage() {
                 ) : (
                   <div className="text-center py-4 text-gray-500">
                     No mine or deposit data available for this territory
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* WAMEX - Mineral Exploration Reports */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <FileText className="w-5 h-5" />
+                  Exploration Reports
+                </CardTitle>
+                <CardDescription>WA WAMEX database - statutory mineral exploration reports</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {wamexLoading ? (
+                  <div className="text-center py-4">
+                    <div className="animate-pulse">Loading WAMEX reports...</div>
+                  </div>
+                ) : (wamexData as any)?.wamexData ? (
+                  <div className="space-y-4" data-testid="wamex-section">
+                    {(wamexData as any).wamexData.message ? (
+                      <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                        <div className="flex items-start gap-2">
+                          <AlertCircle className="w-5 h-5 text-amber-600 mt-0.5 flex-shrink-0" />
+                          <div>
+                            <p className="text-sm font-medium text-amber-800">Outside WA Coverage</p>
+                            <p className="text-xs text-amber-700 mt-1">
+                              {(wamexData as any).wamexData.message}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                    <>
+                    <div className="text-center p-3 bg-indigo-50 rounded-lg" data-testid="wamex-count">
+                      <div className="text-2xl font-bold text-indigo-700">
+                        {(wamexData as any).wamexData.totalReports}
+                      </div>
+                      <div className="text-sm text-indigo-600">Exploration Reports</div>
+                    </div>
+
+                    {(wamexData as any).wamexData.typeSummary?.length > 0 && (
+                      <div>
+                        <label className="text-sm font-medium text-gray-500 mb-2 block">
+                          By Report Type
+                        </label>
+                        <div className="flex flex-wrap gap-2">
+                          {(wamexData as any).wamexData.typeSummary.slice(0, 6).map((item: any, index: number) => (
+                            <span
+                              key={index}
+                              className="text-xs bg-indigo-100 text-indigo-800 px-2 py-1 rounded"
+                              data-testid={`wamex-type-${index}`}
+                            >
+                              {item.type} ({item.count})
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {(wamexData as any).wamexData.commoditySummary?.length > 0 && (
+                      <div>
+                        <label className="text-sm font-medium text-gray-500 mb-2 block">
+                          By Target Commodity
+                        </label>
+                        <div className="flex flex-wrap gap-2">
+                          {(wamexData as any).wamexData.commoditySummary.slice(0, 8).map((item: any, index: number) => (
+                            <span
+                              key={index}
+                              className="text-xs bg-amber-100 text-amber-800 px-2 py-1 rounded"
+                              data-testid={`wamex-commodity-${index}`}
+                            >
+                              {item.commodity} ({item.count})
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {(wamexData as any).wamexData.decadeSummary?.length > 0 && (
+                      <div>
+                        <label className="text-sm font-medium text-gray-500 mb-2 block">
+                          By Decade
+                        </label>
+                        <div className="flex flex-wrap gap-2">
+                          {(wamexData as any).wamexData.decadeSummary.slice(0, 6).map((item: any, index: number) => (
+                            <span
+                              key={index}
+                              className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded"
+                              data-testid={`wamex-decade-${index}`}
+                            >
+                              {item.decade} ({item.count})
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {(wamexData as any).wamexData.reports?.length > 0 && (
+                      <div>
+                        <label className="text-sm font-medium text-gray-500 mb-2 block">
+                          Recent Reports
+                          <span className="text-xs text-gray-400 ml-2">
+                            (showing {Math.min((wamexData as any).wamexData.reports.length, 6)} of {(wamexData as any).wamexData.reports.length})
+                          </span>
+                        </label>
+                        <ScrollArea className="h-48">
+                          {(wamexData as any).wamexData.reports.slice(0, 6).map((report: any, index: number) => (
+                            <div 
+                              key={index} 
+                              className="text-sm text-gray-600 mb-3 p-3 bg-indigo-50 rounded-lg border-l-3 border-indigo-400"
+                              data-testid={`wamex-report-${index}`}
+                            >
+                              <div className="font-semibold text-gray-800 mb-1 line-clamp-2">
+                                {report.project || report.title}
+                              </div>
+                              
+                              <div className="space-y-1">
+                                <div className="text-xs">
+                                  <span className="font-medium">Year:</span> {report.reportYear}
+                                  {report.reportType && ` - ${report.reportType}`}
+                                </div>
+                                
+                                {report.operator && (
+                                  <div className="text-xs">
+                                    <span className="font-medium">Operator:</span> {report.operator}
+                                  </div>
+                                )}
+                                
+                                {report.targetCommodity && (
+                                  <div className="text-xs">
+                                    <span className="font-medium">Target:</span> {report.targetCommodity}
+                                  </div>
+                                )}
+
+                                <div className="flex gap-2 mt-2">
+                                  {report.abstractUrl && (
+                                    <a 
+                                      href={report.abstractUrl}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="text-xs text-indigo-600 hover:underline flex items-center gap-1"
+                                      data-testid={`wamex-abstract-${index}`}
+                                    >
+                                      <ExternalLink className="w-3 h-3" />
+                                      Abstract
+                                    </a>
+                                  )}
+                                  {report.reportUrl && (
+                                    <a 
+                                      href={report.reportUrl}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="text-xs text-indigo-600 hover:underline flex items-center gap-1"
+                                      data-testid={`wamex-report-link-${index}`}
+                                    >
+                                      <ExternalLink className="w-3 h-3" />
+                                      Full Report
+                                    </a>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </ScrollArea>
+                      </div>
+                    )}
+
+                    <div className="mt-4 pt-3 border-t text-center">
+                      <div className="text-xs text-gray-500">
+                        Authentic data from WA Department of Mines (DMIRS) WAMEX
+                      </div>
+                    </div>
+                    </>
+                    )}
+                  </div>
+                ) : (
+                  <div className="text-center py-4 text-gray-500">
+                    No exploration report data available for this territory
                   </div>
                 )}
               </CardContent>
