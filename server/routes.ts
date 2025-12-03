@@ -695,7 +695,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/businesses/mgm-alliance', async (req, res) => {
     try {
       // Get verified ABR data for MGM Alliance
-      const abrResults = await searchBusinessesByName('MGM Alliance', 5);
+      const abrResults = await searchBusinessesByName('MGM Alliance');
       const mgmAllianceABR = abrResults.businesses.find(business => 
         business.entityName.toLowerCase().includes('mgm alliance')
       );
@@ -731,8 +731,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             verificationSource: mgmSupplyNationMatch.verificationSource
           };
         }
-      } catch (supplyNationError) {
-        console.log('Supply Nation enhancement not available:', supplyNationError.message);
+      } catch (supplyNationError: any) {
+        console.log('Supply Nation enhancement not available:', supplyNationError?.message || 'Unknown error');
       }
 
       // Comprehensive business profile
@@ -1573,18 +1573,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/mining/territory-overlap/:territoryId', async (req, res) => {
     try {
       const { territoryId } = req.params;
-      const territory = await storage.getTerritoryById(territoryId);
+      const territory = await storage.getTerritoryById(parseInt(territoryId, 10));
       
       if (!territory) {
         return res.status(404).json({ error: 'Territory not found' });
       }
 
-      // Extract bounds from territory geometry
+      // Extract bounds from territory geometry using centerLat/centerLng
       const bounds = {
-        north: territory.lat + 0.1,
-        south: territory.lat - 0.1,
-        east: territory.lng + 0.1,
-        west: territory.lng - 0.1
+        north: territory.centerLat + 0.1,
+        south: territory.centerLat - 0.1,
+        east: territory.centerLng + 0.1,
+        west: territory.centerLng - 0.1
       };
 
       const overlappingMining = await miningService.getMiningForTerritory(bounds);
@@ -1594,7 +1594,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         territory: {
           id: territory.id,
           name: territory.name,
-          traditionalOwners: territory.traditionalOwners
+          groupName: territory.groupName
         },
         overlappingTenements: overlappingMining,
         totalOverlaps: overlappingMining.length,
@@ -1719,23 +1719,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       );
 
       // Simple point-in-polygon utility for territory filtering
-      function pointInPolygon(point: [number, number], polygon: any): boolean {
+      const pointInPolygon = (point: [number, number], polygon: any): boolean => {
         const [x, y] = point;
-        const coords = polygon.type === 'Polygon' 
+        const polyCoords = polygon.type === 'Polygon' 
           ? polygon.coordinates[0] 
           : polygon.coordinates.flat();
         
         let inside = false;
-        for (let i = 0, j = coords.length - 1; i < coords.length; j = i++) {
-          const [xi, yi] = coords[i];
-          const [xj, yj] = coords[j];
+        for (let i = 0, j = polyCoords.length - 1; i < polyCoords.length; j = i++) {
+          const [xi, yi] = polyCoords[i];
+          const [xj, yj] = polyCoords[j];
           
           if (((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi)) {
             inside = !inside;
           }
         }
         return inside;
-      }
+      };
 
       // Filter reports that actually intersect with territory geometry
       const territoryReports = explorationReports.filter((report: any) => {
@@ -1804,11 +1804,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Territory place names endpoint - Geoscience Australia data
   app.get('/api/territories/:territoryName/place-names', async (req, res) => {
     try {
-      const territoryName = req.params.territoryName;
+      const territoryName = decodeURIComponent(req.params.territoryName);
       console.log(`Fetching place names for territory: ${territoryName}`);
       
-      // Get territory details for bounds
-      const territory = await storage.getTerritoryByName(territoryName);
+      // Get territory details for bounds - use getTerritories and find by name
+      const territories = await storage.getTerritories();
+      const territory = territories.find(t => 
+        t.name === territoryName || 
+        t.groupName === territoryName ||
+        t.name.toLowerCase() === territoryName.toLowerCase()
+      );
       if (!territory || !territory.geometry) {
         return res.status(404).json({ 
           success: false, 
@@ -1817,7 +1822,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Calculate territory bounds for place name search
-      const coordinates = territory.geometry.coordinates[0];
+      const geometry = territory.geometry as any;
+      const coordinates = geometry.coordinates[0];
       const lats = coordinates.map((coord: number[]) => coord[1]);
       const lngs = coordinates.map((coord: number[]) => coord[0]);
       
@@ -1992,10 +1998,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         };
         
         // Territory bounds (simplified check)
-        if (territory.geometry && territory.geometry.coordinates) {
-          const territoryCoords = Array.isArray(territory.geometry.coordinates[0][0]) 
-            ? territory.geometry.coordinates[0] 
-            : territory.geometry.coordinates;
+        const geom = territory.geometry as any;
+        if (geom && geom.coordinates) {
+          const territoryCoords = Array.isArray(geom.coordinates[0][0]) 
+            ? geom.coordinates[0] 
+            : geom.coordinates;
           
           const territoryBounds = {
             minLat: Math.min(...territoryCoords.map((coord: number[]) => coord[1])),
