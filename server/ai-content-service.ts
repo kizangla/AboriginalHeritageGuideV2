@@ -23,6 +23,29 @@ export interface AIGeneratedContent {
   sourcesUsed: string[];
   isAIGenerated: boolean;
   generatedAt: string;
+  // Enriched cultural data
+  kinshipSystem: string;
+  moietySystem: string;
+  skinNames: string[];
+  traditionalGovernance: string;
+  elderStructure: string;
+  environmentalKnowledge: string;
+  landManagement: string;
+  waterKnowledge: string;
+  tradeNetworks: string;
+  neighboringGroups: string[];
+  tradeGoods: string[];
+  musicInstruments: string[];
+  danceStyles: string[];
+  storytellingTraditions: string;
+  toolsTechnology: string[];
+  weavingTextiles: string[];
+  significantSites: string[];
+  dreamtimeBeings: string[];
+  contemporaryCulture: string;
+  languageRevival: string;
+  culturalCentres: string[];
+  notableFigures: string[];
 }
 
 export async function getAITerritoryContent(
@@ -54,6 +77,29 @@ export async function getAITerritoryContent(
         sourcesUsed: cached.sourcesUsed || [],
         isAIGenerated: true,
         generatedAt: cached.generatedAt,
+        // Enriched data
+        kinshipSystem: cached.kinshipSystem || "",
+        moietySystem: cached.moietySystem || "",
+        skinNames: cached.skinNames || [],
+        traditionalGovernance: cached.traditionalGovernance || "",
+        elderStructure: cached.elderStructure || "",
+        environmentalKnowledge: cached.environmentalKnowledge || "",
+        landManagement: cached.landManagement || "",
+        waterKnowledge: cached.waterKnowledge || "",
+        tradeNetworks: cached.tradeNetworks || "",
+        neighboringGroups: cached.neighboringGroups || [],
+        tradeGoods: cached.tradeGoods || [],
+        musicInstruments: cached.musicInstruments || [],
+        danceStyles: cached.danceStyles || [],
+        storytellingTraditions: cached.storytellingTraditions || "",
+        toolsTechnology: cached.toolsTechnology || [],
+        weavingTextiles: cached.weavingTextiles || [],
+        significantSites: cached.significantSites || [],
+        dreamtimeBeings: cached.dreamtimeBeings || [],
+        contemporaryCulture: cached.contemporaryCulture || "",
+        languageRevival: cached.languageRevival || "",
+        culturalCentres: cached.culturalCentres || [],
+        notableFigures: cached.notableFigures || [],
       };
     }
 
@@ -76,7 +122,30 @@ export async function getAITerritoryContent(
         seasonalCalendar: content.seasonalCalendar,
         sourcesUsed: content.sourcesUsed,
         generatedAt: new Date().toISOString(),
-        modelUsed: "gpt-4o-mini",
+        modelUsed: "gpt-4o",
+        // Enriched data
+        kinshipSystem: content.kinshipSystem,
+        moietySystem: content.moietySystem,
+        skinNames: content.skinNames,
+        traditionalGovernance: content.traditionalGovernance,
+        elderStructure: content.elderStructure,
+        environmentalKnowledge: content.environmentalKnowledge,
+        landManagement: content.landManagement,
+        waterKnowledge: content.waterKnowledge,
+        tradeNetworks: content.tradeNetworks,
+        neighboringGroups: content.neighboringGroups,
+        tradeGoods: content.tradeGoods,
+        musicInstruments: content.musicInstruments,
+        danceStyles: content.danceStyles,
+        storytellingTraditions: content.storytellingTraditions,
+        toolsTechnology: content.toolsTechnology,
+        weavingTextiles: content.weavingTextiles,
+        significantSites: content.significantSites,
+        dreamtimeBeings: content.dreamtimeBeings,
+        contemporaryCulture: content.contemporaryCulture,
+        languageRevival: content.languageRevival,
+        culturalCentres: content.culturalCentres,
+        notableFigures: content.notableFigures,
       };
 
       await db.insert(aiTerritoryContent).values(insertData);
@@ -99,7 +168,7 @@ async function generateTerritoryContent(
   try {
     const stateContext = getStateFromCoordinates(lat, lng);
 
-    const prompt = `You are a respectful cultural researcher helping document Aboriginal Australian territories. Research and provide accurate, culturally-sensitive information about the "${territoryName}" Aboriginal territory in ${region}, ${stateContext}.
+    const prompt = `You are a respectful cultural researcher helping document Aboriginal Australian territories. Research and provide comprehensive, culturally-sensitive information about the "${territoryName}" Aboriginal territory in ${region}, ${stateContext}.
 
 IMPORTANT GUIDELINES:
 - Be respectful and acknowledge Traditional Owners
@@ -107,31 +176,62 @@ IMPORTANT GUIDELINES:
 - Focus on publicly available, non-sacred information
 - Acknowledge when information is uncertain
 - Do NOT make up specific sacred or ceremonial details
+- Provide rich, educational content while respecting cultural boundaries
 
-Please provide information in this exact JSON format:
+Please provide comprehensive information in this exact JSON format:
 {
-  "languageFamily": "The linguistic group or language family this territory belongs to (e.g., Pama-Nyungan, Non-Pama-Nyungan). If unknown, say 'Research pending'",
-  "traditionalLanguages": ["List of language names traditionally spoken in this territory. Include dialect variations if known. If unknown, include the territory name as a likely language name"],
-  "culturalPractices": "A paragraph describing documented cultural practices, connection to country, and traditions. Be respectful and focus on publicly shared knowledge.",
-  "historicalContext": "A paragraph about the historical context, including pre-colonial life, impacts of colonisation, and contemporary cultural continuation.",
-  "connectionToCountry": "A paragraph about the spiritual and practical connection the people have to their traditional lands.",
-  "traditionalPractices": ["List 3-5 general traditional practices like hunting, gathering, ceremony, art-making"],
-  "artStyles": ["List 2-4 art styles associated with this region, like rock art, dot painting, weaving"],
-  "ceremonies": ["List 2-3 types of ceremonies that may be practiced, using general terms like 'initiation ceremonies', 'seasonal ceremonies'"],
-  "songlines": ["List 1-2 general descriptions of songline connections, NOT specific sacred details"],
-  "traditionalFoods": ["List 4-6 bush tucker foods traditionally gathered in this region based on the environment"],
-  "seasonalCalendar": "Describe the traditional seasonal calendar and how it relates to resource gathering and ceremony",
-  "sourcesUsed": ["List 2-3 general source types like 'AIATSIS records', 'Native Title determinations', 'Regional cultural centres'"]
+  "languageFamily": "The linguistic group (e.g., Pama-Nyungan, Non-Pama-Nyungan). If unknown, say 'Research pending'",
+  "traditionalLanguages": ["Language names spoken in this territory, include dialects if known"],
+  "culturalPractices": "A detailed paragraph about documented cultural practices, connection to country, and living traditions.",
+  "historicalContext": "A paragraph covering pre-colonial life, impacts of colonisation, resistance movements, and contemporary cultural continuation.",
+  "connectionToCountry": "A paragraph about spiritual and practical connections to traditional lands, including the concept of Country.",
+  "traditionalPractices": ["List 5-7 traditional practices: hunting, gathering, ceremony, art-making, fire management, etc."],
+  "artStyles": ["List 3-5 art forms: rock art, bark painting, dot painting, weaving, body painting, etc."],
+  "ceremonies": ["List 3-4 ceremony types using general terms: initiation, seasonal, healing, corroboree"],
+  "songlines": ["2-3 general descriptions of songline traditions and how they connect territories"],
+  "traditionalFoods": ["List 6-8 bush tucker foods specific to this region's environment"],
+  "seasonalCalendar": "Describe the traditional 4-6 season calendar and how it relates to food, water, and ceremony",
+  
+  "kinshipSystem": "Describe the kinship structure and how it organizes social relationships and responsibilities",
+  "moietySystem": "Explain the moiety system if applicable (e.g., Eaglehawk/Crow) and its role in marriage and ceremony",
+  "skinNames": ["List 4-8 skin names or section names if known for this group"],
+  "traditionalGovernance": "Explain traditional leadership and decision-making structures",
+  "elderStructure": "Describe the role of Elders in maintaining law, culture, and knowledge transmission",
+  
+  "environmentalKnowledge": "Describe traditional ecological knowledge and understanding of the natural world",
+  "landManagement": "Explain traditional land management practices including fire management (cultural burning)",
+  "waterKnowledge": "Describe knowledge of water sources, rain-making, and water management",
+  
+  "tradeNetworks": "Describe traditional trade routes and exchange relationships with neighboring groups",
+  "neighboringGroups": ["List 3-5 neighboring Aboriginal groups this territory traditionally interacted with"],
+  "tradeGoods": ["List 4-6 items traditionally traded: ochre, stone tools, shells, foodstuffs, etc."],
+  
+  "musicInstruments": ["List 3-5 traditional instruments: didgeridoo/yidaki, clapsticks, rhythm sticks, drums"],
+  "danceStyles": ["List 2-4 dance traditions or corroboree styles"],
+  "storytellingTraditions": "Describe oral traditions, story-keeping, and knowledge transmission practices",
+  
+  "toolsTechnology": ["List 5-7 traditional tools: boomerangs, woomeras, coolamons, grinding stones, fish traps"],
+  "weavingTextiles": ["List 2-4 weaving and textile traditions: dilly bags, baskets, nets, mats"],
+  
+  "significantSites": ["List 3-5 types of significant places (not specific locations): meeting grounds, water sources, ochre deposits"],
+  "dreamtimeBeings": ["List 2-4 publicly known ancestral beings associated with this region, use general terms"],
+  
+  "contemporaryCulture": "Describe contemporary cultural practices, keeping culture strong, and cultural revival efforts",
+  "languageRevival": "Describe language preservation and revival programs if known",
+  "culturalCentres": ["List any known cultural centres, art centres, or keeping places in the region"],
+  "notableFigures": ["List 2-4 notable historical or contemporary figures from this group who are publicly known"],
+  
+  "sourcesUsed": ["List source types: AIATSIS, Native Title records, cultural centres, published research, community websites"]
 }
 
 Respond ONLY with valid JSON, no additional text.`;
 
     const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: "gpt-4o",
       messages: [
         {
           role: "system",
-          content: "You are a respectful cultural researcher specializing in Aboriginal Australian cultures. You provide accurate, culturally-sensitive information while acknowledging the limits of publicly available knowledge and respecting sacred/secret information boundaries."
+          content: "You are a respectful cultural researcher specializing in Aboriginal Australian cultures. You provide accurate, comprehensive, and culturally-sensitive information while acknowledging the limits of publicly available knowledge and always respecting sacred/secret information boundaries. You draw on publicly available sources including AIATSIS, Native Title records, cultural centre publications, academic research, and community-shared knowledge."
         },
         {
           role: "user",
@@ -139,7 +239,7 @@ Respond ONLY with valid JSON, no additional text.`;
         }
       ],
       temperature: 0.7,
-      max_tokens: 2000,
+      max_tokens: 4000,
     });
 
     const responseText = response.choices[0]?.message?.content?.trim();
@@ -166,6 +266,29 @@ Respond ONLY with valid JSON, no additional text.`;
       sourcesUsed: parsed.sourcesUsed || ["AI-researched content"],
       isAIGenerated: true,
       generatedAt: new Date().toISOString(),
+      // Enriched data
+      kinshipSystem: parsed.kinshipSystem || "",
+      moietySystem: parsed.moietySystem || "",
+      skinNames: parsed.skinNames || [],
+      traditionalGovernance: parsed.traditionalGovernance || "",
+      elderStructure: parsed.elderStructure || "",
+      environmentalKnowledge: parsed.environmentalKnowledge || "",
+      landManagement: parsed.landManagement || "",
+      waterKnowledge: parsed.waterKnowledge || "",
+      tradeNetworks: parsed.tradeNetworks || "",
+      neighboringGroups: parsed.neighboringGroups || [],
+      tradeGoods: parsed.tradeGoods || [],
+      musicInstruments: parsed.musicInstruments || [],
+      danceStyles: parsed.danceStyles || [],
+      storytellingTraditions: parsed.storytellingTraditions || "",
+      toolsTechnology: parsed.toolsTechnology || [],
+      weavingTextiles: parsed.weavingTextiles || [],
+      significantSites: parsed.significantSites || [],
+      dreamtimeBeings: parsed.dreamtimeBeings || [],
+      contemporaryCulture: parsed.contemporaryCulture || "",
+      languageRevival: parsed.languageRevival || "",
+      culturalCentres: parsed.culturalCentres || [],
+      notableFigures: parsed.notableFigures || [],
     };
   } catch (error) {
     console.error("Error generating AI content:", error);
