@@ -53,6 +53,14 @@ Preferred communication style: Simple, everyday language.
 - **Data Optimization**: Viewport-based data loading and caching
 - **Real-time Updates**: Dynamic overlay management based on map interactions
 
+### Territory Info Panel Features
+When users click on a territory polygon, the TerritoryInfoPanel displays:
+- **Territory Details**: Name, region, and language group badges
+- **Native Title Status**: Government-verified Native Title information from NNTT
+- **Mining Impact Analysis**: Overlapping Geoscience Australia deposits with commodity breakdown (gold, iron, lithium, etc.)
+- **AI Cultural Content**: AI-researched cultural information with clear disclaimers - includes language family, traditional foods, and connection to country
+- **Collapsible Sections**: Mining and cultural content are expandable to reduce visual clutter
+
 ### Authentication & Verification
 - **Supply Nation Integration**: Indigenous business verification (credentials required)
 - **Pattern Recognition**: Indigenous business identification through name/location analysis

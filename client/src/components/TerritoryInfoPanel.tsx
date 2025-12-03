@@ -1,10 +1,34 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { MapPin, Users, Globe, Calendar, Leaf, X, Shield, AlertCircle } from 'lucide-react';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { MapPin, Users, Globe, Calendar, Leaf, X, Shield, AlertCircle, Pickaxe, ChevronDown, ChevronUp, Sparkles, BookOpen } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { useLocation } from 'wouter';
+import { useState } from 'react';
 import type { Territory } from '@shared/schema';
+
+interface MiningImpact {
+  deposits: Array<{
+    id: string;
+    name: string;
+    state: string;
+    commodities: string[];
+    status: string;
+  }>;
+  totalCount: number;
+  commodityBreakdown: Record<string, number>;
+}
+
+interface AICulturalContent {
+  aiContent: {
+    languageFamily: string;
+    connectionToCountry: string;
+    traditionalFoods: string[];
+    artStyles: string[];
+    isAIGenerated: boolean;
+  };
+}
 
 interface TerritoryInfoPanelProps {
   territory: Territory;
@@ -18,6 +42,8 @@ export default function TerritoryInfoPanel({
   onViewDetails 
 }: TerritoryInfoPanelProps) {
   const [, setLocation] = useLocation();
+  const [showMiningDetails, setShowMiningDetails] = useState(false);
+  const [showCulturalDetails, setShowCulturalDetails] = useState(false);
   // Handle both new and existing data structures
   const territoryName = (territory as any).Name || territory.name;
   const region = (territory as any).Region || territory.region;
@@ -82,11 +108,33 @@ export default function TerritoryInfoPanel({
     enabled: !!(territoryName && coordinates?.lat && coordinates?.lng)
   });
 
+  // Fetch mining impact data for this territory
+  const { data: miningImpact, isLoading: miningLoading } = useQuery<MiningImpact>({
+    queryKey: ['/api/territories', territory.id, 'mining-impact'],
+    queryFn: async () => {
+      const response = await fetch(`/api/territories/${territory.id}/mining-impact`);
+      if (!response.ok) throw new Error('Failed to fetch mining impact data');
+      return response.json();
+    },
+    enabled: !!territory.id,
+  });
+
+  // Fetch AI-researched cultural content
+  const { data: aiContent, isLoading: aiLoading } = useQuery<AICulturalContent>({
+    queryKey: ['/api/territories', encodeURIComponent(territoryName), 'ai-content'],
+    queryFn: async () => {
+      const response = await fetch(`/api/territories/${encodeURIComponent(territoryName)}/ai-content`);
+      if (!response.ok) throw new Error('Failed to fetch AI cultural content');
+      return response.json();
+    },
+    enabled: !!territoryName,
+  });
+
   // Debug logging - remove in production
   // console.log('Territory panel data:', { territoryName, coordinates, nativeTitleData });
 
   return (
-    <Card className="absolute bottom-20 right-4 sm:bottom-24 sm:right-6 z-[1000] w-[calc(100vw-2rem)] sm:w-96 max-w-md glass-effect rounded-2xl modern-shadow-lg animate-slide-in-left overflow-hidden">
+    <Card className="absolute bottom-20 right-4 sm:bottom-24 sm:right-6 z-[1000] w-[calc(100vw-2rem)] sm:w-96 max-w-md glass-effect rounded-2xl modern-shadow-lg animate-slide-in-left overflow-hidden" data-testid="territory-info-panel">
       <CardHeader className="pb-3 px-4 sm:px-6 bg-gradient-to-r from-earth-orange/10 to-earth-gold/10 border-b border-earth-brown/10">
         <div className="flex items-start justify-between gap-2">
           <div className="flex-1 min-w-0">
@@ -282,6 +330,133 @@ export default function TerritoryInfoPanel({
             </div>
           </div>
         )}
+
+        {/* Mining Impact Analysis */}
+        <Collapsible open={showMiningDetails} onOpenChange={setShowMiningDetails}>
+          <div className="bg-amber-50 rounded-xl p-3 border border-amber-200" data-testid="mining-impact-section">
+            <CollapsibleTrigger className="w-full" data-testid="trigger-mining-impact">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Pickaxe className="w-4 h-4 text-amber-600" />
+                  <span className="font-semibold text-sm text-amber-900">Mining Impact</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  {miningLoading ? (
+                    <span className="text-xs text-amber-600">Loading...</span>
+                  ) : miningImpact && miningImpact.totalCount > 0 ? (
+                    <Badge variant="outline" className="bg-amber-100 text-amber-800 border-amber-300 text-xs">
+                      {miningImpact.totalCount} deposit{miningImpact.totalCount !== 1 ? 's' : ''}
+                    </Badge>
+                  ) : (
+                    <Badge variant="outline" className="bg-green-100 text-green-800 border-green-300 text-xs">
+                      No deposits
+                    </Badge>
+                  )}
+                  {showMiningDetails ? <ChevronUp className="w-4 h-4 text-amber-600" /> : <ChevronDown className="w-4 h-4 text-amber-600" />}
+                </div>
+              </div>
+            </CollapsibleTrigger>
+            
+            <CollapsibleContent className="mt-3">
+              {miningImpact && miningImpact.totalCount > 0 ? (
+                <div className="space-y-2">
+                  <div className="flex items-start gap-2 text-xs text-amber-800 bg-amber-100 p-2 rounded">
+                    <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                    <span>Mining activity detected on traditional lands. Community consultation may be required.</span>
+                  </div>
+                  
+                  {Object.keys(miningImpact.commodityBreakdown).length > 0 && (
+                    <div className="flex flex-wrap gap-1">
+                      {Object.entries(miningImpact.commodityBreakdown).slice(0, 5).map(([commodity, count]) => (
+                        <Badge key={commodity} variant="secondary" className="text-xs bg-amber-200/50 text-amber-900">
+                          {commodity}: {String(count)}
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
+                  
+                  <div className="text-[10px] text-amber-600">Source: Geoscience Australia</div>
+                </div>
+              ) : (
+                <div className="text-xs text-green-700">
+                  No recorded mining deposits found within this territory boundary.
+                </div>
+              )}
+            </CollapsibleContent>
+          </div>
+        </Collapsible>
+
+        {/* AI Cultural Information */}
+        <Collapsible open={showCulturalDetails} onOpenChange={setShowCulturalDetails}>
+          <div className="bg-purple-50 rounded-xl p-3 border border-purple-200" data-testid="ai-cultural-section">
+            <CollapsibleTrigger className="w-full" data-testid="trigger-cultural-content">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <BookOpen className="w-4 h-4 text-purple-600" />
+                  <span className="font-semibold text-sm text-purple-900">Cultural Information</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  {aiLoading ? (
+                    <span className="text-xs text-purple-600">Researching...</span>
+                  ) : aiContent?.aiContent ? (
+                    <Badge variant="outline" className="bg-purple-100 text-purple-800 border-purple-300 text-xs flex items-center gap-1">
+                      <Sparkles className="w-3 h-3" />
+                      AI Researched
+                    </Badge>
+                  ) : (
+                    <Badge variant="outline" className="bg-gray-100 text-gray-600 border-gray-300 text-xs">
+                      Click to load
+                    </Badge>
+                  )}
+                  {showCulturalDetails ? <ChevronUp className="w-4 h-4 text-purple-600" /> : <ChevronDown className="w-4 h-4 text-purple-600" />}
+                </div>
+              </div>
+            </CollapsibleTrigger>
+            
+            <CollapsibleContent className="mt-3">
+              {aiContent?.aiContent ? (
+                <div className="space-y-2">
+                  <div className="flex items-start gap-2 text-[10px] text-purple-700 bg-purple-100 p-2 rounded">
+                    <Sparkles className="w-3 h-3 flex-shrink-0 mt-0.5" />
+                    <span>AI-researched information. Please verify with Traditional Owners.</span>
+                  </div>
+                  
+                  {aiContent.aiContent.languageFamily && (
+                    <div className="text-xs">
+                      <strong className="text-purple-800">Language:</strong>{' '}
+                      <span className="text-purple-900">{aiContent.aiContent.languageFamily}</span>
+                    </div>
+                  )}
+                  
+                  {aiContent.aiContent.connectionToCountry && (
+                    <p className="text-xs text-purple-900 line-clamp-2">
+                      {aiContent.aiContent.connectionToCountry}
+                    </p>
+                  )}
+                  
+                  {aiContent.aiContent.traditionalFoods && aiContent.aiContent.traditionalFoods.length > 0 && (
+                    <div className="flex flex-wrap gap-1">
+                      {aiContent.aiContent.traditionalFoods.slice(0, 3).map((food, idx) => (
+                        <Badge key={idx} variant="secondary" className="text-[10px] bg-purple-200/50 text-purple-900">
+                          {food}
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ) : aiLoading ? (
+                <div className="text-xs text-purple-600 text-center py-2">
+                  <Sparkles className="w-4 h-4 animate-spin inline mr-1" />
+                  Researching cultural information...
+                </div>
+              ) : (
+                <div className="text-xs text-purple-600 text-center py-2">
+                  Click "Learn More" for detailed cultural content
+                </div>
+              )}
+            </CollapsibleContent>
+          </div>
+        </Collapsible>
 
         {/* Traditional Languages */}
         {traditionalLanguages && traditionalLanguages.length > 0 && (

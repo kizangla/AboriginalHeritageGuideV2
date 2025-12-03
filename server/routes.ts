@@ -81,6 +81,54 @@ function getPostcodeCoordinates(postcode: string, stateCode: string): { lat: num
   return postcodeMap[postcode] || null;
 }
 
+// Helper to extract bounds from territory GeoJSON geometry
+function getTerritoryBounds(territory: any): { north: number; south: number; east: number; west: number } {
+  try {
+    let coords: number[][] = [];
+    const geometry = territory.geometry;
+    
+    if (geometry?.type === 'Polygon' && geometry.coordinates?.[0]) {
+      coords = geometry.coordinates[0];
+    } else if (geometry?.type === 'MultiPolygon' && geometry.coordinates) {
+      geometry.coordinates.forEach((polygon: number[][][]) => {
+        if (polygon[0]) {
+          coords = coords.concat(polygon[0]);
+        }
+      });
+    }
+    
+    if (coords.length === 0) {
+      // Fallback: use center point with larger buffer (1.5 degrees ~ 150km)
+      const center = territory.center || { lat: -25, lng: 133 };
+      console.log(`Territory ${territory.name} has no geometry, using center point buffer`);
+      return {
+        north: center.lat + 1.5,
+        south: center.lat - 1.5,
+        east: center.lng + 1.5,
+        west: center.lng - 1.5
+      };
+    }
+    
+    // Calculate bounds from coordinates [lng, lat]
+    let minLat = Infinity, maxLat = -Infinity;
+    let minLng = Infinity, maxLng = -Infinity;
+    
+    coords.forEach(coord => {
+      const lng = coord[0];
+      const lat = coord[1];
+      minLat = Math.min(minLat, lat);
+      maxLat = Math.max(maxLat, lat);
+      minLng = Math.min(minLng, lng);
+      maxLng = Math.max(maxLng, lng);
+    });
+    
+    return { north: maxLat, south: minLat, east: maxLng, west: minLng };
+  } catch (error) {
+    console.error('Error calculating territory bounds:', error);
+    return { north: -10, south: -45, east: 155, west: 110 }; // Australia-wide fallback
+  }
+}
+
 import { indigenousBusinessService } from "./indigenous-business-service";
 import { asyncGeocodingService } from "./async-geocoding-service";
 
@@ -375,6 +423,74 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching businesses:", error);
       res.status(500).json({ message: "Failed to fetch businesses" });
+    }
+  });
+
+  // Get mining impact analysis for territory
+  app.get("/api/territories/:id/mining-impact", async (req, res) => {
+    try {
+      const territoryId = parseInt(req.params.id);
+      if (isNaN(territoryId)) {
+        return res.status(400).json({ message: "Invalid territory ID" });
+      }
+
+      const territory = await storage.getTerritoryById(territoryId);
+      if (!territory) {
+        return res.status(404).json({ message: "Territory not found" });
+      }
+
+      // Get territory bounds from the GeoJSON geometry
+      const bounds = getTerritoryBounds(territory);
+      console.log(`Territory ${territory.name} bounds:`, bounds);
+      
+      // Fetch deposits from Geoscience Australia
+      const gaResult = await geoscienceAustraliaService.getAllDeposits({ limit: 500 });
+      console.log(`Got ${gaResult.deposits.length} deposits from Geoscience Australia`);
+      
+      // Filter deposits that fall within territory bounds
+      const overlappingDeposits = gaResult.deposits.filter(deposit => {
+        if (!deposit.coordinates) return false;
+        const { lat, lng } = deposit.coordinates;
+        const inBounds = lat >= bounds.south && lat <= bounds.north && 
+               lng >= bounds.west && lng <= bounds.east;
+        return inBounds;
+      });
+      console.log(`Found ${overlappingDeposits.length} overlapping deposits`);
+      
+      // Calculate commodity breakdown
+      const commodityBreakdown: Record<string, number> = {};
+      overlappingDeposits.forEach(deposit => {
+        const commodities = deposit.commodities || '';
+        // Handle both string and array formats
+        const commodityList = Array.isArray(commodities) 
+          ? commodities 
+          : (typeof commodities === 'string' ? commodities.split(',') : []);
+        
+        commodityList.forEach((commodity: string) => {
+          const cleanCommodity = commodity.trim().split(',')[0].trim();
+          if (cleanCommodity) {
+            commodityBreakdown[cleanCommodity] = (commodityBreakdown[cleanCommodity] || 0) + 1;
+          }
+        });
+      });
+      
+      res.json({
+        deposits: overlappingDeposits.map(d => ({
+          id: d.id,
+          name: d.name,
+          state: d.state,
+          commodities: d.commodities,
+          status: d.status,
+          coordinates: d.coordinates
+        })),
+        totalCount: overlappingDeposits.length,
+        commodityBreakdown,
+        territoryName: territory.name,
+        source: 'Geoscience Australia'
+      });
+    } catch (error) {
+      console.error("Error fetching mining impact:", error);
+      res.status(500).json({ message: "Failed to fetch mining impact data" });
     }
   });
 
