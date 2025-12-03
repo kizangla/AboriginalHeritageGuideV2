@@ -119,7 +119,7 @@ export default function MapPage() {
     <div className="h-screen w-screen bg-gradient-to-br from-earth-beige to-white">
       {/* Modern Header with Glass Effect */}
       <div className="absolute top-0 left-0 right-0 z-[1010] glass-effect animate-fade-in-up">
-        <div className="flex items-center justify-between px-6 py-4">
+        <div className="flex items-center justify-between px-6 py-4 bg-[#d8aa84] font-semibold text-[23px] text-[#050505]">
           <div className="flex items-center gap-4">
             <div className="relative group">
               <div className="absolute inset-0 bg-earth-orange rounded-full blur-xl opacity-30 group-hover:opacity-50 smooth-transition"></div>
@@ -144,7 +144,6 @@ export default function MapPage() {
           </div>
         </div>
       </div>
-
       {/* Full Screen Map with Modern Overlay */}
       <main className="h-full pt-20 relative">
         <SimpleMap 
