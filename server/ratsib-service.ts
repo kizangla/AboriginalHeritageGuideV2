@@ -46,12 +46,30 @@ export async function fetchRATSIBBoundaries(
     // Create bounding box around territory (approximately 50km radius)
     const bbox = `${lng - 0.5},${lat - 0.5},${lng + 0.5},${lat + 0.5}`;
     
-    // Fetch authentic RATSIB data from Australian Government WFS service
-    const wfsUrl = 'https://data.gov.au/geoserver/ratsib-boundaries/wfs?request=GetFeature&typeName=ckan_0d32262b_e13b_4475_adc6_3618811c029a&outputFormat=json';
+    // Fetch authentic RATSIB data from NNTT ArcGIS Feature Service (more reliable than data.gov.au WFS)
+    // Layer 9 = RATSIB Areas in the NNTT Custodial AGOL service
+    const arcgisUrl = 'https://services2.arcgis.com/rzk7fNEt0xoEp3cX/arcgis/rest/services/NNTT_Custodial_AGOL/FeatureServer/9/query';
     
-    console.log(`Fetching RATSIB boundaries for ${territoryName} from Australian Government...`);
+    // Create a spatial filter using the territory coordinates
+    const geometryParam = JSON.stringify({
+      x: lng,
+      y: lat,
+      spatialReference: { wkid: 4326 }
+    });
     
-    const response = await fetch(wfsUrl, {
+    const queryParams = new URLSearchParams({
+      f: 'json',
+      geometry: geometryParam,
+      geometryType: 'esriGeometryPoint',
+      spatialRel: 'esriSpatialRelIntersects',
+      outFields: '*',
+      returnGeometry: 'true',
+      outSR: '4326'
+    });
+    
+    console.log(`Fetching RATSIB boundaries for ${territoryName} from NNTT ArcGIS service...`);
+    
+    const response = await fetch(`${arcgisUrl}?${queryParams.toString()}`, {
       headers: {
         'User-Agent': 'Indigenous-Australia-App/1.0',
         'Accept': 'application/json',
@@ -59,7 +77,7 @@ export async function fetchRATSIBBoundaries(
     });
     
     if (!response.ok) {
-      console.warn(`RATSIB WFS service error: ${response.status} ${response.statusText}`);
+      console.warn(`RATSIB ArcGIS service error: ${response.status} ${response.statusText}`);
       return {
         boundaries: [],
         totalFound: 0,
@@ -69,10 +87,9 @@ export async function fetchRATSIBBoundaries(
     }
     
     const data = await response.json();
-    console.log(`Successfully fetched RATSIB data from Australian Government`);
     
-    if (!data.features || !Array.isArray(data.features)) {
-      console.log(`No RATSIB features found in government data`);
+    if (data.error) {
+      console.warn(`RATSIB ArcGIS query error:`, data.error);
       return {
         boundaries: [],
         totalFound: 0,
@@ -81,94 +98,60 @@ export async function fetchRATSIBBoundaries(
       };
     }
     
-    // Filter features by precise geographic coverage and service area
-    const relevantFeatures = data.features.filter((feature: any) => {
-      const props = feature.properties || {};
-      
-      // First filter by jurisdiction
-      let jurisdictionMatch = false;
-      if (lat >= -35 && lat <= -13 && lng >= 113 && lng <= 129) { // Western Australia
-        jurisdictionMatch = props.JURIS === 'WA';
-      } else if (lat >= -29 && lat <= -9 && lng >= 138 && lng <= 154) { // Queensland
-        jurisdictionMatch = props.JURIS === 'QLD';
-      } else if (lat >= -37 && lat <= -28 && lng >= 141 && lng <= 154) { // New South Wales
-        jurisdictionMatch = props.JURIS === 'NSW';
-      } else if (lat >= -39 && lat <= -34 && lng >= 141 && lng <= 150) { // Victoria
-        jurisdictionMatch = props.JURIS === 'VIC';
-      } else if (lat >= -38 && lat <= -26 && lng >= 129 && lng <= 141) { // South Australia
-        jurisdictionMatch = props.JURIS === 'SA';
-      } else if (lat >= -43 && lat <= -39 && lng >= 144 && lng <= 149) { // Tasmania
-        jurisdictionMatch = props.JURIS === 'TAS';
-      } else if (lat >= -26 && lat <= -10 && lng >= 129 && lng <= 138) { // Northern Territory
-        jurisdictionMatch = props.JURIS === 'NT';
-      }
-      
-      if (!jurisdictionMatch) return false;
-      
-      // Enhanced geographic filtering based on service area coverage
-      if (feature.geometry && feature.geometry.coordinates) {
-        try {
-          const geometry = feature.geometry;
-          
-          // Check if point is within service area polygon
-          if (geometry.type === 'Polygon' || geometry.type === 'MultiPolygon') {
-            return isPointInGeometry(lat, lng, geometry);
-          }
-          
-          // For point geometries, use proximity with smaller radius for precision
-          if (geometry.type === 'Point') {
-            const [fLng, fLat] = geometry.coordinates;
-            const distance = Math.sqrt(Math.pow(fLat - lat, 2) + Math.pow(fLng - lng, 2));
-            return distance <= 0.5; // Within approximately 50km for more precision
-          }
-        } catch (error) {
-          // Fallback to name-based regional matching for WA specific areas
-          if (props.JURIS === 'WA') {
-            const serviceName = (props.NAME || '').toLowerCase();
-            const orgName = (props.ORG || '').toLowerCase();
-            
-            // For Malpa territory (Goldfields region), match specific services
-            if (lat < -29 && lng > 119) { // Goldfields/Southern WA region
-              return serviceName.includes('goldfields') || 
-                     serviceName.includes('central desert') ||
-                     orgName.includes('goldfields') || 
-                     orgName.includes('central desert');
-            }
-          }
-          return false;
-        }
-      }
-      
-      return false;
-    });
+    console.log(`Successfully fetched RATSIB data from NNTT ArcGIS service`);
     
+    if (!data.features || !Array.isArray(data.features)) {
+      console.log(`No RATSIB features found in NNTT data`);
+      return {
+        boundaries: [],
+        totalFound: 0,
+        bbox,
+        source: 'australian_government_wfs'
+      };
+    }
+    
+    // ArcGIS returns features with spatial intersection already applied
+    // The spatial query already filtered to only include features that intersect the point
+    const relevantFeatures = data.features;
+    
+    // Map ArcGIS feature format to our boundary format
     const boundaries: RATSIBBoundary[] = relevantFeatures.map((feature: any, index: number) => {
-      const props = feature.properties || {};
+      const attrs = feature.attributes || {};
       
-      // Debug: Log actual property names from government dataset
+      // Debug: Log actual property names from NNTT ArcGIS service
       if (index === 0) {
-        console.log('RATSIB property keys from Australian Government:', Object.keys(props));
-        console.log('Sample RATSIB properties:', props);
+        console.log('RATSIB fields from NNTT ArcGIS:', Object.keys(attrs));
+        console.log('Sample RATSIB attributes:', attrs);
+      }
+      
+      // Convert ArcGIS rings format to GeoJSON format if needed
+      let geometry = {
+        type: "Point" as const,
+        coordinates: [lng, lat]
+      };
+      
+      if (feature.geometry && feature.geometry.rings) {
+        geometry = {
+          type: "Polygon" as any,
+          coordinates: feature.geometry.rings
+        };
       }
       
       return {
-        id: props.ID || props.id || `ratsib_${index}`,
-        name: props.NAME || props.name || 'Aboriginal Territory',
-        organizationName: props.ORG || props.org || 'Aboriginal Organization',
-        corporationType: props.RATSIBTYPE || props.ratsibtype || 'Aboriginal Corporation',
-        registrationDate: props.DT_EXTRACT || props.dt_extract,
-        status: props.COMMENTS || props.comments || 'Active',
-        abn: props.abn || props.australian_business_number,
-        address: props.address || props.postal_address || props.street_address,
-        contact: props.contact || props.phone || props.email,
-        legislativeAuthority: props.LEGISAUTH || props.legisauth,
-        website: props.RATSIBLINK || props.ratsiblink,
-        jurisdiction: props.JURIS || props.juris,
-        geometry: feature.geometry || {
-          type: "Point",
-          coordinates: [lng, lat] // Fallback to territory center
-        },
-        originalProperties: props // Preserve all original fields from government dataset
+        id: attrs.ID?.toString() || attrs.OBJECTID?.toString() || `ratsib_${index}`,
+        name: attrs.Name || attrs.Organisation || 'RATSIB Area',
+        organizationName: attrs.Organisation || 'Aboriginal Organization',
+        corporationType: attrs.RATSIB_Type || 'Representative Body',
+        registrationDate: attrs.Date_Extracted ? new Date(attrs.Date_Extracted).toISOString() : undefined,
+        status: 'Active',
+        abn: undefined,
+        address: undefined,
+        contact: undefined,
+        legislativeAuthority: attrs.Legislative_Authority || undefined,
+        website: attrs.RATSIB_Link || undefined,
+        jurisdiction: attrs.Jurisdiction || undefined,
+        geometry,
+        originalProperties: attrs
       };
     });
     

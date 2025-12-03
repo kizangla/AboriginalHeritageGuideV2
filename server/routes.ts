@@ -1074,19 +1074,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       console.log('Fetching all RATSIB boundaries across Australia...');
       
-      // Try to fetch authentic RATSIB data from Australian Government WFS service
-      // Note: The data.gov.au WFS service may be temporarily unavailable (HTTP 500)
-      const wfsUrl = 'https://data.gov.au/geoserver/ratsib-boundaries/wfs?request=GetFeature&typeName=ckan_0d32262b_e13b_4475_adc6_3618811c029a&outputFormat=json';
+      // Fetch authentic RATSIB data from NNTT ArcGIS Feature Service (more reliable than data.gov.au WFS)
+      // Layer 9 = RATSIB Areas in the NNTT Custodial AGOL service
+      const arcgisUrl = 'https://services2.arcgis.com/rzk7fNEt0xoEp3cX/arcgis/rest/services/NNTT_Custodial_AGOL/FeatureServer/9/query';
+      
+      const queryParams = new URLSearchParams({
+        f: 'json',
+        where: '1=1',
+        outFields: '*',
+        returnGeometry: 'true',
+        outSR: '4326'
+      });
       
       let allBoundaries: any[] = [];
-      let dataSource = 'australian_government_wfs';
+      let dataSource = 'nntt_arcgis_service';
       let serviceAvailable = false;
       
       try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+        const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
         
-        const response = await fetch(wfsUrl, {
+        const response = await fetch(`${arcgisUrl}?${queryParams.toString()}`, {
           signal: controller.signal,
           headers: {
             'User-Agent': 'Indigenous-Australia-App/1.0',
@@ -1098,34 +1106,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (response.ok) {
           const data = await response.json();
           
-          if (data.features && Array.isArray(data.features) && data.features.length > 0) {
-            console.log(`Successfully fetched all RATSIB data from Australian Government`);
-            console.log(`RATSIB property keys: [${Object.keys(data.features[0]?.properties || {}).map(k => `'${k}'`).join(', ')}]`);
+          if (!data.error && data.features && Array.isArray(data.features) && data.features.length > 0) {
+            console.log(`Successfully fetched all RATSIB data from NNTT ArcGIS service (${data.features.length} areas)`);
+            console.log(`RATSIB fields: [${Object.keys(data.features[0]?.attributes || {}).map(k => `'${k}'`).join(', ')}]`);
             
             allBoundaries = data.features.map((feature: any) => {
-              const props = feature.properties || {};
+              const attrs = feature.attributes || {};
+              
+              // Convert ArcGIS rings format to GeoJSON format
+              let geometry = null;
+              if (feature.geometry && feature.geometry.rings) {
+                geometry = {
+                  type: "Polygon",
+                  coordinates: feature.geometry.rings
+                };
+              }
               
               return {
-                id: props.ID || `ratsib_${Math.random().toString(36).substr(2, 9)}`,
-                name: props.NAME || props.org || 'Aboriginal Organization',
-                organizationName: props.ORG || props.organizationName || props.NAME || 'Aboriginal Organization',
-                corporationType: props.RATSIBTYPE || props.corporationType || 'Aboriginal Corporation',
-                registrationDate: props.DT_EXTRACT || new Date().toISOString(),
-                status: props.COMMENTS || props.status || 'Active',
-                legislativeAuthority: props.LEGISAUTH || props.legislativeAuthority || 'Native Title Act 1993',
-                website: props.RATSIBLINK || props.website || null,
-                jurisdiction: props.JURIS || props.jurisdiction || 'Australia',
-                geometry: feature.geometry,
-                originalProperties: props
+                id: attrs.ID?.toString() || attrs.OBJECTID?.toString() || `ratsib_${Math.random().toString(36).substr(2, 9)}`,
+                name: attrs.Name || attrs.Organisation || 'RATSIB Area',
+                organizationName: attrs.Organisation || 'Aboriginal Organization',
+                corporationType: attrs.RATSIB_Type || 'Representative Body',
+                registrationDate: attrs.Date_Extracted ? new Date(attrs.Date_Extracted).toISOString() : new Date().toISOString(),
+                status: 'Active',
+                legislativeAuthority: attrs.Legislative_Authority || 'Native Title Act 1993',
+                website: attrs.RATSIB_Link || null,
+                jurisdiction: attrs.Jurisdiction || 'Australia',
+                geometry: geometry,
+                originalProperties: attrs
               };
             });
             serviceAvailable = true;
+          } else if (data.error) {
+            console.warn(`NNTT ArcGIS query error:`, data.error);
           }
         } else {
-          console.warn(`RATSIB WFS service returned HTTP ${response.status} - using graceful degradation`);
+          console.warn(`NNTT ArcGIS service returned HTTP ${response.status} - using graceful degradation`);
         }
       } catch (fetchError: any) {
-        console.warn(`RATSIB WFS service unavailable: ${fetchError.message} - returning empty result with service status`);
+        console.warn(`NNTT ArcGIS service unavailable: ${fetchError.message} - returning empty result with service status`);
         dataSource = 'service_unavailable';
       }
       
@@ -1141,7 +1160,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           serviceAvailable: serviceAvailable,
           message: serviceAvailable 
             ? undefined 
-            : 'Australian Government RATSIB WFS service is temporarily unavailable. Data will be loaded when service is restored.'
+            : 'NNTT RATSIB service is temporarily unavailable. Data will be loaded when service is restored.'
         },
         timestamp: new Date().toISOString()
       };
