@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
-import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle, DrawerTrigger } from '@/components/ui/drawer';
+import { Drawer, DrawerClose, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle, DrawerTrigger } from '@/components/ui/drawer';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { 
   Plus, 
@@ -12,7 +12,9 @@ import {
   Crosshair,
   Navigation,
   Menu,
-  ChevronUp
+  ChevronUp,
+  ChevronDown,
+  X
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -158,17 +160,23 @@ export function MobileMapControls({
                 "touch-manipulation"
               )}
               data-testid="button-mobile-controls"
-              onClick={(e) => {
-                e.stopPropagation();
-                setIsControlsExpanded(true);
-              }}
             >
               <ChevronUp className="w-4 h-4 mr-2" />
               Map Controls
             </Button>
           </DrawerTrigger>
-          <DrawerContent className="pb-6 z-[1001]">
-            <DrawerHeader>
+          <DrawerContent className="pb-6 z-[1001]" onPointerDownOutside={() => setIsControlsExpanded(false)}>
+            <DrawerHeader className="relative">
+              <DrawerClose asChild>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="absolute right-2 top-0 rounded-full"
+                  data-testid="button-close-drawer"
+                >
+                  <ChevronDown className="w-5 h-5" />
+                </Button>
+              </DrawerClose>
               <DrawerTitle>Map Controls</DrawerTitle>
               <DrawerDescription>
                 Navigate and customize your map view
