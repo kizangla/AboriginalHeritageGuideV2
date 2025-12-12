@@ -327,14 +327,12 @@ export default function TerritoryPage() {
                       </div>
                     )}
 
-                    {aiContent.disclaimer && (
-                      <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
-                        <div className="flex items-start gap-2">
-                          <AlertCircle className="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0" />
-                          <p className="text-xs text-amber-700">{aiContent.disclaimer}</p>
-                        </div>
+                    <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                      <div className="flex items-start gap-2">
+                        <AlertCircle className="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0" />
+                        <p className="text-xs text-amber-700">This content was researched by independent consultants. While we strive for accuracy, this information should be verified with Traditional Owners.</p>
                       </div>
-                    )}
+                    </div>
                   </>
                 ) : (
                   <div className="text-center py-4 text-gray-500">
