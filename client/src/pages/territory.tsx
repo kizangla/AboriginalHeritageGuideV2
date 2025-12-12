@@ -271,7 +271,7 @@ export default function TerritoryPage() {
                   <Sparkles className="w-5 h-5 text-purple-500" />
                   Cultural Heritage
                   <Badge variant="outline" className="ml-2 text-xs bg-purple-50 text-purple-700 border-purple-200">
-                    AI-Researched
+                    Maali Group research findings
                   </Badge>
                 </CardTitle>
                 <CardDescription>
@@ -352,7 +352,7 @@ export default function TerritoryPage() {
                   <CardTitle className="flex items-center gap-2">
                     Traditional Practices
                     <Badge variant="outline" className="ml-2 text-xs bg-purple-50 text-purple-700 border-purple-200">
-                      AI-Researched
+                      Maali Group research findings
                     </Badge>
                   </CardTitle>
                 </CardHeader>
@@ -431,7 +431,7 @@ export default function TerritoryPage() {
                     <Users className="w-5 h-5 text-blue-500" />
                     Social Structure & Kinship
                     <Badge variant="outline" className="ml-2 text-xs bg-purple-50 text-purple-700 border-purple-200">
-                      AI-Researched
+                      Maali Group research findings
                     </Badge>
                   </CardTitle>
                 </CardHeader>
@@ -482,7 +482,7 @@ export default function TerritoryPage() {
                     <MapPin className="w-5 h-5 text-green-500" />
                     Environmental Knowledge
                     <Badge variant="outline" className="ml-2 text-xs bg-purple-50 text-purple-700 border-purple-200">
-                      AI-Researched
+                      Maali Group research findings
                     </Badge>
                   </CardTitle>
                 </CardHeader>
@@ -516,7 +516,7 @@ export default function TerritoryPage() {
                   <CardTitle className="flex items-center gap-2">
                     Trade Networks & Connections
                     <Badge variant="outline" className="ml-2 text-xs bg-purple-50 text-purple-700 border-purple-200">
-                      AI-Researched
+                      Maali Group research findings
                     </Badge>
                   </CardTitle>
                 </CardHeader>
@@ -558,7 +558,7 @@ export default function TerritoryPage() {
                   <CardTitle className="flex items-center gap-2">
                     Music, Dance & Storytelling
                     <Badge variant="outline" className="ml-2 text-xs bg-purple-50 text-purple-700 border-purple-200">
-                      AI-Researched
+                      Maali Group research findings
                     </Badge>
                   </CardTitle>
                 </CardHeader>
@@ -600,7 +600,7 @@ export default function TerritoryPage() {
                   <CardTitle className="flex items-center gap-2">
                     Tools & Crafts
                     <Badge variant="outline" className="ml-2 text-xs bg-purple-50 text-purple-700 border-purple-200">
-                      AI-Researched
+                      Maali Group research findings
                     </Badge>
                   </CardTitle>
                 </CardHeader>
@@ -636,7 +636,7 @@ export default function TerritoryPage() {
                   <CardTitle className="flex items-center gap-2">
                     Dreamtime & Country
                     <Badge variant="outline" className="ml-2 text-xs bg-purple-50 text-purple-700 border-purple-200">
-                      AI-Researched
+                      Maali Group research findings
                     </Badge>
                   </CardTitle>
                 </CardHeader>
@@ -674,7 +674,7 @@ export default function TerritoryPage() {
                     <Calendar className="w-5 h-5 text-purple-500" />
                     Contemporary Culture
                     <Badge variant="outline" className="ml-2 text-xs bg-purple-50 text-purple-700 border-purple-200">
-                      AI-Researched
+                      Maali Group research findings
                     </Badge>
                   </CardTitle>
                 </CardHeader>
