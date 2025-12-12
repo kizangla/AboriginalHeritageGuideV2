@@ -2,10 +2,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription } from '@/components/ui/drawer';
 import { MapPin, Users, Globe, Calendar, Leaf, X, Shield, AlertCircle, Pickaxe, ChevronDown, ChevronUp, Sparkles, BookOpen } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { useLocation } from 'wouter';
 import { useState } from 'react';
+import { useIsMobile } from '@/hooks/use-mobile';
 import type { Territory } from '@shared/schema';
 
 interface MiningImpact {
@@ -44,6 +46,7 @@ export default function TerritoryInfoPanel({
   const [, setLocation] = useLocation();
   const [showMiningDetails, setShowMiningDetails] = useState(false);
   const [showCulturalDetails, setShowCulturalDetails] = useState(false);
+  const isMobile = useIsMobile();
   // Handle both new and existing data structures
   const territoryName = (territory as any).Name || territory.name;
   const region = (territory as any).Region || territory.region;
@@ -133,38 +136,9 @@ export default function TerritoryInfoPanel({
   // Debug logging - remove in production
   // console.log('Territory panel data:', { territoryName, coordinates, nativeTitleData });
 
-  return (
-    <Card className="absolute bottom-20 right-4 sm:bottom-24 sm:right-6 z-[1000] w-[calc(100vw-2rem)] sm:w-96 max-w-md glass-effect rounded-2xl modern-shadow-lg animate-slide-in-left overflow-hidden" data-testid="territory-info-panel">
-      <CardHeader className="pb-3 px-4 sm:px-6 bg-gradient-to-r from-earth-orange/10 to-earth-gold/10 border-b border-earth-brown/10">
-        <div className="flex items-start justify-between gap-2">
-          <div className="flex-1 min-w-0">
-            <CardTitle className="text-lg sm:text-xl font-bold bg-gradient-to-r from-earth-brown to-earth-orange bg-clip-text text-transparent mb-1">
-              {territoryName}
-            </CardTitle>
-            <div className="flex items-center gap-2 flex-wrap">
-              <Badge variant="secondary" className="bg-earth-orange/20 text-earth-brown border-0 text-xs px-2 py-0.5 hover-lift">
-                <MapPin className="w-3 h-3 mr-1" />
-                <span className="font-medium">{region}</span>
-              </Badge>
-              {groupName && (
-                <Badge variant="outline" className="text-xs border-earth-brown/20 text-earth-brown hover-lift">
-                  {groupName}
-                </Badge>
-              )}
-            </div>
-          </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onClose}
-            className="h-8 w-8 p-0 hover:bg-gray-100 rounded-xl smooth-transition"
-          >
-            <X className="w-4 h-4" />
-          </Button>
-        </div>
-      </CardHeader>
-
-      <CardContent className="p-4 sm:p-5 space-y-4 max-h-[60vh] overflow-y-auto custom-scrollbar">
+  // Shared panel content for both mobile drawer and desktop card
+  const panelContent = (
+    <>
         {/* Cultural Information Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="flex items-center gap-3 p-3 bg-gradient-to-r from-purple-50 to-purple-100/50 rounded-xl border border-purple-200/50 hover-lift">
@@ -482,14 +456,16 @@ export default function TerritoryInfoPanel({
 
         {/* Cultural Indicators */}
         <div className="flex items-center justify-between pt-2 border-t border-gray-100">
-          <div className="flex items-center gap-4 text-xs text-gray-500">
+          <div className="flex items-center gap-2 sm:gap-4 text-xs text-gray-500">
             <div className="flex items-center gap-1">
               <Calendar className="w-3 h-3" />
-              Ancient Heritage
+              <span className="hidden sm:inline">Ancient Heritage</span>
+              <span className="sm:hidden">Heritage</span>
             </div>
             <div className="flex items-center gap-1">
               <Leaf className="w-3 h-3" />
-              Traditional Knowledge
+              <span className="hidden sm:inline">Traditional Knowledge</span>
+              <span className="sm:hidden">Knowledge</span>
             </div>
           </div>
           
@@ -499,11 +475,83 @@ export default function TerritoryInfoPanel({
               setLocation(`/territory/${encodedTerritoryName}`);
             }}
             size="sm"
-            className="bg-orange-600 hover:bg-orange-700 text-white px-4"
+            className="bg-orange-600 hover:bg-orange-700 text-white px-3 sm:px-4 text-xs sm:text-sm"
+            data-testid="button-learn-more"
           >
             Learn More
           </Button>
         </div>
+    </>
+  );
+
+  // Mobile: Use a bottom drawer for better touch interaction
+  if (isMobile) {
+    return (
+      <Drawer open={true} onOpenChange={(open) => !open && onClose()}>
+        <DrawerContent className="max-h-[85vh]" data-testid="territory-info-panel">
+          <DrawerHeader className="pb-2 bg-gradient-to-r from-earth-orange/10 to-earth-gold/10 border-b border-earth-brown/10">
+            <div className="flex items-start justify-between gap-2">
+              <div className="flex-1 min-w-0">
+                <DrawerTitle className="text-lg font-bold bg-gradient-to-r from-earth-brown to-earth-orange bg-clip-text text-transparent">
+                  {territoryName}
+                </DrawerTitle>
+                <DrawerDescription className="flex items-center gap-2 flex-wrap mt-1">
+                  <Badge variant="secondary" className="bg-earth-orange/20 text-earth-brown border-0 text-xs px-2 py-0.5">
+                    <MapPin className="w-3 h-3 mr-1" />
+                    <span className="font-medium">{region}</span>
+                  </Badge>
+                  {groupName && (
+                    <Badge variant="outline" className="text-xs border-earth-brown/20 text-earth-brown">
+                      {groupName}
+                    </Badge>
+                  )}
+                </DrawerDescription>
+              </div>
+            </div>
+          </DrawerHeader>
+          <div className="px-4 pb-6 space-y-4 overflow-y-auto">
+            {panelContent}
+          </div>
+        </DrawerContent>
+      </Drawer>
+    );
+  }
+
+  // Desktop: Use floating card panel
+  return (
+    <Card className="absolute bottom-24 right-6 z-[1000] w-96 max-w-md glass-effect rounded-2xl modern-shadow-lg animate-slide-in-left overflow-hidden" data-testid="territory-info-panel">
+      <CardHeader className="pb-3 px-6 bg-gradient-to-r from-earth-orange/10 to-earth-gold/10 border-b border-earth-brown/10">
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex-1 min-w-0">
+            <CardTitle className="text-xl font-bold bg-gradient-to-r from-earth-brown to-earth-orange bg-clip-text text-transparent mb-1">
+              {territoryName}
+            </CardTitle>
+            <div className="flex items-center gap-2 flex-wrap">
+              <Badge variant="secondary" className="bg-earth-orange/20 text-earth-brown border-0 text-xs px-2 py-0.5 hover-lift">
+                <MapPin className="w-3 h-3 mr-1" />
+                <span className="font-medium">{region}</span>
+              </Badge>
+              {groupName && (
+                <Badge variant="outline" className="text-xs border-earth-brown/20 text-earth-brown hover-lift">
+                  {groupName}
+                </Badge>
+              )}
+            </div>
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onClose}
+            className="h-8 w-8 p-0 hover:bg-gray-100 rounded-xl smooth-transition"
+            data-testid="button-close-panel"
+          >
+            <X className="w-4 h-4" />
+          </Button>
+        </div>
+      </CardHeader>
+
+      <CardContent className="p-5 space-y-4 max-h-[60vh] overflow-y-auto custom-scrollbar">
+        {panelContent}
       </CardContent>
     </Card>
   );

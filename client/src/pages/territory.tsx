@@ -195,60 +195,62 @@ export default function TerritoryPage() {
     <div className="min-h-screen bg-gradient-to-br from-orange-50 to-amber-50">
       {/* Header */}
       <div className="bg-white shadow-sm border-b">
-        <div className="max-w-6xl mx-auto px-4 py-4">
+        <div className="max-w-6xl mx-auto px-3 sm:px-4 py-3 sm:py-4">
           <Button 
             onClick={() => setLocation('/map')}
             variant="ghost" 
-            className="mb-4"
+            className="mb-2 sm:mb-4 text-sm"
+            data-testid="button-back-to-map"
           >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Map
+            <ArrowLeft className="w-4 h-4 mr-1 sm:mr-2" />
+            <span className="hidden sm:inline">Back to Map</span>
+            <span className="sm:hidden">Back</span>
           </Button>
           
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3 sm:gap-4">
             <div 
-              className="w-6 h-6 rounded border-2 border-white shadow-sm"
+              className="w-5 h-5 sm:w-6 sm:h-6 rounded border-2 border-white shadow-sm flex-shrink-0"
               style={{ backgroundColor: territoryDetails.color }}
             />
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">{territoryDetails.name}</h1>
-              <p className="text-lg text-gray-600">{territoryDetails.groupName}</p>
+            <div className="min-w-0">
+              <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 truncate">{territoryDetails.name}</h1>
+              <p className="text-sm sm:text-base lg:text-lg text-gray-600 truncate">{territoryDetails.groupName}</p>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="max-w-6xl mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="max-w-6xl mx-auto px-3 sm:px-4 py-4 sm:py-6 lg:py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
           {/* Main Content */}
-          <div className="lg:col-span-2 space-y-6">
+          <div className="lg:col-span-2 space-y-4 sm:space-y-6">
             
             {/* Overview Card */}
             <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Users className="w-5 h-5" />
+              <CardHeader className="pb-3 sm:pb-4">
+                <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                  <Users className="w-4 h-4 sm:w-5 sm:h-5" />
                   Territory Overview
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
+              <CardContent className="space-y-3 sm:space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                   <div>
-                    <label className="text-sm font-medium text-gray-500">Language Family</label>
-                    <p className="text-lg">{territoryDetails.languageFamily}</p>
+                    <label className="text-xs sm:text-sm font-medium text-gray-500">Language Family</label>
+                    <p className="text-base sm:text-lg">{territoryDetails.languageFamily}</p>
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-gray-500">Region</label>
-                    <p className="text-lg">{territoryDetails.region}</p>
+                    <label className="text-xs sm:text-sm font-medium text-gray-500">Region</label>
+                    <p className="text-base sm:text-lg">{territoryDetails.region}</p>
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-gray-500">Region Type</label>
-                    <p className="text-lg">{territoryDetails.regionType}</p>
+                    <label className="text-xs sm:text-sm font-medium text-gray-500">Region Type</label>
+                    <p className="text-base sm:text-lg">{territoryDetails.regionType}</p>
                   </div>
                   {territoryDetails.estimatedPopulation && (
                     <div>
-                      <label className="text-sm font-medium text-gray-500">Est. Population</label>
-                      <p className="text-lg">{territoryDetails.estimatedPopulation.toLocaleString()}</p>
+                      <label className="text-xs sm:text-sm font-medium text-gray-500">Est. Population</label>
+                      <p className="text-base sm:text-lg">{territoryDetails.estimatedPopulation.toLocaleString()}</p>
                     </div>
                   )}
                 </div>

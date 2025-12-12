@@ -117,35 +117,35 @@ export default function MapPage() {
 
   return (
     <div className="h-screen w-screen bg-gradient-to-br from-earth-beige to-white">
-      {/* Modern Header with Glass Effect */}
+      {/* Modern Header with Glass Effect - Mobile Responsive */}
       <div className="absolute top-0 left-0 right-0 z-[1010] glass-effect animate-fade-in-up">
-        <div className="flex items-center justify-between px-6 py-4 bg-[#d8aa84] font-semibold text-[23px] text-[#050505]">
-          <div className="flex items-center gap-4">
-            <div className="relative group">
+        <div className="flex items-center justify-between px-3 sm:px-6 py-2 sm:py-4 bg-[#d8aa84] font-semibold text-[#050505]">
+          <div className="flex items-center gap-2 sm:gap-4 min-w-0">
+            <div className="relative group flex-shrink-0">
               <div className="absolute inset-0 bg-earth-orange rounded-full blur-xl opacity-30 group-hover:opacity-50 smooth-transition"></div>
-              <svg className="w-8 h-8 text-earth-orange relative z-10 animate-pulse-slow" fill="currentColor" viewBox="0 0 24 24">
+              <svg className="w-6 h-6 sm:w-8 sm:h-8 text-earth-orange relative z-10 animate-pulse-slow" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M12 2L13.09 8.26L20 9L13.09 9.74L12 16L10.91 9.74L4 9L10.91 8.26L12 2Z"/>
               </svg>
             </div>
-            <div>
-              <h1 className="text-2xl font-bold bg-gradient-to-r from-earth-brown to-earth-orange bg-clip-text text-transparent">
+            <div className="min-w-0">
+              <h1 className="text-base sm:text-xl lg:text-2xl font-bold bg-gradient-to-r from-earth-brown to-earth-orange bg-clip-text text-transparent truncate">
                 Indigenous Australia
               </h1>
-              <p className="text-sm text-gray-600">Interactive Territory & Culture Map</p>
+              <p className="text-xs sm:text-sm text-gray-600 hidden sm:block">Interactive Territory & Culture Map</p>
             </div>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
             <Link href="/business-search">
-              <Button variant="outline" size="default" className="hover-lift bg-white/50 border-earth-brown/20 hover:bg-earth-beige hover:border-earth-brown/40">
-                <Building2 className="w-4 h-4 mr-2" />
-                Business Directory
+              <Button variant="outline" size="icon" className="hover-lift bg-white/50 border-earth-brown/20 hover:bg-earth-beige hover:border-earth-brown/40 md:size-auto md:px-4" data-testid="link-business-directory">
+                <Building2 className="w-4 h-4 md:mr-2" />
+                <span className="sr-only md:not-sr-only md:inline">Business Directory</span>
               </Button>
             </Link>
           </div>
         </div>
       </div>
       {/* Full Screen Map with Modern Overlay */}
-      <main className="h-full pt-20 relative">
+      <main className="h-full pt-14 sm:pt-20 relative">
         <SimpleMap 
           onMapReady={setMapInstance}
           onTerritorySelect={handleTerritorySelect}
