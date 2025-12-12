@@ -120,7 +120,7 @@ export function MobileMapControls({
       <>
         {/* Floating zoom controls */}
         <div className={cn(
-          "absolute right-4 bottom-24 z-[400] flex flex-col gap-2",
+          "absolute right-4 bottom-24 z-[1000] flex flex-col gap-2 touch-manipulation",
           className
         )}>
           <Button
@@ -152,17 +152,22 @@ export function MobileMapControls({
             <Button
               variant="default"
               className={cn(
-                "fixed bottom-4 left-1/2 -translate-x-1/2 z-[400]",
+                "fixed bottom-4 left-1/2 -translate-x-1/2 z-[1000]",
                 "px-6 py-3 rounded-full shadow-lg",
-                "bg-primary text-primary-foreground"
+                "bg-primary text-primary-foreground",
+                "touch-manipulation"
               )}
               data-testid="button-mobile-controls"
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsControlsExpanded(true);
+              }}
             >
               <ChevronUp className="w-4 h-4 mr-2" />
               Map Controls
             </Button>
           </DrawerTrigger>
-          <DrawerContent className="pb-6">
+          <DrawerContent className="pb-6 z-[1001]">
             <DrawerHeader>
               <DrawerTitle>Map Controls</DrawerTitle>
               <DrawerDescription>
