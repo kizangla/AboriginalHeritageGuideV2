@@ -3,8 +3,10 @@
 @tailwind utilities;
 
 :root {
-  --background: 45 15% 96%; /* #F5F5DC - earth-beige */
-  --foreground: 30 5% 20%; /* #2F2F2F - earth-dark */
+  --background: 45 15% 96%;
+  /* #F5F5DC - earth-beige */
+  --foreground: 30 5% 20%;
+  /* #2F2F2F - earth-dark */
   --muted: 45 10% 90%;
   --muted-foreground: 30 5% 45%;
   --popover: 45 15% 96%;
@@ -13,47 +15,100 @@
   --card-foreground: 30 5% 20%;
   --border: 30 8% 85%;
   --input: 30 8% 85%;
-  --primary: 17 71% 41%; /* #8B4513 - earth-brown */
+  --primary: 17 71% 41%;
+  /* #8B4513 - earth-brown */
   --primary-foreground: 0 0% 98%;
-  --secondary: 43 13% 80%; /* #CD853F - earth-peru */
+  --secondary: 43 13% 80%;
+  /* #CD853F - earth-peru */
   --secondary-foreground: 30 5% 20%;
-  --accent: 51 83% 58%; /* #DAA520 - earth-gold */
+  --accent: 51 83% 58%;
+  /* #DAA520 - earth-gold */
   --accent-foreground: 30 5% 20%;
   --destructive: 0 84% 60%;
   --destructive-foreground: 0 0% 98%;
   --ring: 17 71% 41%;
-  --radius: 0.5rem;
-  
-  /* Custom earth-tone colors */
-  --earth-brown: 17 71% 41%; /* #8B4513 */
-  --earth-peru: 43 13% 80%; /* #CD853F */
-  --earth-gold: 51 83% 58%; /* #DAA520 */
-  --earth-beige: 45 15% 96%; /* #F5F5DC */
-  --earth-sage: 120 100% 27%; /* #228B22 */
-  --earth-orange: 16 100% 60%; /* #FF6B35 */
-  --earth-dark: 0 0% 18%; /* #2F2F2F */
+  --radius: 0.75rem;
+
+  /* UI Pro Max - Enhanced Earth-Tone Palette */
+  --earth-brown: 17 71% 41%;
+  /* #8B4513 - Saddle Brown */
+  --earth-peru: 30 59% 53%;
+  /* #CD853F - Peru */
+  --earth-gold: 43 74% 49%;
+  /* #DAA520 - Goldenrod */
+  --earth-beige: 45 15% 96%;
+  /* #F5F5DC - Beige */
+  --earth-sage: 146 45% 40%;
+  /* #5F9375 - Sage */
+  --earth-orange: 16 100% 60%;
+  /* #FF6B35 - Burnt Orange */
+  --earth-terracotta: 14 97% 64%;
+  /* #E07A5F - Terracotta */
+  --earth-ochre: 28 76% 67%;
+  /* #D2691E - Chocolate (Ochre) */
+  --earth-rust: 13 90% 55%;
+  /* #B7410E - Rust */
+  --earth-sand: 42 69% 80%;
+  /* #F4CFA0 - Sand */
+  --earth-clay: 25 50% 40%;
+  /* #A0522D - Sienna (Clay) */
+  --earth-dark: 220 26% 14%;
+  /* #1A1A2E - Deep Navy */
+  --earth-charcoal: 0 0% 18%;
+  /* #2F2F2F - Charcoal */
+
+  /* UI Pro Max - Glass Effect Variables */
+  --glass-blur: 20px;
+  --glass-blur-subtle: 10px;
+  --glass-blur-strong: 30px;
+  --glass-opacity: 0.2;
+  --glass-opacity-subtle: 0.1;
+  --glass-opacity-strong: 0.3;
+  --glass-border-opacity: 0.3;
+
+  /* UI Pro Max - Animation Timings */
+  --transition-instant: 100ms;
+  --transition-fast: 200ms;
+  --transition-normal: 300ms;
+  --transition-slow: 500ms;
+  --transition-slower: 800ms;
+
+  /* UI Pro Max - Shadows */
+  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+  --shadow-lg: 0 10px 30px rgba(0, 0, 0, 0.12);
+  --shadow-xl: 0 20px 40px rgba(0, 0, 0, 0.15);
+  --shadow-glow: 0 0 20px rgba(218, 165, 32, 0.3);
 }
 
 .dark {
-  --background: 30 5% 15%;
+  --background: 220 26% 14%;
+  /* Deep Navy */
   --foreground: 0 0% 98%;
-  --muted: 30 5% 25%;
-  --muted-foreground: 30 5% 65%;
-  --popover: 30 5% 15%;
+  --muted: 220 20% 22%;
+  --muted-foreground: 0 0% 70%;
+  --popover: 220 26% 14%;
   --popover-foreground: 0 0% 98%;
-  --card: 30 5% 15%;
+  --card: 220 26% 14%;
   --card-foreground: 0 0% 98%;
-  --border: 30 5% 25%;
-  --input: 30 5% 25%;
-  --primary: 17 71% 41%;
+  --border: 220 20% 25%;
+  --input: 220 20% 25%;
+  --primary: 17 71% 50%;
+  /* Brighter in dark mode */
   --primary-foreground: 0 0% 98%;
-  --secondary: 30 5% 25%;
+  --secondary: 30 59% 53%;
   --secondary-foreground: 0 0% 98%;
-  --accent: 30 5% 25%;
-  --accent-foreground: 0 0% 98%;
-  --destructive: 0 62% 30%;
+  --accent: 43 74% 60%;
+  /* Brighter gold */
+  --accent-foreground: 220 26% 14%;
+  --destructive: 0 84% 60%;
   --destructive-foreground: 0 0% 98%;
-  --ring: 30 5% 85%;
+  --ring: 43 74% 60%;
+
+  /* Dark mode glass adjustments */
+  --glass-opacity: 0.15;
+  --glass-opacity-subtle: 0.08;
+  --glass-opacity-strong: 0.25;
 }
 
 @layer base {
@@ -67,175 +122,448 @@
 }
 
 @layer utilities {
+
+  /* ========================================
+     UI PRO MAX - EARTH-TONE COLOR UTILITIES
+     ======================================== */
   .earth-brown {
     color: hsl(var(--earth-brown));
   }
-  
+
   .bg-earth-brown {
     background-color: hsl(var(--earth-brown));
   }
-  
+
   .earth-peru {
     color: hsl(var(--earth-peru));
   }
-  
+
   .bg-earth-peru {
     background-color: hsl(var(--earth-peru));
   }
-  
+
   .earth-gold {
     color: hsl(var(--earth-gold));
   }
-  
+
   .bg-earth-gold {
     background-color: hsl(var(--earth-gold));
   }
-  
-  .earth-beige {
-    color: hsl(var(--earth-beige));
+
+  .earth-terracotta {
+    color: hsl(var(--earth-terracotta));
   }
-  
-  .bg-earth-beige {
-    background-color: hsl(var(--earth-beige));
+
+  .bg-earth-terracotta {
+    background-color: hsl(var(--earth-terracotta));
   }
-  
+
+  .earth-ochre {
+    color: hsl(var(--earth-ochre));
+  }
+
+  .bg-earth-ochre {
+    background-color: hsl(var(--earth-ochre));
+  }
+
   .earth-sage {
     color: hsl(var(--earth-sage));
   }
-  
+
   .bg-earth-sage {
     background-color: hsl(var(--earth-sage));
   }
-  
-  .earth-orange {
-    color: hsl(var(--earth-orange));
+
+  /* ========================================
+     UI PRO MAX - GLASSMORPHISM SYSTEM
+     ======================================== */
+
+  /* Glass Base Effects */
+  .glass-subtle {
+    @apply backdrop-blur-[10px] bg-white/10 border border-white/30;
+    box-shadow: var(--shadow-md);
   }
-  
-  .bg-earth-orange {
-    background-color: hsl(var(--earth-orange));
+
+  .glass-moderate {
+    @apply backdrop-blur-[20px] bg-white/20 border border-white/30;
+    box-shadow: var(--shadow-lg);
   }
-  
-  .earth-dark {
-    color: hsl(var(--earth-dark));
+
+  .glass-strong {
+    @apply backdrop-blur-[30px] bg-white/30 border border-white/30;
+    box-shadow: var(--shadow-xl);
   }
-  
-  .bg-earth-dark {
-    background-color: hsl(var(--earth-dark));
+
+  /* Dark Mode Glass */
+  .dark .glass-subtle {
+    @apply bg-gray-900/10 border-white/10;
   }
-  
-  /* Modern UI enhancements */
-  .glass-effect {
-    @apply backdrop-blur-md bg-white/90 shadow-xl border border-white/20;
+
+  .dark .glass-moderate {
+    @apply bg-gray-900/15 border-white/20;
   }
-  
-  .glass-effect-dark {
-    @apply backdrop-blur-md bg-gray-900/90 shadow-xl border border-white/10;
+
+  .dark .glass-strong {
+    @apply bg-gray-900/25 border-white/30;
   }
-  
-  .modern-gradient {
-    background: linear-gradient(135deg, hsl(var(--earth-beige)) 0%, hsl(var(--earth-peru) / 0.1) 100%);
+
+  /* Glass Cards with Hover Effects */
+  .glass-card {
+    @apply glass-moderate rounded-2xl p-6 transition-all duration-300;
   }
-  
-  .hover-lift {
-    @apply transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl;
+
+  .glass-card:hover {
+    @apply -translate-y-1 shadow-2xl;
+    box-shadow: var(--shadow-xl), var(--shadow-glow);
   }
-  
-  .smooth-transition {
-    @apply transition-all duration-300 ease-in-out;
+
+  /* Glass with Gradient Borders */
+  .glass-gradient-border {
+    @apply glass-moderate relative;
+    background-origin: border-box;
+    background-clip: padding-box, border-box;
   }
-  
-  .map-control-button {
-    @apply glass-effect rounded-xl px-4 py-2 transition-all duration-200 hover:scale-105 hover:shadow-2xl active:scale-95;
+
+  .glass-gradient-border::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 2px;
+    background: linear-gradient(135deg,
+        hsl(var(--earth-gold)) 0%,
+        hsl(var(--earth-terracotta)) 50%,
+        hsl(var(--earth-brown)) 100%);
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
   }
-  
-  .territory-card {
-    @apply glass-effect rounded-2xl p-4 hover-lift;
-  }
-  
-  /* Custom animations */
+
+  /* ========================================
+     UI PRO MAX - ANIMATION SYSTEM
+     ======================================== */
+
+  /* Keyframe Animations */
   @keyframes fadeInUp {
     from {
       opacity: 0;
       transform: translateY(20px);
     }
+
     to {
       opacity: 1;
       transform: translateY(0);
     }
   }
-  
+
+  @keyframes fadeInDown {
+    from {
+      opacity: 0;
+      transform: translateY(-20px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
   @keyframes slideInLeft {
     from {
       opacity: 0;
-      transform: translateX(-20px);
+      transform: translateX(-30px);
     }
+
     to {
       opacity: 1;
       transform: translateX(0);
     }
   }
-  
-  @keyframes pulse {
-    0%, 100% {
+
+  @keyframes slideInRight {
+    from {
+      opacity: 0;
+      transform: translateX(30px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  @keyframes scaleIn {
+    from {
+      opacity: 0;
+      transform: scale(0.9);
+    }
+
+    to {
       opacity: 1;
       transform: scale(1);
     }
+  }
+
+  @keyframes shimmer {
+    0% {
+      background-position: -200% center;
+    }
+
+    100% {
+      background-position: 200% center;
+    }
+  }
+
+  @keyframes glow {
+
+    0%,
+    100% {
+      box-shadow: 0 0 10px rgba(218, 165, 32, 0.3);
+    }
+
+    50% {
+      box-shadow: 0 0 20px rgba(218, 165, 32, 0.6), 0 0 30px rgba(218, 165, 32, 0.4);
+    }
+  }
+
+  @keyframes pulse {
+
+    0%,
+    100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+
     50% {
       opacity: 0.8;
       transform: scale(0.98);
     }
   }
-  
+
+  @keyframes spin-slow {
+    from {
+      transform: rotate(0deg);
+    }
+
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  /* Animation Utility Classes */
   .animate-fade-in-up {
     animation: fadeInUp 0.5s ease-out;
   }
-  
-  .animate-slide-in-left {
-    animation: slideInLeft 0.3s ease-out;
+
+  .animate-fade-in-down {
+    animation: fadeInDown 0.4s ease-out;
   }
-  
+
+  .animate-slide-in-left {
+    animation: slideInLeft 0.4s ease-out;
+  }
+
+  .animate-slide-in-right {
+    animation: slideInRight 0.4s ease-out;
+  }
+
+  .animate-scale-in {
+    animation: scaleIn 0.3s ease-out;
+  }
+
+  .animate-shimmer {
+    background: linear-gradient(90deg,
+        rgba(255, 255, 255, 0) 0%,
+        rgba(255, 255, 255, 0.3) 50%,
+        rgba(255, 255, 255, 0) 100%);
+    background-size: 200% 100%;
+    animation: shimmer 2s infinite;
+  }
+
+  .animate-glow {
+    animation: glow 2s ease-in-out infinite;
+  }
+
   .animate-pulse-slow {
     animation: pulse 3s ease-in-out infinite;
   }
-  
-  /* Enhanced shadows */
-  .modern-shadow {
-    box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.1), 0 5px 10px -5px rgba(0, 0, 0, 0.04);
+
+  .animate-spin-slow {
+    animation: spin-slow 3s linear infinite;
   }
-  
-  .modern-shadow-lg {
-    box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.15), 0 10px 20px -5px rgba(0, 0, 0, 0.06);
+
+  /* ========================================
+     UI PRO MAX - INTERACTION UTILITIES
+     ======================================== */
+
+  /* Hover Effects */
+  .hover-lift {
+    @apply transition-all duration-300 hover:-translate-y-1;
   }
-  
-  /* Enhanced map overlays */
-  .map-overlay {
-    @apply glass-effect rounded-2xl modern-shadow;
+
+  .hover-lift:hover {
+    box-shadow: var(--shadow-lg);
   }
-  
-  /* Custom scrollbar */
-  .custom-scrollbar::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
+
+  .hover-lift-strong {
+    @apply transition-all duration-300 hover:-translate-y-2;
   }
-  
-  .custom-scrollbar::-webkit-scrollbar-track {
-    @apply bg-gray-100 rounded-full;
+
+  .hover-lift-strong:hover {
+    box-shadow: var(--shadow-xl);
   }
-  
-  .custom-scrollbar::-webkit-scrollbar-thumb {
-    @apply bg-gray-400 rounded-full hover:bg-gray-500;
+
+  .hover-glow {
+    @apply transition-all duration-300;
   }
-  
-  /* Loading animation */
-  .loading-pulse {
+
+  .hover-glow:hover {
+    box-shadow: 0 0 20px rgba(218, 165, 32, 0.4);
+  }
+
+  .hover-scale {
+    @apply transition-transform duration-200 hover:scale-105;
+  }
+
+  .hover-scale-sm {
+    @apply transition-transform duration-200 hover:scale-102;
+  }
+
+  /* Active/Click Effects */
+  .active-scale {
+    @apply transition-transform duration-100 active:scale-95;
+  }
+
+  .active-dim {
+    @apply transition-opacity duration-100 active:opacity-80;
+  }
+
+  /* Focus Effects */
+  .focus-ring-gold {
+    @apply focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2;
+  }
+
+  /* Smooth Transitions */
+  .transition-instant {
+    transition: all var(--transition-instant) ease;
+  }
+
+  .transition-fast {
+    transition: all var(--transition-fast) ease;
+  }
+
+  .transition-normal {
+    transition: all var(--transition-normal) ease;
+  }
+
+  .transition-slow {
+    transition: all var(--transition-slow) ease;
+  }
+
+  /* ========================================
+     UI PRO MAX - SHADOW UTILITIES
+     ======================================== */
+
+  .shadow-premium {
+    box-shadow: var(--shadow-md);
+  }
+
+  .shadow-premium-lg {
+    box-shadow: var(--shadow-lg);
+  }
+
+  .shadow-premium-xl {
+    box-shadow: var(--shadow-xl);
+  }
+
+  .shadow-glow-gold {
+    box-shadow: var(--shadow-glow);
+  }
+
+  /* ========================================
+     UI PRO MAX - MAP SPECIFIC UTILITIES
+     ======================================== */
+
+  .map-control-button {
+    @apply glass-moderate rounded-xl px-4 py-3 hover-lift hover-glow active-scale;
+    @apply transition-all duration-200 cursor-pointer;
+  }
+
+  .map-panel {
+    @apply glass-card max-w-md;
+  }
+
+  .territory-card {
+    @apply glass-card hover-lift-strong;
+  }
+
+  .search-bar {
+    @apply glass-moderate rounded-full px-6 py-3;
+    @apply focus-within:ring-2 focus-within:ring-yellow-500;
+    @apply transition-all duration-300;
+  }
+
+  .search-bar:focus-within {
+    @apply glass-strong;
+    box-shadow: var(--shadow-xl), var(--shadow-glow);
+  }
+
+  /* ========================================
+     UI PRO MAX - GRADIENT UTILITIES
+     ======================================== */
+
+  .gradient-earth {
+    background: linear-gradient(135deg,
+        hsl(var(--earth-beige)) 0%,
+        hsl(var(--earth-sand)) 100%);
+  }
+
+  .gradient-earth-warm {
+    background: linear-gradient(135deg,
+        hsl(var(--earth-terracotta)) 0%,
+        hsl(var(--earth-ochre)) 50%,
+        hsl(var(--earth-gold)) 100%);
+  }
+
+  .gradient-earth-dark {
+    background: linear-gradient(135deg,
+        hsl(var(--earth-brown)) 0%,
+        hsl(var(--earth-clay)) 100%);
+  }
+
+  .gradient-text-gold {
+    background: linear-gradient(135deg,
+        hsl(var(--earth-gold)) 0%,
+        hsl(var(--earth-ochre)) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* ========================================
+     UI PRO MAX - LOADING STATES
+     ======================================== */
+
+  .skeleton {
     @apply animate-pulse bg-gradient-to-r from-gray-200 via-gray-300 to-gray-200;
+    background-size: 200% 100%;
+  }
+
+  .skeleton-dark {
+    @apply animate-pulse bg-gradient-to-r from-gray-700 via-gray-600 to-gray-700;
+    background-size: 200% 100%;
+  }
+
+  .spinner {
+    @apply animate-spin rounded-full border-2 border-gray-300 border-t-earth-gold;
   }
 }
 
 /* Custom cultural pattern */
 .cultural-pattern {
   background-image: radial-gradient(circle at 25% 25%, rgba(218, 165, 32, 0.1) 2px, transparent 2px),
-                   radial-gradient(circle at 75% 75%, rgba(139, 69, 19, 0.1) 2px, transparent 2px);
+    radial-gradient(circle at 75% 75%, rgba(139, 69, 19, 0.1) 2px, transparent 2px);
   background-size: 20px 20px;
 }
 
@@ -284,21 +612,70 @@
   opacity: 1 !important;
 }
 
-/* Leaflet popup customization */
+/* ========================================
+     UI PRO MAX - LEAFLET MAP CUSTOMIZATION
+     ======================================== */
+
+/* Premium Leaflet Popup - Glassmorphism */
 .leaflet-popup-content-wrapper {
-  background: hsl(var(--earth-beige)) !important;
-  border-radius: 8px !important;
+  background: rgba(245, 238, 223, 0.95) !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  border-radius: 16px !important;
+  box-shadow: 0 10px 40px rgba(139, 69, 19, 0.2),
+    0 0 0 1px rgba(139, 69, 19, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.4) !important;
+  padding: 0 !important;
+  animation: scaleIn 0.3s ease-out;
 }
 
 .leaflet-popup-content {
-  margin: 16px !important;
+  margin: 20px !important;
   font-family: system-ui, -apple-system, sans-serif !important;
+  color: hsl(var(--earth-brown)) !important;
+}
+
+.leaflet-popup-tip {
+  background: rgba(245, 238, 223, 0.95) !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+}
+
+/* Premium Glassmorphic Tooltip */
+.leaflet-tooltip {
+  background: rgba(245, 238, 223, 0.98) !important;
+  backdrop-filter: blur(15px) !important;
+  -webkit-backdrop-filter: blur(15px) !important;
+  border: 1px solid rgba(218, 165, 32, 0.3) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 8px 24px rgba(139, 69, 19, 0.15),
+    0 0 0 1px rgba(139, 69, 19, 0.05),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3) !important;
+  color: hsl(var(--earth-brown)) !important;
+  font-weight: 600 !important;
+  padding: 8px 14px !important;
+  animation: fadeInUp 0.2s ease-out !important;
+}
+
+.leaflet-tooltip::before {
+  border: none !important;
 }
 
 .custom-popup h3 {
   color: hsl(var(--earth-brown)) !important;
   font-family: serif !important;
+  margin-bottom: 12px !important;
+  font-size: 1.25rem !important;
+  font-weight: 700 !important;
+  background: linear-gradient(135deg, hsl(var(--earth-gold)), hsl(var(--earth-ochre)));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.custom-popup p {
   margin-bottom: 8px !important;
+  line-height: 1.5 !important;
 }
 
 /* Marker Cluster Styles */

@@ -369,7 +369,7 @@ export default function UnifiedSearch({ map, onLocationSelect, onBusinessSelect,
                   setShouldSearch(true);
                 }
               }}
-              onKeyPress={handleKeyPress}
+              onKeyDown={handleKeyPress}
               onFocus={() => setIsExpanded(true)}
               className="w-full border-0 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-orange-200 rounded-xl h-10 pr-8"
               data-testid="search-input"

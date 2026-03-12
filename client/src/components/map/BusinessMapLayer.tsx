@@ -262,7 +262,7 @@ export default function BusinessMapLayer({ map, onBusinessSelect }: BusinessMapL
           placeholder="Search Indigenous businesses..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          onKeyPress={handleKeyPress}
+          onKeyDown={handleKeyPress}
           className="flex-1 border-0 focus:ring-0 focus-visible:ring-0 text-sm h-10"
         />
         <Button 

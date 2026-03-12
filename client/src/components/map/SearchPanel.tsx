@@ -56,7 +56,7 @@ export default function SearchPanel({ onSearch }: SearchPanelProps) {
             placeholder="Search places..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            onKeyPress={handleKeyPress}
+            onKeyDown={handleKeyPress}
             className="flex-1 border-0 focus:ring-0 focus-visible:ring-0 text-sm h-10"
           />
           <Button 

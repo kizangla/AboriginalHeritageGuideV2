@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
 import { MapPin, Building2, Navigation, Search, X } from 'lucide-react';
 import L from 'leaflet';
 import type { SearchResult } from '@shared/schema';
@@ -33,12 +32,12 @@ interface CollapsibleSearchProps {
 
 type SearchType = 'places' | 'businesses';
 
-export default function CollapsibleSearch({ 
-  map, 
-  onLocationSelect, 
-  onBusinessSelect, 
-  isVisible, 
-  onClose 
+export default function CollapsibleSearch({
+  map,
+  onLocationSelect,
+  onBusinessSelect,
+  isVisible,
+  onClose
 }: CollapsibleSearchProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchType, setSearchType] = useState<SearchType>('places');
@@ -109,56 +108,68 @@ export default function CollapsibleSearch({
   if (!isVisible) return null;
 
   return (
-    <Card className="absolute top-20 right-4 z-[1000] w-96 bg-white/95 backdrop-blur-sm shadow-lg">
-      <CardContent className="p-4">
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="font-medium text-sm">Search Aboriginal Australia</h3>
+    <div className="absolute top-20 right-4 z-[1000] w-96 glass-strong rounded-2xl shadow-premium-xl animate-fade-in-down">
+      <div className="p-6">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-semibold text-lg gradient-text-gold">
+            Search Aboriginal Australia
+          </h3>
           <Button
             onClick={onClose}
             size="sm"
             variant="ghost"
-            className="h-6 w-6 p-0"
+            className="h-8 w-8 p-0 hover-glow hover-scale transition-all rounded-lg"
           >
             <X className="w-4 h-4" />
           </Button>
         </div>
 
         {/* Search Type Tabs */}
-        <div className="flex gap-1 mb-3 p-1 bg-gray-100 rounded-lg">
+        <div className="flex gap-2 mb-4 p-1.5 glass-subtle rounded-xl">
           <Button
             onClick={() => setSearchType('places')}
             size="sm"
             variant={searchType === 'places' ? 'default' : 'ghost'}
-            className="flex-1 h-8"
+            className={`flex-1 h-9 rounded-lg transition-all duration-200 ${searchType === 'places'
+              ? 'bg-earth-brown text-white shadow-premium'
+              : 'hover-glow'
+              }`}
           >
-            <MapPin className="w-3 h-3 mr-1" />
+            <MapPin className="w-3.5 h-3.5 mr-2" />
             Places
           </Button>
           <Button
             onClick={() => setSearchType('businesses')}
             size="sm"
             variant={searchType === 'businesses' ? 'default' : 'ghost'}
-            className="flex-1 h-8"
+            className={`flex-1 h-9 rounded-lg transition-all duration-200 ${searchType === 'businesses'
+              ? 'bg-earth-brown text-white shadow-premium'
+              : 'hover-glow'
+              }`}
           >
-            <Building2 className="w-3 h-3 mr-1" />
+            <Building2 className="w-3.5 h-3.5 mr-2" />
             Businesses
           </Button>
         </div>
 
         {/* Search Input */}
         <div className="flex gap-2 mb-4">
-          <Input
-            type="text"
-            placeholder={searchType === 'places' ? 'Search places...' : 'Search Indigenous businesses...'}
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            onKeyPress={handleKeyPress}
-            className="flex-1"
-          />
-          <Button 
+          <div className="relative flex-1 search-bar rounded-full overflow-hidden">
+            <Input
+              type="text"
+              placeholder={searchType === 'places' ? '🔍 Search places...' : '🔍 Search Indigenous businesses...'}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={handleKeyPress}
+              className="border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 px-6 py-3"
+            />
+          </div>
+          <Button
             onClick={handleSearch}
             disabled={isLoading || !searchQuery.trim()}
             size="sm"
+            className="px-4 py-3 glass-moderate rounded-xl hover-glow hover-scale active-scale transition-all"
           >
             <Search className="w-4 h-4" />
           </Button>
@@ -250,7 +261,7 @@ export default function CollapsibleSearch({
             )}
           </div>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }

@@ -93,7 +93,7 @@ export default function BusinessSearch() {
           placeholder="Search for Indigenous businesses..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          onKeyPress={handleKeyPress}
+          onKeyDown={handleKeyPress}
           className="flex-1"
         />
         <Button 
