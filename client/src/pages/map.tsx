@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useMemo, useCallback } from 'react';
 import SimpleMap from '@/components/map/SimpleMap';
 import TerritoryModal from '@/components/map/TerritoryModal';
 import TerritoryInfoPanel from '@/components/TerritoryInfoPanel';
@@ -8,29 +8,30 @@ import { Button } from '@/components/ui/button';
 import { Building2 } from 'lucide-react';
 import { Link } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
+import { MapProvider, useMapContext } from '@/contexts/MapContext';
+import { ErrorBoundary, MapErrorFallback } from '@/components/ErrorBoundary';
 import type { Territory } from '@shared/schema';
 import type { NativeTitleStatusFilter } from '@/components/NativeTitleFilter';
 
-export default function MapPage() {
-  const [selectedTerritory, setSelectedTerritory] = useState<Territory | null>(null);
-  const [showModal, setShowModal] = useState(false);
-  const [mapInstance, setMapInstance] = useState<any>(null);
-  const [selectedRegion, setSelectedRegion] = useState<string | null>(null);
-  const [showSearch, setShowSearch] = useState(false);
-  const [nativeTitleFilters, setNativeTitleFilters] = useState<NativeTitleStatusFilter>({
-    determined: false,
-    pending: false,
-    exists: false,
-    doesNotExist: false,
-    partialArea: false,
-    entireArea: false,
-    discontinued: false,
-    dismissed: false
-  });
-  const [showRATSIBBoundaries, setShowRATSIBBoundaries] = useState(true);
-  const [businessSearchQuery, setBusinessSearchQuery] = useState<string>('');
-  const [showMining, setShowMining] = useState<boolean>(false);
-  const [showExploration, setShowExploration] = useState<boolean>(false);
+function MapContent() {
+  const {
+    selectedTerritory,
+    setSelectedTerritory,
+    selectedRegion,
+    setSelectedRegion,
+    nativeTitleFilters,
+    setNativeTitleFilters,
+    layers,
+    toggleLayer,
+    showSearch,
+    setShowSearch,
+    businessSearchQuery,
+    setBusinessSearchQuery,
+    mapInstance,
+    setMapInstance,
+    showModal,
+    setShowModal,
+  } = useMapContext();
 
   const { data: territoriesGeoJSON } = useQuery<any>({
     queryKey: ['/api/territories'],
@@ -39,9 +40,9 @@ export default function MapPage() {
   // Calculate territory statistics by region
   const territoryStats = useMemo(() => {
     if (!territoriesGeoJSON?.features) {
-      return { 
+      return {
         total: 0, kimberley: 0, southeast: 0, riverine: 0, southwest: 0, northwest: 0,
-        tasmania: 0, gulf: 0, desert: 0, northeast: 0, eyre: 0, fitzmaurice: 0, 
+        tasmania: 0, gulf: 0, desert: 0, northeast: 0, eyre: 0, fitzmaurice: 0,
         arnhem: 0, westCape: 0, north: 0, eastCape: 0, spencer: 0, rainforest: 0, torresStrait: 0
       };
     }
@@ -55,7 +56,7 @@ export default function MapPage() {
 
     territoriesGeoJSON.features.forEach((feature: any) => {
       const region = feature.properties?.region;
-      
+
       switch (region) {
         case 'Kimberley': stats.kimberley++; break;
         case 'Southeast': stats.southeast++; break;
@@ -81,45 +82,80 @@ export default function MapPage() {
     return stats;
   }, [territoriesGeoJSON]);
 
-  const handleTerritorySelect = (territory: Territory) => {
+  const handleTerritorySelect = useCallback((territory: Territory) => {
     setSelectedTerritory(territory);
-  };
+  }, [setSelectedTerritory]);
 
-  const handleRegionFilter = (region: string | null) => {
+  const handleRegionFilter = useCallback((region: string | null) => {
     setSelectedRegion(region);
-    // Filter will be applied by the map component
-  };
+  }, [setSelectedRegion]);
 
-  const handleNativeTitleFilter = (filters: NativeTitleStatusFilter) => {
+  const handleNativeTitleFilter = useCallback((filters: NativeTitleStatusFilter) => {
     setNativeTitleFilters(filters);
-    // Filter will be applied by the map component
-  };
+  }, [setNativeTitleFilters]);
 
-  const handleShowModal = () => {
+  const handleShowModal = useCallback(() => {
     setShowModal(true);
-  };
+  }, [setShowModal]);
 
-  const handleCloseModal = () => {
+  const handleCloseModal = useCallback(() => {
     setShowModal(false);
-  };
+  }, [setShowModal]);
 
-  const handleSearch = (lat: number, lng: number) => {
+  const handleSearch = useCallback((lat: number, lng: number) => {
     if (mapInstance && lat && lng && !isNaN(lat) && !isNaN(lng)) {
       mapInstance.setView([lat, lng], 15);
     }
-  };
+  }, [mapInstance]);
 
-  const handleResetView = () => {
+  const handleResetView = useCallback(() => {
     if (mapInstance) {
       mapInstance.setView([-25.2744, 133.7751], 5);
     }
-  };
+  }, [mapInstance]);
+
+  const handleBusinessSelectFromMap = useCallback((business: any) => {
+    if (mapInstance && business.coordinates) {
+      mapInstance.setView([business.coordinates.lat, business.coordinates.lng], 15);
+    }
+  }, [mapInstance]);
+
+  const handleBusinessSelectFromSearch = useCallback((business: any) => {
+    setBusinessSearchQuery(business.entityName || business.name || '');
+    if (mapInstance && business.lat && business.lng) {
+      mapInstance.setView([business.lat, business.lng], 15);
+    }
+  }, [mapInstance, setBusinessSearchQuery]);
+
+  const handleToggleSearch = useCallback(() => {
+    setShowSearch(!showSearch);
+  }, [showSearch, setShowSearch]);
+
+  const handleCloseSearch = useCallback(() => {
+    setShowSearch(false);
+  }, [setShowSearch]);
+
+  const handleCloseTerritory = useCallback(() => {
+    setSelectedTerritory(null);
+  }, [setSelectedTerritory]);
+
+  const handleToggleRATSIB = useCallback((show: boolean) => {
+    if (show !== layers.ratsib) toggleLayer('ratsib');
+  }, [layers.ratsib, toggleLayer]);
+
+  const handleToggleMining = useCallback((show: boolean) => {
+    if (show !== layers.mining) toggleLayer('mining');
+  }, [layers.mining, toggleLayer]);
+
+  const handleToggleExploration = useCallback((show: boolean) => {
+    if (show !== layers.exploration) toggleLayer('exploration');
+  }, [layers.exploration, toggleLayer]);
 
   return (
     <div className="h-screen w-screen bg-gradient-to-br from-earth-beige to-white">
       {/* Modern Header with Glass Effect - Mobile Responsive */}
-      <div className="absolute top-0 left-0 right-0 z-[1010] glass-effect animate-fade-in-up">
-        <div className="flex items-center justify-between px-3 sm:px-6 py-2 sm:py-4 bg-[#d8aa84] font-semibold text-[#050505]">
+      <div className="absolute top-0 left-0 right-0 z-header glass-effect animate-fade-in-up">
+        <div className="flex items-center justify-between px-3 sm:px-6 py-2 sm:py-4 bg-primary font-semibold text-primary-foreground">
           <div className="flex items-center gap-2 sm:gap-4 min-w-0">
             <div className="relative group flex-shrink-0">
               <div className="absolute inset-0 bg-earth-orange rounded-full blur-xl opacity-30 group-hover:opacity-50 smooth-transition"></div>
@@ -131,7 +167,7 @@ export default function MapPage() {
               <h1 className="text-base sm:text-xl lg:text-2xl font-bold bg-gradient-to-r from-earth-brown to-earth-orange bg-clip-text text-transparent truncate">
                 Indigenous Australia
               </h1>
-              <p className="text-xs sm:text-sm text-gray-600 hidden sm:block">Interactive Territory & Culture Map</p>
+              <p className="text-xs sm:text-sm text-primary-foreground/70 hidden sm:block">Interactive Territory & Culture Map</p>
             </div>
           </div>
           <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
@@ -145,63 +181,52 @@ export default function MapPage() {
         </div>
       </div>
       {/* Full Screen Map with Modern Overlay */}
-      <main className="h-full pt-14 sm:pt-20 relative">
-        <SimpleMap 
+      <main className="h-full pt-12 sm:pt-16 relative">
+        <SimpleMap
           onMapReady={setMapInstance}
           onTerritorySelect={handleTerritorySelect}
           regionFilter={selectedRegion}
           nativeTitleFilter={nativeTitleFilters}
           selectedTerritory={selectedTerritory}
-          showRATSIBBoundaries={showRATSIBBoundaries}
+          showRATSIBBoundaries={layers.ratsib}
           businessSearchQuery={businessSearchQuery}
-          onBusinessSelect={(business) => {
-            console.log('Selected enhanced business:', business);
-            if (mapInstance && business.coordinates) {
-              mapInstance.setView([business.coordinates.lat, business.coordinates.lng], 15);
-            }
-          }}
-          showMining={showMining}
-          showExploration={showExploration}
+          onBusinessSelect={handleBusinessSelectFromMap}
+          showMining={layers.mining}
+          showExploration={layers.exploration}
         />
-        
+
         {/* Floating Map Controls */}
         <FloatingMapControls
           onRegionFilter={handleRegionFilter}
           selectedRegion={selectedRegion}
           territoryStats={territoryStats}
           onResetView={handleResetView}
-          onToggleSearch={() => setShowSearch(!showSearch)}
+          onToggleSearch={handleToggleSearch}
           showSearch={showSearch}
           onNativeTitleFilter={handleNativeTitleFilter}
           nativeTitleFilters={nativeTitleFilters}
-          onToggleRATSIB={setShowRATSIBBoundaries}
-          showRATSIBBoundaries={showRATSIBBoundaries}
-          onToggleMining={setShowMining}
-          showMining={showMining}
-          onToggleExploration={setShowExploration}
-          showExploration={showExploration}
+          onToggleRATSIB={handleToggleRATSIB}
+          showRATSIBBoundaries={layers.ratsib}
+          onToggleMining={handleToggleMining}
+          showMining={layers.mining}
+          onToggleExploration={handleToggleExploration}
+          showExploration={layers.exploration}
         />
-        
+
         {/* Collapsible Search Panel */}
         <CollapsibleSearch
           map={mapInstance}
           onLocationSelect={handleSearch}
-          onBusinessSelect={(business: any) => {
-            console.log('Selected business from search:', business);
-            setBusinessSearchQuery(business.entityName || business.name || '');
-            if (mapInstance && business.lat && business.lng) {
-              mapInstance.setView([business.lat, business.lng], 15);
-            }
-          }}
+          onBusinessSelect={handleBusinessSelectFromSearch}
           isVisible={showSearch}
-          onClose={() => setShowSearch(false)}
+          onClose={handleCloseSearch}
         />
-        
+
         {/* Enhanced Territory Info Panel */}
         {selectedTerritory && (
           <TerritoryInfoPanel
             territory={selectedTerritory}
-            onClose={() => setSelectedTerritory(null)}
+            onClose={handleCloseTerritory}
             onViewDetails={handleShowModal}
           />
         )}
@@ -214,5 +239,15 @@ export default function MapPage() {
         )}
       </main>
     </div>
+  );
+}
+
+export default function MapPage() {
+  return (
+    <MapProvider>
+      <ErrorBoundary fallback={<MapErrorFallback />}>
+        <MapContent />
+      </ErrorBoundary>
+    </MapProvider>
   );
 }

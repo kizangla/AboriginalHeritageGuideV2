@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { MapPin, Building2, Navigation, Search, X } from 'lucide-react';
 import L from 'leaflet';
 import type { SearchResult } from '@shared/schema';
+import { SearchResultsSkeleton } from '@/components/skeletons';
 
 interface BusinessLocation {
   abn: string;
@@ -75,7 +76,6 @@ export default function CollapsibleSearch({
 
   const handleSearch = () => {
     if (searchQuery.trim()) {
-      console.log(`Searching for: "${searchQuery}" in ${searchType} mode`);
       setShouldSearch(true);
     }
   };
@@ -108,7 +108,7 @@ export default function CollapsibleSearch({
   if (!isVisible) return null;
 
   return (
-    <div className="absolute top-20 right-4 z-[1000] w-96 glass-strong rounded-2xl shadow-premium-xl animate-fade-in-down">
+    <div className="absolute top-20 right-4 z-panel w-full max-w-sm md:w-96 glass-strong rounded-2xl shadow-premium-xl animate-fade-in-down">
       <div className="p-6">
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
@@ -179,10 +179,7 @@ export default function CollapsibleSearch({
         {shouldSearch && (
           <div className="space-y-2 max-h-64 overflow-y-auto">
             {isLoading && (
-              <div className="text-center py-4">
-                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-orange-600 mx-auto"></div>
-                <p className="text-sm text-gray-500 mt-2">Searching...</p>
-              </div>
+              <SearchResultsSkeleton count={3} />
             )}
 
             {/* Place Results */}

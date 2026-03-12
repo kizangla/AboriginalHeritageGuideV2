@@ -73,7 +73,7 @@ function FloatingMapControls({
 
   return (
     <>
-      <div className="absolute bottom-6 sm:bottom-8 left-1/2 transform -translate-x-1/2 z-[1000] flex items-center gap-2 animate-fade-in-up">
+      <div className="absolute bottom-6 sm:bottom-8 left-1/2 transform -translate-x-1/2 z-map-controls flex items-center gap-2 animate-fade-in-up">
         {/* Premium Floating Control Bar with Glassmorphism */}
         <div className="glass-moderate rounded-2xl shadow-premium-lg px-4 sm:px-6 py-3 sm:py-4 flex items-center gap-2 sm:gap-3 max-w-[95vw] overflow-x-auto transition-all hover:shadow-premium-xl">
 
@@ -82,7 +82,7 @@ function FloatingMapControls({
             onClick={onResetView}
             size="sm"
             variant="ghost"
-            className="h-9 w-9 sm:h-10 sm:w-10 p-0 rounded-xl hover-glow hover-scale active-scale transition-all group"
+            className="h-11 w-11 sm:h-10 sm:w-10 p-0 rounded-xl hover-glow hover-scale active-scale transition-all group"
             title="Reset map view"
           >
             <RotateCcw className="w-4 h-4 sm:w-5 sm:h-5 text-earth-brown group-hover:rotate-180 transition-slow" />
@@ -96,7 +96,7 @@ function FloatingMapControls({
             onClick={onToggleSearch}
             size="sm"
             variant={showSearch ? "default" : "ghost"}
-            className={`h-9 sm:h-10 px-3 sm:px-4 rounded-xl text-xs sm:text-sm transition-all ${showSearch ? 'bg-earth-brown hover:bg-earth-brown/90 text-white shadow-premium hover-scale' : 'hover-glow'
+            className={`h-11 sm:h-10 px-3 sm:px-4 rounded-xl text-xs sm:text-sm transition-all ${showSearch ? 'bg-earth-brown hover:bg-earth-brown/90 text-white shadow-premium hover-scale' : 'hover-glow'
               }`}
             title="Toggle search"
           >
@@ -110,7 +110,7 @@ function FloatingMapControls({
             <Button
               size="sm"
               variant={selectedRegion ? "default" : "ghost"}
-              className={`h-9 sm:h-10 px-3 sm:px-4 rounded-xl text-xs sm:text-sm smooth-transition ${selectedRegion ? 'bg-earth-orange hover:bg-earth-orange/90 text-white' : 'hover:bg-earth-beige/50'
+              className={`h-11 sm:h-10 px-3 sm:px-4 rounded-xl text-xs sm:text-sm smooth-transition ${selectedRegion ? 'bg-earth-orange hover:bg-earth-orange/90 text-white' : 'hover:bg-earth-beige/50'
                 }`}
               title="Filter by region"
               onClick={() => {
@@ -134,7 +134,7 @@ function FloatingMapControls({
             <Button
               size="sm"
               variant={Object.values(nativeTitleFilters).some(Boolean) ? "default" : "ghost"}
-              className={`h-9 sm:h-10 px-3 sm:px-4 rounded-xl text-xs sm:text-sm smooth-transition ${Object.values(nativeTitleFilters).some(Boolean) ? 'bg-earth-sage hover:bg-earth-sage/90 text-white' : 'hover:bg-earth-beige/50'
+              className={`h-11 sm:h-10 px-3 sm:px-4 rounded-xl text-xs sm:text-sm smooth-transition ${Object.values(nativeTitleFilters).some(Boolean) ? 'bg-earth-sage hover:bg-earth-sage/90 text-white' : 'hover:bg-earth-beige/50'
                 }`}
               title="Filter by Native Title status"
               onClick={() => {
@@ -164,7 +164,7 @@ function FloatingMapControls({
                 onClick={() => onToggleRATSIB(!showRATSIBBoundaries)}
                 size="sm"
                 variant={showRATSIBBoundaries ? "default" : "ghost"}
-                className={`h-9 sm:h-10 px-3 sm:px-4 rounded-xl text-xs sm:text-sm smooth-transition ${showRATSIBBoundaries ? 'bg-purple-600 hover:bg-purple-700 text-white' : 'hover:bg-earth-beige/50'
+                className={`h-11 sm:h-10 px-3 sm:px-4 rounded-xl text-xs sm:text-sm smooth-transition ${showRATSIBBoundaries ? 'bg-purple-600 hover:bg-purple-700 text-white' : 'hover:bg-earth-beige/50'
                   }`}
                 title="Toggle RATSIB boundaries"
               >
@@ -180,7 +180,7 @@ function FloatingMapControls({
                 onClick={() => onToggleMining(!showMining)}
                 size="sm"
                 variant={showMining ? "default" : "ghost"}
-                className={`h-9 sm:h-10 px-3 sm:px-4 rounded-xl text-xs sm:text-sm smooth-transition ${showMining ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'hover:bg-earth-beige/50'
+                className={`h-11 sm:h-10 px-3 sm:px-4 rounded-xl text-xs sm:text-sm smooth-transition ${showMining ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'hover:bg-earth-beige/50'
                   }`}
                 title="Toggle mining tenements overlay"
               >
@@ -196,7 +196,7 @@ function FloatingMapControls({
                 onClick={() => onToggleExploration(!showExploration)}
                 size="sm"
                 variant={showExploration ? "default" : "ghost"}
-                className={`h-9 sm:h-10 px-3 sm:px-4 rounded-xl text-xs sm:text-sm smooth-transition ${showExploration ? 'bg-indigo-600 hover:bg-indigo-700 text-white' : 'hover:bg-earth-beige/50'
+                className={`h-11 sm:h-10 px-3 sm:px-4 rounded-xl text-xs sm:text-sm smooth-transition ${showExploration ? 'bg-indigo-600 hover:bg-indigo-700 text-white' : 'hover:bg-earth-beige/50'
                   }`}
                 title="Toggle WA DMIRS exploration reports overlay"
               >
@@ -221,17 +221,17 @@ function FloatingMapControls({
 
       {/* Modern Region Filter Popup */}
       {showRegionFilter && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 backdrop-blur-sm animate-fade-in">
+        <div className="fixed inset-0 z-modal flex items-center justify-center bg-black/40 backdrop-blur-sm animate-fade-in">
           <div className="glass-strong rounded-2xl shadow-premium-xl w-[450px] max-w-[95vw] max-h-[80vh] overflow-hidden m-4 animate-scale-in">
             <div className="p-6 space-y-4">
               <div className="flex items-center justify-between">
                 <div>
                   <h4 className="font-bold text-lg text-earth-brown">Aboriginal Regions</h4>
-                  <p className="text-sm text-gray-600 mt-1">Select a region to filter territories</p>
+                  <p className="text-sm text-muted-foreground mt-1">Select a region to filter territories</p>
                 </div>
                 <button
                   onClick={() => setShowRegionFilter(false)}
-                  className="text-gray-400 hover:text-gray-600 p-2 rounded-lg hover:bg-gray-100 smooth-transition"
+                  className="text-muted-foreground hover:text-foreground p-2 rounded-lg hover:bg-muted smooth-transition"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -285,17 +285,17 @@ function FloatingMapControls({
 
       {/* Modern Native Title Filter Popup */}
       {showNativeTitleFilter && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 backdrop-blur-sm animate-fade-in">
+        <div className="fixed inset-0 z-modal flex items-center justify-center bg-black/40 backdrop-blur-sm animate-fade-in">
           <div className="glass-strong rounded-2xl shadow-premium-xl w-[400px] max-w-[95vw] max-h-[80vh] overflow-y-auto m-4 animate-scale-in">
             <div className="p-6 space-y-4">
               <div className="flex items-center justify-between">
                 <div>
                   <h4 className="font-bold text-lg text-earth-brown">Native Title Status</h4>
-                  <p className="text-sm text-gray-600 mt-1">Filter territories by legal status</p>
+                  <p className="text-sm text-muted-foreground mt-1">Filter territories by legal status</p>
                 </div>
                 <button
                   onClick={() => setShowNativeTitleFilter(false)}
-                  className="text-gray-400 hover:text-gray-600 p-2 rounded-lg hover:bg-gray-100 smooth-transition"
+                  className="text-muted-foreground hover:text-foreground p-2 rounded-lg hover:bg-muted smooth-transition"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -305,7 +305,7 @@ function FloatingMapControls({
 
               <div className="space-y-3">
                 <div>
-                  <h5 className="text-xs font-medium text-gray-600 mb-2">Status</h5>
+                  <h5 className="text-xs font-medium text-muted-foreground mb-2">Status</h5>
                   <label className="flex items-center space-x-2 text-sm cursor-pointer">
                     <input
                       type="checkbox"
@@ -327,7 +327,7 @@ function FloatingMapControls({
                 </div>
 
                 <div>
-                  <h5 className="text-xs font-medium text-gray-600 mb-2">Outcomes</h5>
+                  <h5 className="text-xs font-medium text-muted-foreground mb-2">Outcomes</h5>
                   <label className="flex items-center space-x-2 text-sm cursor-pointer">
                     <input
                       type="checkbox"
