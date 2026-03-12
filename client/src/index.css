@@ -281,6 +281,11 @@
     }
   }
 
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
   @keyframes slideInRight {
     from {
       opacity: 0;
@@ -427,7 +432,7 @@
   }
 
   .hover-scale-sm {
-    @apply transition-transform duration-200 hover:scale-102;
+    @apply transition-transform duration-200 hover:scale-[1.02];
   }
 
   /* Active/Click Effects */
@@ -557,6 +562,39 @@
 
   .spinner {
     @apply animate-spin rounded-full border-2 border-gray-300 border-t-earth-gold;
+  }
+
+  /* Backwards-compatible aliases for old class names */
+  .glass-effect {
+    @apply glass-moderate;
+  }
+
+  .modern-shadow-lg {
+    @apply shadow-premium-lg;
+  }
+
+  .smooth-transition {
+    transition: all var(--transition-normal) ease;
+  }
+
+  /* Custom scrollbar */
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: hsl(var(--earth-peru) / 0.3);
+    border-radius: 3px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--earth-peru) / 0.5);
+  }
+
+  /* Missing animation */
+  .animate-fade-in {
+    animation: fadeIn 0.3s ease-out;
   }
 }
 
