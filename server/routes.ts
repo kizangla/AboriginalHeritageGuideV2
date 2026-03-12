@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./database-storage";
 import { z } from "zod";
 import type { TerritoryGeoJSON, SearchResult } from "@shared/schema";
+import { validateParams, validateQuery, territoryIdSchema, coordinatesSchema, searchQuerySchema } from "./validation";
 import { 
   searchBusinessesByName, 
   getBusinessByABN, 
@@ -195,11 +196,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Reduce coordinate precision to 5 decimal places (~1m accuracy) to shrink payload
+  function simplifyCoordinates(coords: any): any {
+    if (Array.isArray(coords)) {
+      if (typeof coords[0] === 'number') {
+        return [
+          Math.round(coords[0] * 100000) / 100000,
+          Math.round(coords[1] * 100000) / 100000,
+        ];
+      }
+      return coords.map(simplifyCoordinates);
+    }
+    return coords;
+  }
+
   // Get all territories as GeoJSON
   app.get("/api/territories", async (req, res) => {
     try {
       const territories = await storage.getTerritories();
-      
+
       const geoJSON = {
         type: "FeatureCollection",
         features: territories.map((territory): TerritoryGeoJSON => ({
@@ -219,10 +234,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
             centerLat: territory.centerLat,
             centerLng: territory.centerLng,
           },
-          geometry: territory.geometry as any,
+          geometry: {
+            ...(territory.geometry as any),
+            coordinates: simplifyCoordinates((territory.geometry as any).coordinates),
+          },
         }))
       };
 
+      // Territory data is static — cache for 5 minutes, allow stale for 1 hour
+      res.set('Cache-Control', 'public, max-age=300, stale-while-revalidate=3600');
       res.json(geoJSON);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch territories" });
@@ -270,13 +290,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get territory by ID
-  app.get("/api/territories/:id", async (req, res) => {
+  app.get("/api/territories/:id", validateParams(territoryIdSchema), async (req, res) => {
     try {
-      const id = parseInt(req.params.id);
-      if (isNaN(id)) {
-        return res.status(400).json({ message: "Invalid territory ID" });
-      }
-
+      const id = Number(req.params.id);
       const territory = await storage.getTerritoryById(id);
       if (!territory) {
         return res.status(404).json({ message: "Territory not found" });
@@ -289,14 +305,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get territory by coordinates
-  app.get("/api/territories/location/:lat/:lng", async (req, res) => {
+  app.get("/api/territories/location/:lat/:lng", validateParams(coordinatesSchema), async (req, res) => {
     try {
-      const lat = parseFloat(req.params.lat);
-      const lng = parseFloat(req.params.lng);
-      
-      if (isNaN(lat) || isNaN(lng)) {
-        return res.status(400).json({ message: "Invalid coordinates" });
-      }
+      const lat = Number(req.params.lat);
+      const lng = Number(req.params.lng);
 
       const territory = await storage.getTerritoryByCoordinates(lat, lng);
       if (!territory) {
@@ -441,11 +453,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Get territory bounds from the GeoJSON geometry
       const bounds = getTerritoryBounds(territory);
-      console.log(`Territory ${territory.name} bounds:`, bounds);
-      
+
       // Fetch deposits from Geoscience Australia
       const gaResult = await geoscienceAustraliaService.getAllDeposits({ limit: 500 });
-      console.log(`Got ${gaResult.deposits.length} deposits from Geoscience Australia`);
       
       // Filter deposits that fall within territory bounds
       const overlappingDeposits = gaResult.deposits.filter(deposit => {
@@ -455,8 +465,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
                lng >= bounds.west && lng <= bounds.east;
         return inBounds;
       });
-      console.log(`Found ${overlappingDeposits.length} overlapping deposits`);
-      
       // Calculate commodity breakdown
       const commodityBreakdown: Record<string, number> = {};
       overlappingDeposits.forEach(deposit => {
@@ -522,14 +530,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Search Australian Business Register directly
       const abrResults = await searchBusinessesByName(query);
-      console.log(`Found ${abrResults.totalResults} businesses in ABR for: "${query}"`);
-      
+
       // Transform all businesses with immediate coordinate mapping
       const allBusinesses = abrResults.businesses.map((business: ABRBusinessDetails) => {
         // Get immediate coordinates (non-blocking)
         const geoResult = asyncGeocodingService.getImmediateCoordinates(business);
-        
-        console.log(`${business.entityName}: ${geoResult.lat}, ${geoResult.lng} (${geoResult.accuracy})`);
 
         return {
           id: `abr-${business.abn}`,
@@ -551,7 +556,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         };
       });
       
-      console.log(`Returning ${allBusinesses.length} businesses from ABR`);
       res.json(allBusinesses);
     } catch (error) {
       console.error("Error searching Australian businesses:", error);
@@ -605,50 +609,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Enhanced Indigenous business search with better ABR filtering
-  app.get("/api/indigenous-businesses/search", async (req, res) => {
-    try {
-      const { name, location, confidence } = req.query;
-      
-      if (!name || typeof name !== 'string') {
-        return res.status(400).json({ message: "Business name is required" });
-      }
-      
-      console.log("Searching for Indigenous businesses:", name);
-      
-      // Search ABR for all businesses matching the name
-      const abrResults = await searchBusinessesByName(name);
-      console.log(`Found ${abrResults.totalResults} ABR results for "${name}"`);
-      
-      // Apply enhanced Indigenous business filtering
-      const { filterIndigenousBusinesses } = await import('./abr-service');
-      const indigenousBusinesses = filterIndigenousBusinesses(abrResults.businesses);
-      
-      console.log(`Enhanced filtering found ${indigenousBusinesses.length} Indigenous businesses from ${abrResults.businesses.length} total results`);
-      
-      // Add verification information to each business
-      const enrichedBusinesses = indigenousBusinesses.map(business => ({
-        ...business,
-        verificationSource: 'abr_keywords',
-        verificationConfidence: getVerificationConfidence(business),
-        isIndigenousVerified: true
-      }));
-      
-      console.log(`Filtered to ${enrichedBusinesses.length} likely Indigenous businesses`);
-      
-      res.json({
-        businesses: enrichedBusinesses,
-        totalResults: enrichedBusinesses.length,
-        searchQuery: name,
-        location: location || 'all',
-        filterApplied: 'indigenous_keywords'
-      });
-      
-    } catch (error) {
-      console.error("Indigenous business search error:", error);
-      res.status(500).json({ message: "Failed to search Indigenous businesses" });
-    }
-  });
+  // NOTE: /api/indigenous-businesses/search is registered below with indigenousBusinessService (comprehensive version)
 
   // Helper function to determine verification confidence
   function getVerificationConfidence(business: any): string {
@@ -703,8 +664,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         })
       );
       
-      console.log(`Returning ${enrichedBusinesses.length} Indigenous businesses for map`);
-      
       res.json({
         businesses: enrichedBusinesses,
         totalResults: enrichedBusinesses.length
@@ -724,8 +683,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!name || typeof name !== 'string') {
         return res.status(400).json({ message: "Business name is required" });
       }
-      
-      console.log(`Integrated search for: "${name}" with Supply Nation: ${includeSupplyNation}`);
       
       const { dataIntegrationService } = await import('./data-integration-service');
       let results = await dataIntegrationService.searchIntegratedBusinesses(

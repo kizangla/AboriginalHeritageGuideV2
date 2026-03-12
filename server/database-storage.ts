@@ -36,20 +36,19 @@ export interface IStorage {
 }
 
 export class DatabaseStorage implements IStorage {
-  private isInitialized: boolean = false;
+  private initPromise: Promise<void> | null = null;
 
   constructor() {
-    this.initializeData();
+    this.initPromise = this.initializeData();
   }
 
   private async initializeData() {
-    if (this.isInitialized) return;
     
     try {
       // Check if data already exists in database
       const existingTerritories = await db.select().from(territories).limit(1);
       if (existingTerritories.length > 0) {
-        this.isInitialized = true;
+        // initialization complete
         console.log('Database already contains Indigenous territories data');
         return;
       }
@@ -58,7 +57,7 @@ export class DatabaseStorage implements IStorage {
       const geojsonPath = path.join(__dirname, '..', 'attached_assets', 'ABN_2.geojson');
       console.log('Loading updated Indigenous territories from:', geojsonPath);
       
-      const geojsonData = JSON.parse(fs.readFileSync(geojsonPath, 'utf8'));
+      const geojsonData = JSON.parse(await fs.promises.readFile(geojsonPath, 'utf8'));
       const territoryColors = ['#E74C3C', '#3498DB', '#F39C12', '#27AE60', '#9B59B6', '#E67E22', '#8E44AD', '#2ECC71', '#F1C40F', '#34495E'];
       
       console.log(`Found ${geojsonData.features.length} authentic Indigenous territories in GeoJSON data`);
@@ -122,7 +121,7 @@ export class DatabaseStorage implements IStorage {
       // Add sample Indigenous businesses and cultural sites
       await this.initializeSampleData();
       
-      this.isInitialized = true;
+      // initialization complete
     } catch (error) {
       console.error('Error loading Indigenous territories data:', error);
     }
@@ -208,8 +207,8 @@ export class DatabaseStorage implements IStorage {
 
   // Territory retrieval methods
   async getTerritories(): Promise<Territory[]> {
-    if (!this.isInitialized) {
-      await this.initializeData();
+    if (this.initPromise) {
+      await this.initPromise;
     }
     return await db.select().from(territories);
   }

@@ -4,3 +4,24 @@ dist
 server/public
 vite.config.ts.*
 *.tar.gz
+
+# Environment variables & secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+credentials.json
+
+# Local config
+.config/
+.local/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+Thumbs.db

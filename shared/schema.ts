@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, jsonb, real } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, jsonb, real, index } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -24,7 +24,11 @@ export const territories = pgTable("territories", {
   culturalProtocols: text("cultural_protocols"),
   connectionToCountry: text("connection_to_country"),
   artStyles: text("art_styles").array().default([]),
-});
+}, (table) => [
+  index("idx_territories_name").on(table.name),
+  index("idx_territories_region").on(table.region),
+  index("idx_territories_language_family").on(table.languageFamily),
+]);
 
 export const businesses = pgTable("businesses", {
   id: serial("id").primaryKey(),
@@ -58,7 +62,11 @@ export const businesses = pgTable("businesses", {
   verificationConfidence: text("verification_confidence"), // 'high', 'medium', 'low'
   verificationNotes: text("verification_notes"),
   verifiedBy: text("verified_by"),
-});
+}, (table) => [
+  index("idx_businesses_territory").on(table.territoryId),
+  index("idx_businesses_name").on(table.name),
+  index("idx_businesses_type").on(table.businessType),
+]);
 
 export const culturalSites = pgTable("cultural_sites", {
   id: serial("id").primaryKey(),
@@ -97,7 +105,11 @@ export const nativeTitleClaims = pgTable("native_title_claims", {
   registrationDate: text("registration_date"),
   lastUpdated: text("last_updated"),
   dataSource: text("data_source").default("Australian Government Native Title Tribunal")
-});
+}, (table) => [
+  index("idx_native_title_status").on(table.status),
+  index("idx_native_title_state").on(table.state),
+  index("idx_native_title_applicant").on(table.applicantName),
+]);
 
 export const supplyNationBusinesses = pgTable("supply_nation_businesses", {
   id: serial("id").primaryKey(),
@@ -136,7 +148,13 @@ export const miningTenements = pgTable("mining_tenements", {
   // Indexing for fast filtering
   holderNormalized: text("holder_normalized"), // Normalized company name for searching
   majorCompany: integer("major_company").default(0), // 1 if BHP, Rio Tinto, Fortescue, etc.
-});
+}, (table) => [
+  index("idx_mining_status").on(table.status),
+  index("idx_mining_type").on(table.tenementType),
+  index("idx_mining_holder").on(table.holderNormalized),
+  index("idx_mining_state").on(table.state),
+  index("idx_mining_coords").on(table.centerLat, table.centerLng),
+]);
 
 export const insertTerritorySchema = createInsertSchema(territories).omit({
   id: true,
