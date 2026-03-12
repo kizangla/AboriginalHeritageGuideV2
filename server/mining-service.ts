@@ -3,8 +3,7 @@
  * Provides authentic mining tenement data with Aboriginal territory overlap analysis
  */
 
-import fetch from 'node-fetch';
-import { alternativeWAMiningService } from './wa-demirs-alternative-access.js';
+import { fetchMiningTenementsForTerritory } from './wa-dmirs-tenements-service';
 
 export interface MiningTenement {
   id: string;
@@ -44,34 +43,30 @@ class MiningService {
     try {
       console.log('Fetching mining tenements from WA Government sources...');
 
-      // Try alternative authentic WA Government endpoints
-      const result = await alternativeWAMiningService.fetchMiningData(bounds);
-      
-      // Transform to our format
+      const bboxStr = bounds
+        ? `${bounds.west},${bounds.south},${bounds.east},${bounds.north}`
+        : '112,-35,129,-13'; // Default to WA bounds
+
+      const result = await fetchMiningTenementsForTerritory(bboxStr);
+
       const tenements = result.tenements.map((tenement: any) => ({
-        id: tenement.id,
-        tenementType: tenement.tenementType,
-        tenementNumber: tenement.tenementNumber,
-        holder: tenement.holder,
-        status: tenement.status,
-        area: tenement.area,
-        grantDate: tenement.grantDate,
-        expiryDate: tenement.expiryDate,
-        commodities: tenement.commodities,
+        id: tenement.id || tenement.tenementId,
+        tenementType: tenement.type || 'Unknown',
+        tenementNumber: tenement.tenementId || 'Unknown',
+        holder: tenement.holders?.[0]?.name || 'Unknown',
+        commodity: [],
+        status: tenement.status || 'Unknown',
+        area: tenement.area || 0,
         geometry: tenement.geometry,
-        overlapsAboriginalTerritory: tenement.overlapsAboriginalTerritory || false,
-        aboriginalTerritoryNames: tenement.aboriginalTerritoryNames || []
+        overlapsAboriginalTerritory: false,
+        aboriginalTerritories: []
       }));
-
-      const overlappingCount = tenements.filter(t => t.overlapsAboriginalTerritory).length;
-
-      console.log(`Found ${tenements.length} mining tenements from ${result.source}`);
 
       return {
         tenements,
         totalResults: tenements.length,
-        source: result.source,
-        overlappingCount
+        source: 'wa_demirs' as const,
+        overlappingCount: 0
       };
 
     } catch (error) {
