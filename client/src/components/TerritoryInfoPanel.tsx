@@ -141,7 +141,7 @@ export default function TerritoryInfoPanel({
           <Globe className="w-5 h-5 text-purple-600" />
           <div>
             <div className="text-xs text-purple-600 font-semibold">Language Data</div>
-            <div className="text-sm text-gray-800">Requires AIATSIS credentials</div>
+            <div className="text-sm text-foreground">Requires AIATSIS credentials</div>
           </div>
         </div>
 
@@ -149,7 +149,7 @@ export default function TerritoryInfoPanel({
           <AlertCircle className="w-4 h-4 text-amber-600" />
           <div>
             <div className="text-xs text-amber-600 font-medium">Population Data</div>
-            <div className="text-sm text-gray-800">Requires ABS credentials</div>
+            <div className="text-sm text-foreground">Requires ABS credentials</div>
           </div>
         </div>
       </div>
@@ -168,7 +168,7 @@ export default function TerritoryInfoPanel({
           {nativeTitleData?.nativeTitleData?.hasNativeTitle ? (
             <div className="space-y-4">
               {/* Status */}
-              <div className="text-sm text-gray-700">
+              <div className="text-sm text-foreground">
                 <strong>Status:</strong> {nativeTitleData?.nativeTitleData?.status || 'Active Native Title Claims'}
               </div>
 
@@ -199,10 +199,10 @@ export default function TerritoryInfoPanel({
                 if (ownersList.length > 0) {
                   return (
                     <div className="bg-gray-50 p-3 rounded-lg border border-gray-200">
-                      <div className="text-sm text-gray-700 font-medium mb-2">Traditional Owners:</div>
+                      <div className="text-sm text-foreground font-medium mb-2">Traditional Owners:</div>
                       <div className="space-y-1">
                         {ownersList.map((owner, index) => (
-                          <div key={index} className="flex items-center gap-2 text-sm text-gray-600">
+                          <div key={index} className="flex items-center gap-2 text-sm text-muted-foreground">
                             <span className="w-1.5 h-1.5 bg-orange-400 rounded-full flex-shrink-0"></span>
                             <span>{owner}</span>
                           </div>
@@ -216,7 +216,7 @@ export default function TerritoryInfoPanel({
 
               {/* Cultural Significance */}
               {nativeTitleData?.nativeTitleData?.culturalSignificance && (
-                <div className="text-xs text-gray-600 italic bg-orange-25 p-2 rounded border-l-4 border-orange-300">
+                <div className="text-xs text-muted-foreground italic bg-orange-25 p-2 rounded border-l-4 border-orange-300">
                   {nativeTitleData.nativeTitleData.culturalSignificance}
                 </div>
               )}
@@ -224,7 +224,7 @@ export default function TerritoryInfoPanel({
               {/* Native Title Applications */}
               {nativeTitleData.nativeTitleData.applications && nativeTitleData.nativeTitleData.applications.length > 0 && (
                 <div className="bg-white border border-orange-200 rounded-lg p-3">
-                  <div className="text-xs text-gray-600 font-medium mb-3 flex items-center gap-2">
+                  <div className="text-xs text-muted-foreground font-medium mb-3 flex items-center gap-2">
                     <span className="w-2 h-2 bg-orange-500 rounded-full"></span>
                     {nativeTitleData.nativeTitleData.applications.length} Native Title application(s) recorded
                   </div>
@@ -233,8 +233,8 @@ export default function TerritoryInfoPanel({
                     {nativeTitleData.nativeTitleData.applications.map((app: any, index: number) => (
                       <div key={index} className="p-2 bg-orange-25 rounded border border-orange-100">
                         <div className="flex flex-col gap-1 text-xs">
-                          <div className="font-medium text-gray-800">{app.applicantName}</div>
-                          <div className="flex flex-col sm:flex-row sm:gap-3 text-gray-600">
+                          <div className="font-medium text-foreground">{app.applicantName}</div>
+                          <div className="flex flex-col sm:flex-row sm:gap-3 text-muted-foreground">
                             {app.tribunalNumber && (
                               <div>Tribunal: {app.tribunalNumber}</div>
                             )}
@@ -259,7 +259,7 @@ export default function TerritoryInfoPanel({
             </div>
           )}
 
-          <div className="text-xs text-gray-500 pt-2 border-t border-orange-200 space-y-1">
+          <div className="text-xs text-muted-foreground pt-2 border-t border-orange-200 space-y-1">
             <div className="flex flex-col sm:flex-row sm:items-center gap-1">
               <strong>Source:</strong>
               <span className="break-words">{nativeTitleData.dataSource}</span>
@@ -294,7 +294,7 @@ export default function TerritoryInfoPanel({
 
       {nativeTitleLoading && (
         <div className="space-y-2 p-3 bg-gray-50 rounded-lg">
-          <div className="flex items-center gap-2 text-sm text-gray-600">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <div className="animate-spin w-4 h-4 border-2 border-gray-300 border-t-gray-600 rounded-full"></div>
             Loading Native Title information...
           </div>
@@ -374,7 +374,7 @@ export default function TerritoryInfoPanel({
                     AI Researched
                   </Badge>
                 ) : (
-                  <Badge variant="outline" className="bg-gray-100 text-gray-600 border-gray-300 text-xs">
+                  <Badge variant="outline" className="bg-muted text-muted-foreground border-gray-300 text-xs">
                     Click to load
                   </Badge>
                 )}
@@ -431,7 +431,7 @@ export default function TerritoryInfoPanel({
       {/* Traditional Languages */}
       {traditionalLanguages && traditionalLanguages.length > 0 && (
         <div className="space-y-2">
-          <div className="flex items-center gap-2 text-sm font-medium text-gray-700">
+          <div className="flex items-center gap-2 text-sm font-medium text-foreground">
             <Globe className="w-4 h-4" />
             Traditional Languages
           </div>
@@ -442,7 +442,7 @@ export default function TerritoryInfoPanel({
               </Badge>
             ))}
             {traditionalLanguages.length > 4 && (
-              <Badge variant="outline" className="text-xs bg-gray-100">
+              <Badge variant="outline" className="text-xs bg-muted">
                 +{traditionalLanguages.length - 4} more
               </Badge>
             )}
@@ -452,7 +452,7 @@ export default function TerritoryInfoPanel({
 
       {/* Cultural Indicators */}
       <div className="flex items-center justify-between pt-2 border-t border-gray-100">
-        <div className="flex items-center gap-2 sm:gap-4 text-xs text-gray-500">
+        <div className="flex items-center gap-2 sm:gap-4 text-xs text-muted-foreground">
           <div className="flex items-center gap-1">
             <Calendar className="w-3 h-3" />
             <span className="hidden sm:inline">Ancient Heritage</span>
@@ -515,7 +515,7 @@ export default function TerritoryInfoPanel({
 
   // Desktop: Use premium glass floating card panel
   return (
-    <Card className="absolute bottom-24 right-6 z-[1000] w-96 max-w-md glass-strong rounded-2xl shadow-premium-xl animate-slide-in-right overflow-hidden" data-testid="territory-info-panel">
+    <Card className="absolute bottom-24 right-6 z-[1000] w-full max-w-sm md:w-96 glass-strong rounded-2xl shadow-premium-xl animate-slide-in-right overflow-hidden" data-testid="territory-info-panel">
       <CardHeader className="pb-3 px-6 glass-subtle border-b border-earth-brown/10">
         <div className="flex items-start justify-between gap-2">
           <div className="flex-1 min-w-0">
@@ -538,7 +538,7 @@ export default function TerritoryInfoPanel({
             variant="ghost"
             size="sm"
             onClick={onClose}
-            className="h-8 w-8 p-0 hover:bg-gray-100 rounded-xl smooth-transition"
+            className="h-8 w-8 p-0 hover:bg-muted rounded-xl smooth-transition"
             data-testid="button-close-panel"
           >
             <X className="w-4 h-4" />
