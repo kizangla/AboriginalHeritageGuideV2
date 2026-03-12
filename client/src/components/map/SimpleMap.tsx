@@ -120,14 +120,11 @@ export default function SimpleMap({ onMapReady, onTerritorySelect, regionFilter,
   // Handler for layer opacity change
   const handleLayerOpacityChange = (layerId: string, opacity: number) => {
     // This would need to be implemented with actual layer opacity control
-    console.log(`Setting ${layerId} opacity to ${opacity}%`);
   };
 
   useEffect(() => {
     if (!mapRef.current || mapInstanceRef.current) return;
 
-    console.log('SimpleMap: Creating map...');
-    
     const map = L.map(mapRef.current, {
       zoomControl: false  // Disable default left-side zoom control, using custom controls on right
     }).setView([-25.2744, 133.7751], 5);
@@ -142,8 +139,6 @@ export default function SimpleMap({ onMapReady, onTerritorySelect, regionFilter,
     if (onMapReady) {
       onMapReady(map);
     }
-
-    console.log('SimpleMap: Map created successfully');
 
     return () => {
       if (mapInstanceRef.current) {
@@ -161,9 +156,6 @@ export default function SimpleMap({ onMapReady, onTerritorySelect, regionFilter,
     if (territoryLayerRef.current) {
       mapInstanceRef.current.removeLayer(territoryLayerRef.current);
     }
-
-    console.log('Adding Aboriginal territories base layer...');
-    console.log('Territories data received:', territoriesGeoJSON?.features?.length || 0);
 
     // Filter territories based on region and Native Title status
     let filteredTerritories = territoriesGeoJSON.features;
@@ -257,8 +249,6 @@ export default function SimpleMap({ onMapReady, onTerritorySelect, regionFilter,
       });
     }
 
-    console.log(`Displaying ${filteredTerritories.length} territories after filtering`);
-
     // Add filtered territory layer with styling
     if (filteredTerritories.length > 0) {
       const territoryLayer = L.geoJSON(filteredTerritories as any, {
@@ -317,7 +307,6 @@ export default function SimpleMap({ onMapReady, onTerritorySelect, regionFilter,
       territoryLayerRef.current = territoryLayer;
       territoryLayer.addTo(mapInstanceRef.current);
       
-      console.log(`Added ${territoriesGeoJSON.features.length} Aboriginal territories base layer`);
     }
   }, [territoriesGeoJSON, isLoading, onTerritorySelect]);
 
@@ -337,8 +326,6 @@ export default function SimpleMap({ onMapReady, onTerritorySelect, regionFilter,
         const featureRegion = feature.properties?.region;
         return featureRegion === regionFilter;
       });
-
-      console.log(`Adding ${regionFilter} overlay with ${filteredFeatures.length} territories`);
 
       const getRegionColor = (region: string) => {
         switch (region) {
@@ -445,8 +432,6 @@ export default function SimpleMap({ onMapReady, onTerritorySelect, regionFilter,
 
   const loadRATSIBBoundaries = async (lat: number, lng: number, territoryName: string) => {
     try {
-      console.log(`Fetching RATSIB boundaries for ${territoryName} from Australian Government...`);
-      
       // Use our backend API to fetch RATSIB boundaries
       const response = await fetch(`/api/territories/${encodeURIComponent(territoryName)}/ratsib?lat=${lat}&lng=${lng}`);
       if (!response.ok) {
@@ -456,7 +441,6 @@ export default function SimpleMap({ onMapReady, onTerritorySelect, regionFilter,
       
       const data = await response.json();
       if (!data.success || !data.ratsib.boundaries || data.ratsib.boundaries.length === 0) {
-        console.log('No RATSIB boundaries found for this region');
         return;
       }
 
@@ -526,7 +510,6 @@ export default function SimpleMap({ onMapReady, onTerritorySelect, regionFilter,
       }).addTo(mapInstanceRef.current!);
 
       ratsibLayerRef.current = ratsibLayer;
-      console.log(`Added ${data.ratsib.boundaries.length} RATSIB boundaries to map for ${territoryName}`);
     } catch (error) {
       console.warn('Failed to load RATSIB boundaries:', error);
     }
@@ -540,8 +523,6 @@ export default function SimpleMap({ onMapReady, onTerritorySelect, regionFilter,
     const bounds = mapInstanceRef.current.getBounds();
     
     try {
-      console.log('Loading RATSIB boundaries for map view...');
-      
       // Use optimized fetch with caching and deduplication
       const data = await dataOptimizationService.optimizedFetch(
         `/api/territories/map-view/ratsib?lat=${center.lat}&lng=${center.lng}`
@@ -550,7 +531,6 @@ export default function SimpleMap({ onMapReady, onTerritorySelect, regionFilter,
       // Start prefetching nearby areas for smoother navigation
       dataOptimizationService.prefetchNearbyRATSIB(center.lat, center.lng);
       if (!data.success || !data.ratsib.boundaries || data.ratsib.boundaries.length === 0) {
-        console.log('No RATSIB boundaries found for current map view');
         return;
       }
 
@@ -629,7 +609,6 @@ export default function SimpleMap({ onMapReady, onTerritorySelect, regionFilter,
       }).addTo(mapInstanceRef.current);
 
       ratsibLayerRef.current = ratsibLayer;
-      console.log(`Added ${data.ratsib.boundaries.length} RATSIB boundaries to map view`);
     } catch (error) {
       console.warn('Failed to load RATSIB boundaries for map view:', error);
     }
@@ -640,8 +619,6 @@ export default function SimpleMap({ onMapReady, onTerritorySelect, regionFilter,
     if (!mapInstanceRef.current || !showRATSIBBoundaries) return;
 
     try {
-      console.log('Loading all RATSIB boundaries across Australia...');
-      
       // Remove existing RATSIB layer
       if (ratsibLayerRef.current) {
         mapInstanceRef.current.removeLayer(ratsibLayerRef.current);
@@ -657,7 +634,6 @@ export default function SimpleMap({ onMapReady, onTerritorySelect, regionFilter,
       
       const data = await response.json();
       if (!data.success || !data.ratsib.boundaries || data.ratsib.boundaries.length === 0) {
-        console.log('No RATSIB boundaries found');
         return;
       }
 
@@ -723,7 +699,6 @@ export default function SimpleMap({ onMapReady, onTerritorySelect, regionFilter,
       }).addTo(mapInstanceRef.current);
 
       ratsibLayerRef.current = ratsibLayer;
-      console.log(`Added ${data.ratsib.boundaries.length} RATSIB boundaries across Australia`);
     } catch (error) {
       console.warn('Failed to load all RATSIB boundaries:', error);
     }
@@ -737,7 +712,6 @@ export default function SimpleMap({ onMapReady, onTerritorySelect, regionFilter,
       // Remove RATSIB layer when filter is disabled
       mapInstanceRef.current.removeLayer(ratsibLayerRef.current);
       ratsibLayerRef.current = null;
-      console.log('RATSIB boundaries hidden');
     } else if (showRATSIBBoundaries && !ratsibLayerRef.current) {
       // Check if we're at the default map view (Australia-wide)
       const center = mapInstanceRef.current.getCenter();
@@ -769,7 +743,6 @@ export default function SimpleMap({ onMapReady, onTerritorySelect, regionFilter,
         <SearchAutocomplete
           map={mapInstanceRef.current}
           onSelectResult={(result) => {
-            console.log('Selected search result:', result);
             // If it's a territory, trigger the onTerritorySelect callback
             if (result.type === 'territory' && result.metadata) {
               onTerritorySelect?.(result.metadata);
@@ -849,7 +822,6 @@ export default function SimpleMap({ onMapReady, onTerritorySelect, regionFilter,
       <DataFreshnessIndicator
         isOpen={true}
         onRefresh={(sourceId) => {
-          console.log(`Refreshing data source: ${sourceId}`);
           // This would trigger a refresh of the specific data source
         }}
       />
