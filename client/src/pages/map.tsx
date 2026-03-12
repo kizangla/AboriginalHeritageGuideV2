@@ -5,6 +5,7 @@ import TerritoryInfoPanel from '@/components/TerritoryInfoPanel';
 import FloatingMapControls from '@/components/FloatingMapControls';
 import CollapsibleSearch from '@/components/CollapsibleSearch';
 import { Button } from '@/components/ui/button';
+import { DarkModeToggle } from '@/components/DarkModeToggle';
 import { Building2 } from 'lucide-react';
 import { Link } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
@@ -171,6 +172,7 @@ function MapContent() {
             </div>
           </div>
           <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+            <DarkModeToggle />
             <Link href="/business-search">
               <Button variant="outline" size="icon" className="hover-lift bg-white/50 border-earth-brown/20 hover:bg-earth-beige hover:border-earth-brown/40 md:size-auto md:px-4" data-testid="link-business-directory">
                 <Building2 className="w-4 h-4 md:mr-2" />
