@@ -187,14 +187,7 @@ function MapContent() {
         <SimpleMap
           onMapReady={setMapInstance}
           onTerritorySelect={handleTerritorySelect}
-          regionFilter={selectedRegion}
-          nativeTitleFilter={nativeTitleFilters}
-          selectedTerritory={selectedTerritory}
-          showRATSIBBoundaries={layers.ratsib}
-          businessSearchQuery={businessSearchQuery}
           onBusinessSelect={handleBusinessSelectFromMap}
-          showMining={layers.mining}
-          showExploration={layers.exploration}
         />
 
         {/* Floating Map Controls */}

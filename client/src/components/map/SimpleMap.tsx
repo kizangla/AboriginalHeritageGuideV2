@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import L from 'leaflet';
 import type { Territory } from '@shared/schema';
-import type { NativeTitleStatusFilter } from '@/components/NativeTitleFilter';
+import { useMapContext } from '@/contexts/MapContext';
 import { dataOptimizationService } from '@/lib/data-optimization';
 import EnhancedBusinessMarkers from './EnhancedBusinessMarkers';
 import EnhancedMiningOverlay from './EnhancedMiningOverlay';
@@ -24,17 +24,21 @@ import { cn } from '@/lib/utils';
 interface SimpleMapProps {
   onMapReady?: (map: L.Map) => void;
   onTerritorySelect?: (territory: Territory) => void;
-  regionFilter?: string | null;
-  nativeTitleFilter?: NativeTitleStatusFilter;
-  selectedTerritory?: Territory | null;
-  showRATSIBBoundaries?: boolean;
-  businessSearchQuery?: string;
   onBusinessSelect?: (business: any) => void;
-  showMining?: boolean;
-  showExploration?: boolean;
 }
 
-export default function SimpleMap({ onMapReady, onTerritorySelect, regionFilter, nativeTitleFilter, selectedTerritory, showRATSIBBoundaries = true, businessSearchQuery, onBusinessSelect, showMining = false, showExploration = false }: SimpleMapProps) {
+export default function SimpleMap({ onMapReady, onTerritorySelect, onBusinessSelect }: SimpleMapProps) {
+  const {
+    selectedRegion: regionFilter,
+    nativeTitleFilters: nativeTitleFilter,
+    selectedTerritory,
+    layers: contextLayers,
+    businessSearchQuery,
+  } = useMapContext();
+
+  const showRATSIBBoundaries = contextLayers.ratsib;
+  const showMining = contextLayers.mining;
+  const showExploration = contextLayers.exploration;
   const { toast } = useToast();
   const isMobile = useIsMobile();
   const mapRef = useRef<HTMLDivElement>(null);
